@@ -5,6 +5,7 @@ import Lottie from "lottie-react";
 import treeAnimation from "../asset/tree.json";
 import studyAnimation from "../asset/Study.json";
 import bookAnimation from "../asset/Books.json";
+import timeAnimation from "../asset/timehere.json";
 import { useNavigate } from "react-router-dom";
 
 function HomePage() {
@@ -74,6 +75,21 @@ function HomePage() {
                         <div className="lottie-container-3">
                             <Lottie animationData={bookAnimation} loop={true}/>
                         </div>
+                    </div>
+                </div>
+                <div className="homepage-main-4">
+                    <div className="homepage-left-4">
+                        <div className="lottie-container-4">
+                            <Lottie animationData={timeAnimation} loop={true}/>
+                        </div>
+                    </div>
+                    <div className="homepage-right-4">
+                        <h1 className="homepage-title-4">
+                            Học mọi lúc mọi nơi.
+                        </h1>
+                        <p className="homepage-subtitle-4">
+                            Không cần giờ giấc cố định, TREEdu giúp bạn học mọi lúc mọi nơi, vừa chơi vừa luyện phát âm chuẩn như người bản xứ.
+                        </p>
                     </div>
                 </div>
 

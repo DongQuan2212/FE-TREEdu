@@ -3,14 +3,15 @@ import Footer from "../components/Footer/Footer";
 import React, { useState } from 'react';
 import Logo from "../asset/logo.png"
 import '../styles/LoginPage.css';
-
+import { useNavigate } from "react-router-dom";
+import RegisterPage from "./RegisterPage";
 const LoginPage = () => {
+    const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
     const handleLogin = () => {
-        console.log('Đăng nhập:', { email, password });
-        alert('Đăng nhập thành công!');
+        navigate("/home")
     };
 
     return (
@@ -64,9 +65,9 @@ const LoginPage = () => {
                         Đăng Nhập
                     </button>
                 </div>
-                <div className="register-link">
+                <div className="register-link" >
                     <p>Chưa có tài khoản?</p>
-                    <a href="#">Đăng ký ngay</a>
+                    <a href="/register">Đăng ký ngay</a>
                 </div>
             </div>
         </div>
