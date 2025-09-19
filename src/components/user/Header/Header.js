@@ -10,6 +10,9 @@ const Header = () => {
     const handleLogoClick = () => {
         navigate("/");
     };
+    const handleIntro = () => {
+        navigate("/intro");
+    };
 
     return (
         <header className="header">
@@ -27,7 +30,7 @@ const Header = () => {
                         <li>Bài quiz</li>
                         <li>Flashcard</li>
                         <li>Phòng luyện phát âm</li>
-                        <li>Giới thiệu</li>
+                        <li onClick={handleIntro}>Giới thiệu</li>
                         <li>Liên lạc</li>
                     </ul>
                 </nav>

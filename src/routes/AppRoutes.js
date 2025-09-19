@@ -5,6 +5,8 @@ import AdminDashboard from "../pages/admin/AdminDashboard";
 import SupporterDashboard from "../pages/supporter/SupporterDashboard";
 import RegisterPage from "../pages/RegisterPage";
 import Home from "../pages/user/Home";
+import QuizPage from "../pages/user/QuizPage";
+import IntroPage from "../pages/user/IntroPage";
 function AppRoutes() {
     return (
         <Router>
@@ -16,6 +18,9 @@ function AppRoutes() {
 
                 {/* User Routes */}
                 <Route path="/home" element={<Home/>} />
+                <Route path="/quiz" element={<QuizPage/>} />
+                <Route path="/intro" element={<IntroPage/>} />
+
 
                 {/* Admin Role */}
                 <Route path="/admin/dashboard" element={<AdminDashboard />} />

@@ -13,8 +13,6 @@
     backdrop-filter: blur(10px);
     border-bottom: 1px solid #ddd;
 }
-
-
 .header-logo {
     display: flex;
     align-items: center;

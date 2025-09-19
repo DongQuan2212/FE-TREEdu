@@ -1,34 +1,268 @@
 main {
     padding-top: 70px;
     min-height: calc(100vh - 140px);
+    transition: padding 0.3s ease;
 }
-
 .swiper {
     width: 100%;
-    height:675px;
+    height: 100%;
+    transition: height 0.3s ease;
 }
 
-/* Ảnh banner */
 .swiper-slide img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    border-radius: 8px;
+    transition: all 0.3s ease;
 }
 
-/* Pagination dots */
+/* ========== Pagination dots ========== */
 .swiper-pagination-bullet {
     background-color: #ccc;
     opacity: 1;
+    transition: all 0.3s ease;
 }
 
 .swiper-pagination-bullet-active {
-    background-color: #000000; /* xanh */
+    background-color: #000;
+    transform: scale(1.2);
 }
 
-/* Nút prev/next */
+/* ========== Nút prev/next ========== */
 .swiper-button-next,
 .swiper-button-prev {
-    color: #ffffff;
+    color: #fff;
     font-size: 20px;
     font-weight: bold;
+    transition: color 0.3s ease;
+}
+
+.swiper-button-next:hover,
+.swiper-button-prev:hover {
+    color: #f39c12;
+}
+
+@media (min-width: 1920px) {
+    main {
+        padding-top: 75px;
+        min-height: calc(100vh - 160px);
+    }
+    .swiper {
+        height: 850px;
+    }
+    .swiper-slide img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+}
+
+/* Laptop phổ biến (≥1366px và <1920px) */
+@media (min-width: 1366px) and (max-width: 1919px) {
+    .swiper {
+        height: 675px;
+    }
+}
+
+/* Tablet ngang (≥1024px và <1366px) */
+@media (min-width: 1024px) and (max-width: 1365px) {
+    main {
+        padding-top: 70px;
+        min-height: calc(100vh - 130px);
+    }
+    .swiper {
+        height: 550px;
+    }
+    .swiper-slide img {
+        border-radius: 8px;
+    }
+}
+
+/* Tablet dọc (≥768px và <1024px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+    main {
+        padding-top: 60px;
+        min-height: calc(100vh - 120px);
+    }
+    .swiper {
+        height: 400px;
+    }
+    .swiper-slide img {
+        border-radius: 6px;
+    }
+}
+
+/* Mobile lớn (≥480px và <768px) */
+@media (min-width: 480px) and (max-width: 767px) {
+    main {
+        padding-top: 50px;
+        min-height: calc(100vh - 100px);
+    }
+    .swiper {
+        height: 300px;
+    }
+    .swiper-slide img {
+        border-radius: 4px;
+    }
+    .swiper-button-next,
+    .swiper-button-prev {
+        font-size: 16px;
+    }
+}
+
+/* Mobile nhỏ (<480px) */
+@media (max-width: 479px) {
+    main {
+        padding-top: 40px;
+        min-height: calc(100vh - 90px);
+    }
+    .swiper {
+        height: 220px;
+    }
+    .swiper-slide img {
+        border-radius: 3px;
+    }
+    .swiper-button-next,
+    .swiper-button-prev {
+        font-size: 14px;
+    }
+}
+/* CSS cho phần Các Chức Năng */
+.features-section {
+    padding: 60px 0;
+    background-color: #f8f9fa;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.features-title {
+    text-align: center;
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 80px;
+    position: relative;
+}
+
+.features-title::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 3px;
+    background: linear-gradient(90deg, #368530, #d0d898);
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 30px;
+    margin-top: 40px;
+}
+
+.feature-card {
+    background: white;
+    padding: 40px 30px;
+    border-radius: 15px;
+    text-align: center;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    border: 1px solid #e9ecef;
+}
+
+.feature-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+}
+
+.feature-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 25px;
+    background: linear-gradient(135deg, #405040, #23910c);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: white;
+    transition: all 0.3s ease;
+}
+
+.feature-icon img {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    filter: brightness(0) invert(1); /* Làm cho icon trở thành màu trắng */
+}
+
+.feature-card:hover .feature-icon {
+    transform: scale(1.1);
+}
+
+.feature-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 15px;
+}
+
+.feature-description {
+    color: #666;
+    line-height: 1.6;
+    margin-bottom: 25px;
+    font-size: 16px;
+}
+
+.feature-btn {
+    background: linear-gradient(135deg, #e6eaef, #3e751d);
+    color: #191919;
+    border: none;
+
+    padding: 12px 30px;
+    border-radius: 25px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 1rem;
+}
+
+.feature-btn:hover {
+    background: linear-gradient(135deg, #3e751d,#e6eaef);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 123, 255, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .features-section {
+        padding: 40px 0;
+    }
+
+    .features-title {
+        font-size: 2rem;
+        margin-bottom: 30px;
+    }
+
+    .features-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .feature-card {
+        padding: 30px 20px;
+    }
+
+    .feature-icon {
+        width: 60px;
+        height: 60px;
+        font-size: 1.5rem;
+    }
 }
