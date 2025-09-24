@@ -6,13 +6,7 @@ import treeAnimation from "../../asset/tree.json";
 import studyAnimation from "../../asset/Study.json";
 import bookAnimation from "../../asset/Books.json";
 import timeAnimation from "../../asset/timehere.json";
-import { useNavigate } from "react-router-dom";
-
 function IntroPage() {
-    const navigate = useNavigate();
-    const handleGetStarted = () => {
-        navigate("/login");
-    };
 
     return (
         <div>

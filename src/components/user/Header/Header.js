@@ -8,10 +8,16 @@ const Header = () => {
     const navigate = useNavigate();
 
     const handleLogoClick = () => {
-        navigate("/");
+        navigate("/home");
     };
     const handleIntro = () => {
         navigate("/intro");
+    };
+    const handleQuiz = () => {
+        navigate("/quiz");
+    };
+    const handleFlashcard = () => {
+        navigate("/flashcard");
     };
 
     return (
@@ -27,8 +33,8 @@ const Header = () => {
             <div className="header-right">
                 <nav className="header-nav">
                     <ul>
-                        <li>Bài quiz</li>
-                        <li>Flashcard</li>
+                        <li onClick={handleQuiz}>Bài quiz</li>
+                        <li onClick={handleFlashcard}>Flashcard</li>
                         <li>Phòng luyện phát âm</li>
                         <li onClick={handleIntro}>Giới thiệu</li>
                         <li>Liên lạc</li>

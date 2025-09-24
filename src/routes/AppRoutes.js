@@ -7,6 +7,9 @@ import RegisterPage from "../pages/RegisterPage";
 import Home from "../pages/user/Home";
 import QuizPage from "../pages/user/QuizPage";
 import IntroPage from "../pages/user/IntroPage";
+import QuizTakingPage from "../pages/user/QuizTakingPage";
+import DiscoverFlashCardPage from "../pages/user/DiscoverFlashCardPage";
+import MyFlashCardPage from "../pages/user/MyFlashCardPage";
 function AppRoutes() {
     return (
         <Router>
@@ -19,7 +22,12 @@ function AppRoutes() {
                 {/* User Routes */}
                 <Route path="/home" element={<Home/>} />
                 <Route path="/quiz" element={<QuizPage/>} />
+                <Route path="/quiz/:quizId" element={<QuizTakingPage />} />
                 <Route path="/intro" element={<IntroPage/>} />
+                <Route path="flashcard/discover" element={<DiscoverFlashCardPage/>} />
+                <Route path="/flashcard/me" element={<MyFlashCardPage/>} />
+                <Route path="/flashcard" element={<MyFlashCardPage/>} />
+
 
 
                 {/* Admin Role */}

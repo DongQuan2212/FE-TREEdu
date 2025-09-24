@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Header from "../../components/user/Header/Header";
 import Footer from "../../components/Footer/Footer";
 import { quizData, getUniqueTopics, getUniqueLevels } from "../../Data/dataQuiz";
-import "../../styles/user/quiz.css";
+import "../../styles/user/quizPage.css";
 import iconTime from "../../asset/User/time.png"
 import iconQuestion from "../../asset/User/question.png"
 import iconTopic from "../../asset/User/topic.png"
 
 function QuizPage() {
+    const navigate = useNavigate();
     const [quizzes] = useState(quizData);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedLevel, setSelectedLevel] = useState('all');
@@ -40,6 +42,7 @@ function QuizPage() {
                 return 0;
         }
     });
+
     const getLevelColor = (level) => {
         const colors = {
             1: '#28a745',
@@ -54,6 +57,10 @@ function QuizPage() {
 
     const getLevelText = (level) => {
         return `Level ${level}`;
+    };
+
+    const handleStartQuiz = (quizId) => {
+        navigate(`/quiz/${quizId}`);
     };
 
     return (
@@ -161,20 +168,25 @@ function QuizPage() {
                                         </div>
                                         <div className="stat-item">
                                             <span className="stat-icon">
-                                                <img src={iconQuestion} alt="time"/>
+                                                <img src={iconQuestion} alt="question"/>
                                             </span>
                                             <span className="stat-value">{quiz.questionCount} câu</span>
                                         </div>
                                         <div className="stat-item">
                                             <span className="stat-icon">
-                                                <img src={iconTopic} alt="time"/>
+                                                <img src={iconTopic} alt="topic"/>
                                             </span>
                                             <span className="stat-value">{quiz.topic}</span>
                                         </div>
                                     </div>
 
                                     <div className="quiz-actions">
-                                        <button className="quiz-btn primary">Bắt đầu Quiz</button>
+                                        <button
+                                            className="quiz-btn primary"
+                                            onClick={() => handleStartQuiz(quiz.id)}
+                                        >
+                                            Bất đầu làm Quiz
+                                        </button>
                                     </div>
                                 </div>
                             ))

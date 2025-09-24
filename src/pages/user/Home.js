@@ -15,9 +15,15 @@ import iconFlashcard from "../../asset/User/flash-cards.png"
 import iconRoom from "../../asset/User/room.png"
 
 import "../../styles/user/home.css";
+import {useNavigate} from "react-router-dom";
 
 
 function HomePage() {
+    const navigate = useNavigate();
+
+    const handleJoinQuiz = () => {
+        navigate("/quiz");
+    };
     return (
         <div>
             <Header />
@@ -56,7 +62,7 @@ function HomePage() {
                                 <p className="feature-description">
                                     Tập hợp các bài tập nhanh bao ồm nhiều tài phù hợp với từng level của bạn.
                                 </p>
-                                <button className="feature-btn">Tham gia</button>
+                                <button className="feature-btn" onClick={handleJoinQuiz}>Tham gia</button>
                             </div>
 
                             <div className="feature-card">
@@ -68,7 +74,7 @@ function HomePage() {
                                     Tạo các thẻ từ vựng, cũng như có sẵn các bộ từ vựng từ hệ thống da dạng nhiều chủ
                                     đề.
                                 </p>
-                                <button className="feature-btn">Tham gia</button>
+                                <button className="feature-btn" >Tham gia</button>
                             </div>
 
                             <div className="feature-card">

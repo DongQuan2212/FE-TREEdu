@@ -11,24 +11,24 @@
     padding: 0 20px;
 }
 
-/* Page Header */
+
 .page-header {
     text-align: center;
     margin-bottom: 40px;
     padding: 40px 0;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #30573b 0%, #368530 100%);
     border-radius: 15px;
     color: white;
 }
 
-.page-title {
+.quiz-page .page-title {
     font-size: 2.5rem;
     font-weight: bold;
     margin-bottom: 10px;
     text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
 }
 
-.page-description {
+.quiz-page .page-description {
     font-size: 1.1rem;
     opacity: 0.9;
     max-width: 600px;
@@ -61,7 +61,7 @@
 
 .search-input:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: #12771b;
     background-color: white;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
@@ -96,18 +96,19 @@
 
 .filter-select:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: #368530;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .results-info {
+    display: flex;
     margin-bottom: 20px;
     color: #6c757d;
-    font-size: 0.95rem;
+
 }
 
 .results-info strong {
-    color: #495057;
+    color: #000000;
 }
 
 .quiz-grid {
@@ -146,7 +147,7 @@
     left: 0;
     right: 0;
     height: 4px;
-    background: linear-gradient(90deg, #667eea, #764ba2);
+    background: linear-gradient(90deg, #42485e, #368530);
 }
 
 .quiz-header {
@@ -226,47 +227,31 @@
     padding: 12px 20px;
     border: none;
     border-radius: 8px;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
     transition: all 0.3s ease;
     font-size: 0.9rem;
 }
 
 .quiz-btn.primary {
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    color: white;
+    background: linear-gradient(135deg, #e6eaef, #3e751d);
+    color: rgba(0, 0, 0, 0.64);
 }
 
 .quiz-btn.primary:hover {
-    background: linear-gradient(135deg, #5a67d8, #6b46c1);
+    background: linear-gradient(135deg, #3e751d,#e6eaef);
     transform: translateY(-2px);
 }
-
-.quiz-btn.secondary {
-    background: transparent;
-    color: #667eea;
-    border: 2px solid #667eea;
-}
-
-.quiz-btn.secondary:hover {
-    background: #667eea;
-    color: white;
-}
-
-/* No Results */
 .no-results {
     grid-column: 1 / -1;
-    text-align: center;
-    padding: 60px 20px;
+    text-align: left;
     color: #6c757d;
 }
-
 .no-results h3 {
     font-size: 1.5rem;
     margin-bottom: 10px;
     color: #495057;
 }
-
 /* Responsive Design */
 @media (max-width: 768px) {
     .page-title {
