@@ -16,7 +16,7 @@ function HomePage() {
                 <div className="homepage-hero-content">
                     <div className="homepage-left-content">
                         <h1 className="homepage-main-title">
-                            Cùng TREEdu trồng cây tri thức, thành thạo Tiếng Việt từ gốc rễ.
+                            Cùng TREEdu trồng câdfewy tri thức, thành thạo Tiếng Việt từ gốc rễ.
                         </h1>
 
                         <p className="homepage-subtitle">
