@@ -1,0 +1,237 @@
+.admin-wrapper {
+    display: flex;
+    min-height: 100vh;
+
+}
+.admin-content {
+    margin-left: 230px; /* bằng width sidebar */
+    width: calc(100% - 230px);
+    padding: 20px;
+    background: white;
+}
+/* Admin Homepage */
+.admin-homepage {
+
+}
+
+/* Header */
+.homepage-header {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 40px;
+}
+
+.avatar-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background-color: white;
+    padding: 12px 20px;
+    border-radius: 50px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    transition: box-shadow 0.3s;
+}
+
+.avatar-section:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.admin-avatar {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #7cb342 0%, #558b2f 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.admin-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.admin-name {
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 15px;
+}
+
+.admin-role {
+    font-size: 12px;
+    color: #7f8c8d;
+}
+
+/* Content */
+.homepage-content {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Welcome Section */
+.welcome-section {
+    margin-bottom: 40px;
+    text-align: left;
+}
+
+.welcome-title {
+    font-size: 36px;
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 12px;
+    line-height: 1.2;
+}
+
+.welcome-subtitle {
+    font-size: 18px;
+    color: #7f8c8d;
+}
+
+/* Cards Section */
+.cards-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 24px;
+    margin-top: 30px;
+}
+
+/* Management Card */
+.management-card {
+    background-color: white;
+    border-radius: 12px;
+    padding: 28px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: transform 0.3s, box-shadow 0.3s;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.management-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+/* Card Icon */
+.card-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.employee-icon {
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+}
+
+.user-icon {
+    background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+}
+
+/* Card Content */
+.card-content {
+    flex: 2;
+}
+
+.card-title {
+    font-size: 20px;
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 12px;
+}
+
+.card-description {
+    font-size: 14px;
+    color: #7f8c8d;
+    line-height: 1.6;
+}
+
+/* Card Actions */
+.card-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.btn-primary {
+    padding: 10px 24px;
+    background-color: #7cb342;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    width: 50%;
+}
+
+.btn-primary:hover {
+    background-color: #689f38;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .admin-homepage {
+        padding: 16px;
+    }
+
+    .homepage-header {
+        margin-bottom: 30px;
+    }
+
+    .welcome-title {
+        font-size: 28px;
+    }
+
+    .welcome-subtitle {
+        font-size: 16px;
+    }
+
+    .cards-section {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .management-card {
+        padding: 20px;
+    }
+
+    .card-title {
+        font-size: 18px;
+    }
+
+    .admin-name {
+        display: none;
+    }
+
+    .admin-role {
+        display: none;
+    }
+
+    .avatar-section {
+        padding: 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    .welcome-title {
+        font-size: 24px;
+    }
+
+    .card-icon {
+        width: 50px;
+        height: 50px;
+    }
+
+    .card-icon svg {
+        width: 24px;
+        height: 24px;
+    }
+}

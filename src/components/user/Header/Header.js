@@ -23,9 +23,9 @@ const Header = () => {
     return (
         <header className="header">
             {/* Logo bên trái */}
-            <div className="header-logo" onClick={handleLogoClick}>
+            <div className="header-logo" >
                 <div className="header-logo-icon">
-                    <img src={Logo} alt="logo"/>
+                    <img src={Logo} onClick={handleLogoClick} alt="logo"/>
                 </div>
             </div>
 

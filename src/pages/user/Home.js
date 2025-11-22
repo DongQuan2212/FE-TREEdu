@@ -2,7 +2,7 @@ import Header from "../../components/user/Header/Header";
 import Footer from "../../components/Footer/Footer";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination, Navigation } from "swiper/modules";
-import Spline from '@splinetool/react-spline';
+
 
 import "swiper/css";
 import "swiper/css/pagination";
@@ -23,6 +23,9 @@ function HomePage() {
 
     const handleJoinQuiz = () => {
         navigate("/quiz");
+    };
+    const handleJoinFlashCard = () => {
+        navigate("/flashcard");
     };
     return (
         <div>
@@ -74,7 +77,7 @@ function HomePage() {
                                     Tạo các thẻ từ vựng, cũng như có sẵn các bộ từ vựng từ hệ thống da dạng nhiều chủ
                                     đề.
                                 </p>
-                                <button className="feature-btn" >Tham gia</button>
+                                <button className="feature-btn" onClick={handleJoinFlashCard} >Tham gia</button>
                             </div>
 
                             <div className="feature-card">

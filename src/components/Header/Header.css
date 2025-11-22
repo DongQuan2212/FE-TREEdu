@@ -20,8 +20,8 @@
     cursor: pointer;
 }
 .header-logo-icon {
-    margin-left: 20px;
-    width: 35px;
+    margin-left: 1px;
+    width: 200px;
     height: 35px;
     display: flex;
     align-items: center;

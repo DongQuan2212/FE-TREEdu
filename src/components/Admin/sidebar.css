@@ -1,0 +1,62 @@
+
+.sidebar {
+    width: 250px;
+    background: #1f2937;
+    height: 100vh;
+    position: fixed;
+    left: 0;
+    top: 0;
+    padding: 20px 0;
+    color: white;
+}
+.sidebar .lottie{
+    margin-top: 160px;
+}
+
+.sidebar-logo {
+    margin-left: 100px;
+    margin-top: 40px;
+    margin-bottom: 50px;
+    width: 35px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.sidebar-logo img
+{
+    height: 390px;
+    width: 390px;
+}
+
+.sidebar-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.sidebar-item {
+    padding: 16px 20px;
+    text-decoration: none;
+    color: #cbd5e1;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    transition: .2s;
+    font-size: 18px;
+}
+
+.sidebar-item:hover {
+    background: #334155;
+    color: #fff;
+}
+
+
+
+.logout-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+}
