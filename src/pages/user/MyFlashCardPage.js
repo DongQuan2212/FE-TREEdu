@@ -118,12 +118,7 @@ function MyFlashCardPage() {
                         >
                             List của tôi
                         </button>
-                        <button
-                            onClick={handleGoToDiscover}
-                            className="px-10 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition"
-                        >
-                            Khám phá
-                        </button>
+
                     </div>
 
                     <h2 className="text-3xl font-bold text-gray-800 mb-10 text-center md:text-left">
