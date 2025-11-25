@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import Header from "../../components/user/Header/Header";
+import Header from "../../components/user/Header";
 import Footer from "../../components/Footer/Footer";
-import "../../styles/user/flashCardPage.css";
+
 import { flashcardData} from '../../Data/flashcardData';
 import {useNavigate} from "react-router-dom";
 import iconDictionary from "../../asset/User/dictionary.png";
