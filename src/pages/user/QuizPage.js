@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from "react-router-dom";
-import Header from "../../components/user/Header/Header";
+import Header from "../../components/user/Header";
 import Footer from "../../components/Footer/Footer";
 import axios from 'axios';
 
@@ -119,7 +119,7 @@ function QuizPage() {
         <>
             <Header />
 
-            <main className="min-h-screen bg-gray-50 pt-200 pb-16 px-4">
+            <main className="min-h-screen bg-gray-50 pt-20 pb-16 px-4">
                 <div className="max-w-6xl mx-auto">
 
                     {/* Hero */}

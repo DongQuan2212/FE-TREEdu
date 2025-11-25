@@ -1,7 +1,9 @@
+// src/pages/admin/AdminManagerUser.js
 import React, { useState } from 'react';
-import { Search, Plus, Edit2, Trash2, Eye, X } from 'lucide-react';
-import Sidebar from "../../components/Admin/sidebar";
-import '../../styles/admin/UserManagement.css';
+import { Search, Plus, Eye, Edit2, Trash2, Users } from 'lucide-react';
+import Sidebar from "../../components/Admin/Sidebar";
+import UserFormModal from "../../components/Admin/UserFormModal";
+import UserDetailModal from "../../components/Admin/UserDetailModal";
 
 const AdminManagerUser = () => {
     const [users, setUsers] = useState([
@@ -13,17 +15,10 @@ const AdminManagerUser = () => {
 
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
-    const [showModal, setShowModal] = useState(false);
+    const [showFormModal, setShowFormModal] = useState(false);
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [modalMode, setModalMode] = useState('add');
     const [selectedUser, setSelectedUser] = useState(null);
-    const [formData, setFormData] = useState({
-        name: '',
-        email: '',
-        phone: '',
-        status: 'active',
-        createdDate: ''
-    });
 
     const filteredUsers = users.filter(user => {
         const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -32,141 +27,131 @@ const AdminManagerUser = () => {
         return matchesSearch && matchesStatus;
     });
 
-    const handleAdd = () => {
+    const handleOpenAdd = () => {
         setModalMode('add');
-        const today = new Date().toISOString().split('T')[0];
-        setFormData({ name: '', email: '', phone: '', status: 'active', createdDate: today });
-        setShowModal(true);
+        setSelectedUser(null);
+        setShowFormModal(true);
     };
 
-    const handleEdit = (user) => {
+    const handleOpenEdit = (user) => {
         setModalMode('edit');
         setSelectedUser(user);
-        setFormData(user);
-        setShowModal(true);
+        setShowFormModal(true);
     };
 
-    const handleDelete = (id) => {
-        if (window.confirm('Bạn có chắc chắn muốn xóa người dùng này?')) {
-            setUsers(users.filter(user => user.id !== id));
-        }
-    };
-
-    const handleViewDetail = (user) => {
+    const handleView = (user) => {
         setSelectedUser(user);
         setShowDetailModal(true);
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
+    const handleFormSubmit = (formData) => {
         if (modalMode === 'add') {
             const newUser = {
                 ...formData,
-                id: Math.max(...users.map(u => u.id)) + 1
+                id: users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1
             };
-            setUsers([...users, newUser]);
+            setUsers(prev => [...prev, newUser]);
         } else {
-            setUsers(users.map(user =>
-                user.id === selectedUser.id ? { ...formData, id: user.id } : user
+            setUsers(prev => prev.map(u =>
+                u.id === selectedUser.id ? { ...formData, id: u.id } : u
             ));
         }
-        setShowModal(false);
+        setShowFormModal(false);
     };
 
-    const formatDate = (dateString) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('vi-VN');
+    const handleDelete = (id) => {
+        if (window.confirm('Xác nhận xóa người dùng này?')) {
+            setUsers(prev => prev.filter(u => u.id !== id));
+        }
     };
+
+    const formatDate = (dateString) => new Date(dateString).toLocaleDateString('vi-VN');
 
     return (
-        <div className="admin-wrapper">
+        <div className="min-h-screen bg-gray-50 flex">
             <Sidebar />
-            <div className="admin-content">
-                <div className="user-management">
-                    <div className="user-container">
-                        {/* Header */}
-                        <div className="user-header">
-                            <h1 className="user-title">Quản lý người dùng</h1>
-                            <p className="user-subtitle">Quản lý tài khoản và thông tin người dùng</p>
+
+            <div className="flex-1 ml-0 lg:ml-64 transition-all duration-300">
+                <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+                    <div className="px-6 py-4 flex items-center justify-between">
+                        <div>
+                            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                                <Users className="w-8 h-8 text-purple-600" />
+                                Quản lý người dùng
+                            </h1>
+                            <p className="text-gray-600 mt-1">Quản lý tài khoản khách hàng và trạng thái hoạt động</p>
                         </div>
+                        <button onClick={handleOpenAdd}
+                                className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-3 rounded-lg font-medium flex items-center gap-2 transition">
+                            <Plus className="w-5 h-5" /> Thêm người dùng
+                        </button>
+                    </div>
+                </header>
 
-                        {/* Search and Filter Bar */}
-                        <div className="user-toolbar">
-                            <div className="toolbar-content">
-                                {/* Search */}
-                                <div className="search-wrapper">
-                                    <Search size={20} className="search-icon" />
-                                    <input
-                                        type="text"
-                                        placeholder="Tìm kiếm người dùng..."
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="search-input"
-                                    />
-                                </div>
-
-                                {/* Filter */}
-                                <select
-                                    value={filterStatus}
-                                    onChange={(e) => setFilterStatus(e.target.value)}
-                                    className="filter-select"
-                                >
-                                    <option value="all">Tất cả trạng thái</option>
-                                    <option value="active">Đang hoạt động</option>
-                                    <option value="inactive">Ngưng hoạt động</option>
-                                </select>
-
-                                {/* Add Button */}
-                                <button onClick={handleAdd} className="btn-add">
-                                    <Plus size={18} />
-                                    Thêm người dùng
-                                </button>
+                <main className="p-6 max-w-7xl mx-auto space-y-6">
+                    {/* Search & Filter */}
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                        <div className="flex flex-col sm:flex-row gap-4">
+                            <div className="flex-1 relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                <input
+                                    type="text"
+                                    placeholder="Tìm kiếm tên, email..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                                />
                             </div>
+                            <select
+                                value={filterStatus}
+                                onChange={(e) => setFilterStatus(e.target.value)}
+                                className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                            >
+                                <option value="all">Tất cả trạng thái</option>
+                                <option value="active">Đang hoạt động</option>
+                                <option value="inactive">Ngưng hoạt động</option>
+                            </select>
                         </div>
+                    </div>
 
-                        {/* User Table */}
-                        <div className="user-table-wrapper">
-                            <table className="user-table">
-                                <thead>
+                    {/* Table */}
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead className="bg-gray-50 border-b border-gray-200">
                                 <tr>
-                                    <th>Tên người dùng</th>
-                                    <th>Email</th>
-                                    <th>Trạng thái</th>
-                                    <th className="text-center">Thao tác</th>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Tên</th>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Email</th>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Số điện thoại</th>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Ngày tạo</th>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Trạng thái</th>
+                                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Thao tác</th>
                                 </tr>
                                 </thead>
-                                <tbody>
+                                <tbody className="divide-y divide-gray-200">
                                 {filteredUsers.map((user) => (
-                                    <tr key={user.id}>
-                                        <td className="user-name">{user.name}</td>
-                                        <td className="user-email">{user.email}</td>
-                                        <td>
-                        <span className={`status-badge ${user.status}`}>
-                          {user.status === 'active' ? 'Đang hoạt động' : 'Ngưng hoạt động'}
-                        </span>
+                                    <tr key={user.id} className="hover:bg-gray-50 transition">
+                                        <td className="px-6 py-4 font-medium text-gray-900">{user.name}</td>
+                                        <td className="px-6 py-4 text-gray-600">{user.email}</td>
+                                        <td className="px-6 py-4 text-gray-600">{user.phone}</td>
+                                        <td className="px-6 py-4 text-gray-600">{formatDate(user.createdDate)}</td>
+                                        <td className="px-6 py-4">
+                                                <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
+                                                    user.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                                }`}>
+                                                    {user.status === 'active' ? 'Đang hoạt động' : 'Ngưng hoạt động'}
+                                                </span>
                                         </td>
-                                        <td>
-                                            <div className="action-buttons">
-                                                <button
-                                                    onClick={() => handleViewDetail(user)}
-                                                    className="btn-action btn-view"
-                                                    title="Xem chi tiết"
-                                                >
-                                                    <Eye size={16} />
+                                        <td className="px-6 py-4">
+                                            <div className="flex justify-center gap-3">
+                                                <button onClick={() => handleView(user)} className="p-2.5 hover:bg-blue-50 rounded-lg text-blue-600 transition">
+                                                    <Eye className="w-4 h-4" />
                                                 </button>
-                                                <button
-                                                    onClick={() => handleEdit(user)}
-                                                    className="btn-action btn-edit"
-                                                    title="Sửa"
-                                                >
-                                                    <Edit2 size={16} />
+                                                <button onClick={() => handleOpenEdit(user)} className="p-2.5 hover:bg-yellow-50 rounded-lg text-yellow-600 transition">
+                                                    <Edit2 className="w-4 h-4" />
                                                 </button>
-                                                <button
-                                                    onClick={() => handleDelete(user.id)}
-                                                    className="btn-action btn-delete"
-                                                    title="Xóa"
-                                                >
-                                                    <Trash2 size={16} />
+                                                <button onClick={() => handleDelete(user.id)} className="p-2.5 hover:bg-red-50 rounded-lg text-red-600 transition">
+                                                    <Trash2 className="w-4 h-4" />
                                                 </button>
                                             </div>
                                         </td>
@@ -174,144 +159,29 @@ const AdminManagerUser = () => {
                                 ))}
                                 </tbody>
                             </table>
-
                             {filteredUsers.length === 0 && (
-                                <div className="empty-state">
+                                <div className="text-center py-16 text-gray-500 font-medium">
                                     Không tìm thấy người dùng nào
                                 </div>
                             )}
                         </div>
-
-                        {/* Add/Edit Modal */}
-                        {showModal && (
-                            <div className="modal-overlay">
-                                <div className="modal-content">
-                                    <div className="modal-header">
-                                        <h2 className="modal-title">
-                                            {modalMode === 'add' ? 'Thêm người dùng mới' : 'Chỉnh sửa người dùng'}
-                                        </h2>
-                                        <button onClick={() => setShowModal(false)} className="btn-close">
-                                            <X size={24} />
-                                        </button>
-                                    </div>
-
-                                    <div className="modal-body">
-                                        <div className="form-group">
-                                            <label className="form-label">Tên người dùng *</label>
-                                            <input
-                                                type="text"
-                                                value={formData.name}
-                                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                                required
-                                                className="form-input"
-                                            />
-                                        </div>
-
-                                        <div className="form-group">
-                                            <label className="form-label">Email *</label>
-                                            <input
-                                                type="email"
-                                                value={formData.email}
-                                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                                required
-                                                className="form-input"
-                                            />
-                                        </div>
-
-                                        <div className="form-group">
-                                            <label className="form-label">Số điện thoại *</label>
-                                            <input
-                                                type="tel"
-                                                value={formData.phone}
-                                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                                required
-                                                className="form-input"
-                                            />
-                                        </div>
-
-                                        <div className="form-group">
-                                            <label className="form-label">Ngày tạo *</label>
-                                            <input
-                                                type="date"
-                                                value={formData.createdDate}
-                                                onChange={(e) => setFormData({ ...formData, createdDate: e.target.value })}
-                                                required
-                                                className="form-input"
-                                                disabled={modalMode === 'edit'}
-                                            />
-                                        </div>
-
-                                        <div className="form-group">
-                                            <label className="form-label">Trạng thái *</label>
-                                            <select
-                                                value={formData.status}
-                                                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                                                className="form-input"
-                                            >
-                                                <option value="active">Đang hoạt động</option>
-                                                <option value="inactive">Ngưng hoạt động</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div className="modal-footer">
-                                        <button onClick={() => setShowModal(false)} className="btn-cancel">
-                                            Hủy
-                                        </button>
-                                        <button onClick={handleSubmit} className="btn-submit">
-                                            {modalMode === 'add' ? 'Thêm' : 'Cập nhật'}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Detail Modal */}
-                        {showDetailModal && selectedUser && (
-                            <div className="modal-overlay">
-                                <div className="modal-content">
-                                    <div className="modal-header">
-                                        <h2 className="modal-title">Chi tiết người dùng</h2>
-                                        <button onClick={() => setShowDetailModal(false)} className="btn-close">
-                                            <X size={24} />
-                                        </button>
-                                    </div>
-
-                                    <div className="modal-body">
-                                        <div className="detail-group">
-                                            <div className="detail-label">Tên người dùng</div>
-                                            <div className="detail-value">{selectedUser.name}</div>
-                                        </div>
-                                        <div className="detail-group">
-                                            <div className="detail-label">Email</div>
-                                            <div className="detail-value">{selectedUser.email}</div>
-                                        </div>
-                                        <div className="detail-group">
-                                            <div className="detail-label">Số điện thoại</div>
-                                            <div className="detail-value">{selectedUser.phone}</div>
-                                        </div>
-                                        <div className="detail-group">
-                                            <div className="detail-label">Ngày tạo</div>
-                                            <div className="detail-value">{formatDate(selectedUser.createdDate)}</div>
-                                        </div>
-                                        <div className="detail-group">
-                                            <div className="detail-label">Trạng thái</div>
-                                            <span className={`status-badge ${selectedUser.status}`}>
-                        {selectedUser.status === 'active' ? 'Đang hoạt động' : 'Ngưng hoạt động'}
-                      </span>
-                                        </div>
-                                    </div>
-
-                                    <div className="modal-footer">
-                                        <button onClick={() => setShowDetailModal(false)} className="btn-close-detail">
-                                            Đóng
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
                     </div>
-                </div>
+                </main>
+
+                {/* Chỉ 2 dòng này là đủ! */}
+                <UserFormModal
+                    isOpen={showFormModal}
+                    onClose={() => setShowFormModal(false)}
+                    mode={modalMode}
+                    user={selectedUser}
+                    onSubmit={handleFormSubmit}
+                />
+
+                <UserDetailModal
+                    isOpen={showDetailModal}
+                    onClose={() => setShowDetailModal(false)}
+                    user={selectedUser}
+                />
             </div>
         </div>
     );

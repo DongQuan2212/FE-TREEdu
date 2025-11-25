@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Search, Plus, Edit2, Trash2, Eye, X } from 'lucide-react';
-import Sidebar from "../../components/Admin/sidebar";
-import '../../styles/admin/EmployeeManagement.css';
-
+import { Search, Plus, Eye, Edit2, Trash2, UserCheck } from 'lucide-react';
+import Sidebar from "../../components/Admin/Sidebar";
+import EmployeeFormModal from "../../components/Admin/EmployeeFormModal";
+import EmployeeDetailModal from "../../components/Admin/EmployeeDetailModal";
 const EmployeeManagement = () => {
     const [employees, setEmployees] = useState([
         { id: 1, name: 'Nguyễn Văn A', position: 'Quản lý Quizz', status: 'active', email: 'vana@tredu.com', phone: '0901234567' },
@@ -13,154 +13,134 @@ const EmployeeManagement = () => {
 
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
-    const [showModal, setShowModal] = useState(false);
+    const [showFormModal, setShowFormModal] = useState(false);
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [modalMode, setModalMode] = useState('add');
     const [selectedEmployee, setSelectedEmployee] = useState(null);
-    const [formData, setFormData] = useState({
-        name: '',
-        position: '',
-        status: 'active',
-        email: '',
-        phone: ''
-    });
 
     const filteredEmployees = employees.filter(emp => {
         const matchesSearch = emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            emp.position.toLowerCase().includes(searchTerm.toLowerCase());
+            emp.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            emp.email.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesStatus = filterStatus === 'all' || emp.status === filterStatus;
         return matchesSearch && matchesStatus;
     });
 
-    const handleAdd = () => {
+    const handleOpenAdd = () => {
         setModalMode('add');
-        setFormData({ name: '', position: '', status: 'active', email: '', phone: '' });
-        setShowModal(true);
+        setSelectedEmployee(null);
+        setShowFormModal(true);
     };
 
-    const handleEdit = (employee) => {
+    const handleOpenEdit = (emp) => {
         setModalMode('edit');
-        setSelectedEmployee(employee);
-        setFormData(employee);
-        setShowModal(true);
+        setSelectedEmployee(emp);
+        setShowFormModal(true);
     };
 
-    const handleDelete = (id) => {
-        if (window.confirm('Bạn có chắc chắn muốn xóa nhân viên này?')) {
-            setEmployees(employees.filter(emp => emp.id !== id));
-        }
-    };
-
-    const handleViewDetail = (employee) => {
-        setSelectedEmployee(employee);
+    const handleView = (emp) => {
+        setSelectedEmployee(emp);
         setShowDetailModal(true);
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
+    const handleFormSubmit = (formData) => {
         if (modalMode === 'add') {
-            const newEmployee = {
+            const newEmp = {
                 ...formData,
-                id: Math.max(...employees.map(e => e.id)) + 1
+                id: employees.length > 0 ? Math.max(...employees.map(e => e.id)) + 1 : 1
             };
-            setEmployees([...employees, newEmployee]);
+            setEmployees(prev => [...prev, newEmp]);
         } else {
-            setEmployees(employees.map(emp =>
-                emp.id === selectedEmployee.id ? { ...formData, id: emp.id } : emp
+            setEmployees(prev => prev.map(e =>
+                e.id === selectedEmployee.id ? { ...formData, id: e.id } : e
             ));
         }
-        setShowModal(false);
     };
 
+    const handleDelete = (id) => {
+        if (window.confirm('Xác nhận xóa nhân viên này?')) {
+            setEmployees(prev => prev.filter(e => e.id !== id));
+        }
+    };
     return (
-        <div className="admin-wrapper">
+        <div className="min-h-screen bg-gray-50 flex">
             <Sidebar />
-            <div className="admin-content">
-                <div className="employee-management">
-                    <div className="employee-container">
-                        {/* Header */}
-                        <div className="employee-header">
-                            <h1 className="employee-title">Quản lý nhân viên</h1>
-                            <p className="employee-subtitle">Quản lý thông tin và trạng thái nhân viên</p>
+            <div className="flex-1 ml-0 lg:ml-64 transition-all duration-300">
+                <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+                    <div className="px-6 py-4 flex items-center justify-between">
+                        <div>
+                            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                                <UserCheck className="w-8 h-8 text-lime-600" />
+                                Quản lý nhân viên
+                            </h1>
+                            <p className="text-gray-600 mt-1">Quản lý thông tin và phân quyền nhân viên hệ thống</p>
                         </div>
-
-                        {/* Search and Filter Bar */}
-                        <div className="employee-toolbar">
-                            <div className="toolbar-content">
-                                {/* Search */}
-                                <div className="search-wrapper">
-                                    <Search size={20} className="search-icon" />
-                                    <input
-                                        type="text"
-                                        placeholder="Tìm kiếm nhân viên..."
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="search-input"
-                                    />
-                                </div>
-
-                                {/* Filter */}
-                                <select
-                                    value={filterStatus}
-                                    onChange={(e) => setFilterStatus(e.target.value)}
-                                    className="filter-select"
-                                >
-                                    <option value="all">Tất cả trạng thái</option>
-                                    <option value="active">Đang hoạt động</option>
-                                    <option value="inactive">Ngưng hoạt động</option>
-                                </select>
-
-                                {/* Add Button */}
-                                <button onClick={handleAdd} className="btn-add">
-                                    <Plus size={18} />
-                                    Thêm nhân viên
-                                </button>
+                        <button onClick={handleOpenAdd} className="bg-lime-600 hover:bg-lime-700 text-white px-5 py-3 rounded-lg font-medium flex items-center gap-2 transition">
+                            <Plus className="w-5 h-5" /> Thêm nhân viên
+                        </button>
+                    </div>
+                </header>
+                <main className="p-6 max-w-7xl mx-auto space-y-6">
+                    {/* Search & Filter */}
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                        <div className="flex flex-col sm:flex-row gap-4">
+                            <div className="flex-1 relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                <input
+                                    type="text"
+                                    placeholder="Tìm kiếm tên, chức vụ, email..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lime-500 focus:border-transparent outline-none"
+                                />
                             </div>
+                            <select
+                                value={filterStatus}
+                                onChange={(e) => setFilterStatus(e.target.value)}
+                                className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lime-500 outline-none"
+                            >
+                                <option value="all">Tất cả trạng thái</option>
+                                <option value="active">Đang hoạt động</option>
+                                <option value="inactive">Ngưng hoạt động</option>
+                            </select>
                         </div>
-
-                        {/* Employee Table */}
-                        <div className="employee-table-wrapper">
-                            <table className="employee-table">
-                                <thead>
+                    </div>
+                    {/* Table */}
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead className="bg-gray-50 border-b border-gray-200">
                                 <tr>
-                                    <th>Tên nhân viên</th>
-                                    <th>Chức vụ</th>
-                                    <th>Trạng thái</th>
-                                    <th className="text-center">Thao tác</th>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Tên nhân viên</th>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Chức vụ</th>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Email</th>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Trạng thái</th>
+                                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Thao tác</th>
                                 </tr>
                                 </thead>
-                                <tbody>
-                                {filteredEmployees.map((employee) => (
-                                    <tr key={employee.id}>
-                                        <td className="employee-name">{employee.name}</td>
-                                        <td className="employee-position">{employee.position}</td>
-                                        <td>
-                    <span className={`status-badge ${employee.status}`}>
-                      {employee.status === 'active' ? 'Đang hoạt động' : 'Ngưng hoạt động'}
-                    </span>
+                                <tbody className="divide-y divide-gray-200">
+                                {filteredEmployees.map((emp) => (
+                                    <tr key={emp.id} className="hover:bg-gray-50 transition">
+                                        <td className="px-6 py-4 font-medium text-gray-900">{emp.name}</td>
+                                        <td className="px-6 py-4 text-gray-600">{emp.position}</td>
+                                        <td className="px-6 py-4 text-gray-600">{emp.email}</td>
+                                        <td className="px-6 py-4">
+                                                <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
+                                                    emp.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                                }`}>
+                                                    {emp.status === 'active' ? 'Đang hoạt động' : 'Ngưng hoạt động'}
+                                                </span>
                                         </td>
-                                        <td>
-                                            <div className="action-buttons">
-                                                <button
-                                                    onClick={() => handleViewDetail(employee)}
-                                                    className="btn-action btn-view"
-                                                    title="Xem chi tiết"
-                                                >
-                                                    <Eye size={16} />
+                                        <td className="px-6 py-4">
+                                            <div className="flex justify-center gap-3">
+                                                <button onClick={() => handleView(emp)} className="p-2.5 hover:bg-blue-50 rounded-lg text-blue-600 transition">
+                                                    <Eye className="w-4 h-4" />
                                                 </button>
-                                                <button
-                                                    onClick={() => handleEdit(employee)}
-                                                    className="btn-action btn-edit"
-                                                    title="Sửa"
-                                                >
-                                                    <Edit2 size={16} />
+                                                <button onClick={() => handleOpenEdit(emp)} className="p-2.5 hover:bg-yellow-50 rounded-lg text-yellow-600 transition">
+                                                    <Edit2 className="w-4 h-4" />
                                                 </button>
-                                                <button
-                                                    onClick={() => handleDelete(employee.id)}
-                                                    className="btn-action btn-delete"
-                                                    title="Xóa"
-                                                >
-                                                    <Trash2 size={16} />
+                                                <button onClick={() => handleDelete(emp.id)} className="p-2.5 hover:bg-red-50 rounded-lg text-red-600 transition">
+                                                    <Trash2 className="w-4 h-4" />
                                                 </button>
                                             </div>
                                         </td>
@@ -168,147 +148,32 @@ const EmployeeManagement = () => {
                                 ))}
                                 </tbody>
                             </table>
-
                             {filteredEmployees.length === 0 && (
-                                <div className="empty-state">
+                                <div className="text-center py-16 text-gray-500 font-medium">
                                     Không tìm thấy nhân viên nào
                                 </div>
                             )}
                         </div>
-
-                        {/* Add/Edit Modal */}
-                        {showModal && (
-                            <div className="modal-overlay">
-                                <div className="modal-content">
-                                    <div className="modal-header">
-                                        <h2 className="modal-title">
-                                            {modalMode === 'add' ? 'Thêm nhân viên mới' : 'Chỉnh sửa nhân viên'}
-                                        </h2>
-                                        <button onClick={() => setShowModal(false)} className="btn-close">
-                                            <X size={24} />
-                                        </button>
-                                    </div>
-
-                                    <div className="modal-body">
-                                        <div className="form-group">
-                                            <label className="form-label">Tên nhân viên *</label>
-                                            <input
-                                                type="text"
-                                                value={formData.name}
-                                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                                required
-                                                className="form-input"
-                                            />
-                                        </div>
-
-                                        <div className="form-group">
-                                            <label className="form-label">Chức vụ *</label>
-                                            <input
-                                                type="text"
-                                                value={formData.position}
-                                                onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                                                required
-                                                className="form-input"
-                                            />
-                                        </div>
-
-                                        <div className="form-group">
-                                            <label className="form-label">Email *</label>
-                                            <input
-                                                type="email"
-                                                value={formData.email}
-                                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                                required
-                                                className="form-input"
-                                            />
-                                        </div>
-
-                                        <div className="form-group">
-                                            <label className="form-label">Số điện thoại *</label>
-                                            <input
-                                                type="tel"
-                                                value={formData.phone}
-                                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                                required
-                                                className="form-input"
-                                            />
-                                        </div>
-
-                                        <div className="form-group">
-                                            <label className="form-label">Trạng thái *</label>
-                                            <select
-                                                value={formData.status}
-                                                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                                                className="form-input"
-                                            >
-                                                <option value="active">Đang hoạt động</option>
-                                                <option value="inactive">Ngưng hoạt động</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div className="modal-footer">
-                                        <button onClick={() => setShowModal(false)} className="btn-cancel">
-                                            Hủy
-                                        </button>
-                                        <button onClick={handleSubmit} className="btn-submit">
-                                            {modalMode === 'add' ? 'Thêm' : 'Cập nhật'}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Detail Modal */}
-                        {showDetailModal && selectedEmployee && (
-                            <div className="modal-overlay">
-                                <div className="modal-content">
-                                    <div className="modal-header">
-                                        <h2 className="modal-title">Chi tiết nhân viên</h2>
-                                        <button onClick={() => setShowDetailModal(false)} className="btn-close">
-                                            <X size={24} />
-                                        </button>
-                                    </div>
-
-                                    <div className="modal-body">
-                                        <div className="detail-group">
-                                            <div className="detail-label">Tên nhân viên</div>
-                                            <div className="detail-value">{selectedEmployee.name}</div>
-                                        </div>
-                                        <div className="detail-group">
-                                            <div className="detail-label">Chức vụ</div>
-                                            <div className="detail-value">{selectedEmployee.position}</div>
-                                        </div>
-                                        <div className="detail-group">
-                                            <div className="detail-label">Email</div>
-                                            <div className="detail-value">{selectedEmployee.email}</div>
-                                        </div>
-                                        <div className="detail-group">
-                                            <div className="detail-label">Số điện thoại</div>
-                                            <div className="detail-value">{selectedEmployee.phone}</div>
-                                        </div>
-                                        <div className="detail-group">
-                                            <div className="detail-label">Trạng thái</div>
-                                            <span className={`status-badge ${selectedEmployee.status}`}>
-                    {selectedEmployee.status === 'active' ? 'Đang hoạt động' : 'Ngưng hoạt động'}
-                  </span>
-                                        </div>
-                                    </div>
-
-                                    <div className="modal-footer">
-                                        <button onClick={() => setShowDetailModal(false)} className="btn-close-detail">
-                                            Đóng
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
                     </div>
-                </div>
+                </main>
+
+                {/* Chỉ 2 dòng này là đủ cho toàn bộ modal! */}
+                <EmployeeFormModal
+                    isOpen={showFormModal}
+                    onClose={() => setShowFormModal(false)}
+                    mode={modalMode}
+                    employee={selectedEmployee}
+                    onSubmit={handleFormSubmit}
+                />
+
+                <EmployeeDetailModal
+                    isOpen={showDetailModal}
+                    onClose={() => setShowDetailModal(false)}
+                    employee={selectedEmployee}
+                />
             </div>
         </div>
+    );
+};
 
-                );
-                };
-
-                export default EmployeeManagement;
+export default EmployeeManagement;
