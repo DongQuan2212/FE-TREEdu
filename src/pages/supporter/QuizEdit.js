@@ -1,8 +1,10 @@
 // src/pages/supporter/QuizEdit.js
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Save, ArrowLeft, AlertCircle, GripVertical } from 'lucide-react';
+import { Plus, Trash2, Save, ArrowLeft, AlertCircle } from 'lucide-react';
 import SupporterSidebar from '../../components/Supporter/SupporterSidebar';
 import { useNavigate, useParams } from 'react-router-dom';
+
+const API_URL = 'http://localhost:3001/api';
 
 const QuizEdit = () => {
     const { id } = useParams();
@@ -16,25 +18,25 @@ const QuizEdit = () => {
         questions: []
     });
 
+    const [selectedIdx, setSelectedIdx] = useState(0);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
         const fetchQuiz = async () => {
             try {
-                const res = await fetch(`http://localhost:3001/quiz/${id}`);
+                const res = await fetch(`${API_URL}/quiz/edit/${id}`);
                 const result = await res.json();
 
                 if (result.success && result.data) {
                     const data = result.data;
-
-                    // QUAN TRỌNG: Xử lý isCorrect cẩn thận
                     const formattedQuestions = data.questions.map(q => ({
+                        questionId: q.questionId,
                         content: q.content || '',
                         explanation: q.explanation || '',
                         options: q.options.map(opt => ({
+                            answerId: opt.answerId,
                             content: opt.content || '',
-                            // Ép kiểu chính xác: chỉ true khi thực sự là true
                             isCorrect: opt.isCorrect === true
                         }))
                     }));
@@ -46,12 +48,14 @@ const QuizEdit = () => {
                         timer: data.timer || 60,
                         questions: formattedQuestions
                     });
+
+                    if (formattedQuestions.length === 0) addQuestion();
                 } else {
                     alert('Không tìm thấy quiz!');
                     navigate('/supporter/quizzes');
                 }
             } catch (err) {
-                console.error('Lỗi tải quiz:', err);
+                console.error(err);
                 alert('Lỗi tải dữ liệu quiz!');
             } finally {
                 setLoading(false);
@@ -61,115 +65,113 @@ const QuizEdit = () => {
         if (id) fetchQuiz();
     }, [id, navigate]);
 
-    // Cập nhật thông tin chung
     const updateQuizInfo = (field, value) => {
         setQuiz(prev => ({ ...prev, [field]: value }));
     };
 
-    // Cập nhật câu hỏi
-    const updateQuestion = (qIndex, field, value) => {
+    const updateCurrent = (field, value) => {
         setQuiz(prev => {
             const updated = [...prev.questions];
-            updated[qIndex][field] = value;
+            updated[selectedIdx][field] = value;
             return { ...prev, questions: updated };
         });
     };
 
-    // Cập nhật đáp án
-    const updateOption = (qIndex, oIndex, content) => {
+    const updateOption = (oIdx, content) => {
         setQuiz(prev => {
             const updated = [...prev.questions];
-            updated[qIndex].options[oIndex].content = content;
+            updated[selectedIdx].options[oIdx].content = content;
             return { ...prev, questions: updated };
         });
     };
 
-    // Chọn đáp án đúng
-    const selectCorrectAnswer = (qIndex, oIndex) => {
+    const selectCorrect = (oIdx) => {
         setQuiz(prev => {
             const updated = [...prev.questions];
-            updated[qIndex].options = updated[qIndex].options.map((opt, i) => ({
+            updated[selectedIdx].options = updated[selectedIdx].options.map((opt, i) => ({
                 ...opt,
-                isCorrect: i === oIndex
+                isCorrect: i === oIdx
             }));
             return { ...prev, questions: updated };
         });
     };
 
-    // Thêm câu hỏi
     const addQuestion = () => {
         setQuiz(prev => ({
             ...prev,
             questions: [...prev.questions, {
+                questionId: Date.now().toString(),
                 content: '',
                 explanation: '',
                 options: [
-                    { content: '', isCorrect: true },
-                    { content: '', isCorrect: false },
-                    { content: '', isCorrect: false },
-                    { content: '', isCorrect: false }
+                    { answerId: '1', content: '', isCorrect: true },
+                    { answerId: '2', content: '', isCorrect: false },
+                    { answerId: '3', content: '', isCorrect: false },
+                    { answerId: '4', content: '', isCorrect: false }
                 ]
             }]
         }));
+        setSelectedIdx(quiz.questions.length);
     };
 
-    // Xóa câu hỏi
-    const deleteQuestion = (index) => {
+    const deleteQuestion = (idx) => {
         if (quiz.questions.length <= 1) {
             alert('Phải giữ ít nhất 1 câu hỏi!');
             return;
         }
         setQuiz(prev => ({
             ...prev,
-            questions: prev.questions.filter((_, i) => i !== index)
+            questions: prev.questions.filter((_, i) => i !== idx)
         }));
+        if (selectedIdx >= quiz.questions.length - 1) {
+            setSelectedIdx(Math.max(0, quiz.questions.length - 2));
+        } else if (selectedIdx > idx) {
+            setSelectedIdx(selectedIdx - 1);
+        }
     };
 
-    // Lưu quiz
     const saveQuiz = async () => {
-        if (!quiz.title.trim()) return alert('Vui lòng nhập tiêu đề!');
-        if (!quiz.topic.trim()) return alert('Vui lòng nhập chủ đề!');
-        if (quiz.questions.length === 0) return alert('Phải có ít nhất 1 câu hỏi!');
+        if (!quiz.title.trim() || !quiz.topic.trim()) {
+            alert('Vui lòng nhập đầy đủ tiêu đề và chủ đề!');
+            return;
+        }
 
-        for (let i = 0; i < quiz.questions.length; i++) {
-            const q = quiz.questions[i];
-            if (!q.content.trim()) return alert(`Câu ${i + 1}: Chưa nhập nội dung câu hỏi!`);
-            if (q.options.some(o => !o.content.trim())) return alert(`Câu ${i + 1}: Có đáp án trống!`);
-            if (!q.options.some(o => o.isCorrect)) return alert(`Câu ${i + 1}: Chưa chọn đáp án đúng!`);
+        for (let q of quiz.questions) {
+            if (!q.content.trim()) return alert('Tất cả câu hỏi phải có nội dung!');
+            if (q.options.some(o => !o.content.trim())) return alert('Tất cả đáp án phải có nội dung!');
+            if (!q.options.some(o => o.isCorrect)) return alert('Mỗi câu phải có đúng 1 đáp án đúng!');
         }
 
         setSaving(true);
         try {
-            const res = await fetch(`http://localhost:3001/quiz/${id}`, {
+            const res = await fetch(`${API_URL}/quiz/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(quiz)
             });
 
             if (res.ok) {
-                alert('Cập nhật thành công!');
+                alert('Cập nhật quiz thành công!');
                 navigate('/supporter/quizzes');
             } else {
-                const err = await res.text();
-                alert('Lỗi: ' + err);
+                alert('Lỗi khi lưu quiz!');
             }
-        } catch (err) {
-            console.error(err);
+        } catch {
             alert('Lỗi kết nối server!');
         } finally {
             setSaving(false);
         }
     };
 
+    const currentQ = quiz.questions[selectedIdx] || { content: '', options: [], explanation: '' };
+    const filledCount = quiz.questions.filter(q => q.content.trim() && q.options.every(o => o.content.trim())).length;
+
     if (loading) {
         return (
             <div className="min-h-screen bg-gray-50 flex">
                 <SupporterSidebar />
                 <div className="flex-1 ml-72 flex items-center justify-center">
-                    <div className="text-center">
-                        <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-gray-900 mb-4"></div>
-                        <p className="text-gray-600">Đang tải quiz...</p>
-                    </div>
+                    <div className="text-2xl font-bold text-gray-700">Đang tải quiz...</div>
                 </div>
             </div>
         );
@@ -179,31 +181,32 @@ const QuizEdit = () => {
         <div className="min-h-screen bg-gray-50 flex">
             <SupporterSidebar />
 
-            <div className="flex-1 ml-72">
-                <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
-                    <div className="px-8 py-6 flex items-center justify-between">
-                        <div className="flex items-center gap-5">
+            <div className="flex-1 ml-72 flex flex-col">
+                {/* Header */}
+                <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-20">
+                    <div className="px-5 py-6 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
                             <button onClick={() => navigate(-1)} className="p-3 hover:bg-gray-100 rounded-xl transition">
                                 <ArrowLeft className="w-6 h-6" />
                             </button>
                             <div>
-                                <h1 className="text-3xl font-bold text-gray-900">Chỉnh sửa Quiz</h1>
-                                <p className="text-gray-600">ID: {id}</p>
+                                <h1 className="text-2xl font-bold text-gray-900">Chỉnh sửa Quiz</h1>
+                                <p className="text-gray-600 text-x">ID: {id}</p>
                             </div>
                         </div>
                         <button
                             onClick={saveQuiz}
                             disabled={saving}
-                            className="bg-gray-900 hover:bg-black text-white px-8 py-4 rounded-xl font-semibold flex items-center gap-3 transition shadow-lg disabled:opacity-70"
+                            className="bg-transparent border hover:bg-green-700 text-black px-8 py-4 rounded-xl font-bold flex items-center gap-3 transition shadow-lg disabled:opacity-70"
                         >
                             {saving ? 'Đang lưu...' : <> <Save className="w-5 h-5" /> Lưu thay đổi</>}
                         </button>
                     </div>
                 </header>
 
-                <main className="p-8 max-w-6xl mx-auto">
-                    {/* Thông tin chung */}
-                    <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 mb-8">
+                {/* Thông tin Quiz - Giữ nguyên như cũ */}
+                <div className="p-8 max-w-7xl  mb-8">
+                    <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
                         <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3">
                             <AlertCircle className="w-6 h-6 text-gray-700" />
                             Thông tin Quiz
@@ -223,9 +226,7 @@ const QuizEdit = () => {
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">Cấp độ (1-6)</label>
                                 <select value={quiz.level} onChange={e => updateQuizInfo('level', Number(e.target.value))}
                                         className="w-full px-5 py-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gray-900 outline-none transition">
-                                    {[1,2,3,4,5,6].map(l => (
-                                        <option key={l} value={l}>Level {l}</option>
-                                    ))}
+                                    {[1,2,3,4,5,6].map(l => <option key={l} value={l}>Level {l}</option>)}
                                 </select>
                             </div>
                             <div>
@@ -236,69 +237,116 @@ const QuizEdit = () => {
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    {/* Danh sách câu hỏi */}
-                    <div className="space-y-8">
-                        {quiz.questions.map((q, qIndex) => (
-                            <div key={qIndex} className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
-                                <div className="flex items-center justify-between mb-6">
-                                    <div className="flex items-center gap-4">
-                                        <GripVertical className="w-6 h-6 text-gray-400 cursor-move" />
-                                        <h3 className="text-xl font-bold text-gray-900">Câu hỏi {qIndex + 1}</h3>
+                {/* Main Content: Split View */}
+                <div className="flex-auto px-8 pb-8">
+                    <div className="max-w-6xl mx-auto">
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+                            <div className="lg:col-span-2">
+                                <div className="bg-white rounded-2xl shadow-xl p-8 min-h-96 flex flex-col">
+                                    <div className="flex justify-between items-center mb-6">
+                                        <h2 className="text-2xl font-bold text-green-700">
+                                            Câu {selectedIdx + 1}
+                                        </h2>
+                                        <span className="text-lg text-gray-600">
+                                            Đã hoàn thiện: {filledCount}/{quiz.questions.length}
+                                        </span>
                                     </div>
-                                    <button onClick={() => deleteQuestion(qIndex)} className="p-3 hover:bg-red-50 rounded-xl text-red-600 transition">
-                                        <Trash2 className="w-5 h-5" />
-                                    </button>
+                                    <textarea
+                                        placeholder="Nội dung câu hỏi..."
+                                        value={currentQ.content}
+                                        onChange={e => updateCurrent('content', e.target.value)}
+                                        rows="3"
+                                        className="md:text-lg font-mono text-gray-800 mb-8 px-5 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-600 outline-none resize-none"
+                                    />
+
+                                    <div className="space-y-5 flex-1">
+                                        {currentQ.options.map((opt, i) => (
+                                            <button
+                                                key={i}
+                                                onClick={() => selectCorrect(i)}
+                                                className={`w-full text-left p-4 rounded-xl border-2 transition-all
+                                                ${opt.isCorrect
+                                                    ? 'border-green-600 bg-green-50 font-bold shadow-md'
+                                                    : opt.content.trim()
+                                                        ? 'border-gray-300 hover:border-green-500 hover:bg-gray-50'
+                                                        : 'border-gray-300 hover:border-gray-400'
+                                                }`}
+                                            >
+                                                <div className="flex items-start gap-4">
+                                                <textarea
+                                                    placeholder={`Đáp án ${String.fromCharCode(65 + i)}`}
+                                                    value={opt.content}
+                                                    onChange={e => updateOption(i, e.target.value)}
+                                                    onClick={e => e.stopPropagation()}
+                                                    rows="2"
+                                                    className="flex-1 bg-transparent outline-none font-medium resize-none md:text-lg font-mono"
+                                                />
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <textarea
+                                        placeholder="Giải thích chi tiết (hiển thị sau khi trả lời)..."
+                                        value={currentQ.explanation || ''}
+                                        onChange={e => updateCurrent('explanation', e.target.value)}
+                                        rows="4"
+                                        className="mt-8 px-5 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-600 outline-none resize-none text-gray-700"
+                                    />
                                 </div>
-
-                                <input type="text" placeholder="Nội dung câu hỏi..." value={q.content}
-                                       onChange={e => updateQuestion(qIndex, 'content', e.target.value)}
-                                       className="w-full px-5 py-4 border border-gray-300 rounded-xl text-lg font-medium focus:ring-2 focus:ring-gray-900 outline-none mb-6" />
-
-                                <div className="space-y-4 mb-6">
-                                    {q.options.map((opt, oIndex) => (
-                                        <label key={oIndex}
-                                               className={`flex items-center gap-4 p-5 rounded-xl border-2 cursor-pointer transition-all ${
-                                                   opt.isCorrect
-                                                       ? 'border-green-500 bg-green-50 shadow-sm'
-                                                       : 'border-gray-300 hover:border-gray-400'
-                                               }`}>
-                                            <input
-                                                type="radio"
-                                                name={`correct-${qIndex}`}
-                                                checked={opt.isCorrect === true}
-                                                onChange={() => selectCorrectAnswer(qIndex, oIndex)}
-                                                className="w-5 h-5 text-gray-900"
-                                            />
-                                            <input
-                                                type="text"
-                                                placeholder={`Đáp án ${String.fromCharCode(65 + oIndex)}`}
-                                                value={opt.content}
-                                                onChange={e => updateOption(qIndex, oIndex, e.target.value)}
-                                                className="flex-1 px-4 py-2 bg-transparent outline-none font-medium text-gray-800"
-                                            />
-                                        </label>
-                                    ))}
-                                </div>
-
-                                <textarea
-                                    placeholder="Giải thích (hiển thị sau khi trả lời)..."
-                                    value={q.explanation}
-                                    onChange={e => updateQuestion(qIndex, 'explanation', e.target.value)}
-                                    rows="3"
-                                    className="w-full px-5 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gray-900 outline-none resize-none text-gray-700"
-                                />
                             </div>
-                        ))}
-                    </div>
 
-                    <div className="text-center mt-12">
-                        <button onClick={addQuestion}
-                                className="inline-flex items-center gap-3 px-10 py-5 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-xl font-semibold text-lg transition shadow-lg">
-                            <Plus className="w-7 h-7" /> Thêm câu hỏi mới
-                        </button>
+                            {/* Phải: Bảng số câu hỏi */}
+                            <div className="lg:col-span-1">
+                                <div className="bg-white rounded-2xl shadow-xl p-6">
+                                    <h3 className="text-xl font-bold text-gray-800 mb-6 text-center">Danh sách câu
+                                        hỏi</h3>
+                                    <div className="grid grid-cols-5 gap-3 mb-8">
+                                        {quiz.questions.map((q, i) => {
+                                            const isFilled = q.content.trim() && q.options.every(o => o.content.trim());
+                                            return (
+                                                <button
+                                                    key={i}
+                                                    onClick={() => setSelectedIdx(i)}
+                                                    className={`w-12 h-12 rounded-lg font-bold text-lg transition-all shadow-md
+                                                        ${i === selectedIdx
+                                                        ? 'bg-green-600 text-white scale-110'
+                                                        : isFilled
+                                                            ? 'bg-white text-black hover:bg-green-300'
+                                                            : 'bg-white text-black  hover:bg-gray-300'
+                                                    }`}
+                                                >
+                                                    {i + 1}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <button
+                                            onClick={addQuestion}
+                                            className="w-full py-4 bg-transparent hover:bg-green-700 text-black border font-bold rounded-xl transition shadow-lg flex items-center justify-center gap-3"
+                                        >
+                                            <Plus className="w-5 h-5" /> Thêm câu hỏi
+                                        </button>
+
+                                        {quiz.questions.length > 1 && (
+                                            <button
+                                                onClick={() => deleteQuestion(selectedIdx)}
+                                                className="w-full py-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition shadow-lg flex items-center justify-center gap-3"
+                                            >
+                                                <Trash2 className="w-5 h-5" /> Xóa câu hiện tại
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </main>
+                </div>
             </div>
         </div>
     );

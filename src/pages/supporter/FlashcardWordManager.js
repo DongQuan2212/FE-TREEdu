@@ -27,11 +27,11 @@ const FlashcardWordManager = () => {
 
     const fetchFlashcardAndWords = async () => {
         try {
-            const res1 = await fetch(`http://localhost:3001/flashcards/${id}`);
+            const res1 = await fetch(`http://localhost:3001/api/flashcards/${id}`);
             const info = await res1.json();
             if (info.success) setFlashcard(info.data);
 
-            const res2 = await fetch(`http://localhost:3001/flashcards/${id}/words`);
+            const res2 = await fetch(`http://localhost:3001/api/flashcards/${id}/words`);
             const wordsData = await res2.json();
             if (wordsData.success) setWords(wordsData.data || []);
         } catch (err) {
@@ -128,7 +128,6 @@ const FlashcardWordManager = () => {
                             <Plus className="w-5 h-5"/>
                             Thêm từ mới
                         </button>
-
                         <button
                             onClick={() => setShowBulkImport(true)}
                             className="px-6 py-3 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition flex items-center gap-2"

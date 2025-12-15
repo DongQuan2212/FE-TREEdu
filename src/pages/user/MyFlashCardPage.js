@@ -54,7 +54,6 @@ function MyFlashCardPage() {
     const handleGoToMyLists = () => navigate('/flashcard/me');
     const handleGoToDiscover = () => navigate('/flashcard/discover');
 
-    // Loading & Error state vẫn giữ đẹp như cũ
     if (loading) {
         return (
             <>
@@ -101,7 +100,7 @@ function MyFlashCardPage() {
                 <div className="max-w-6xl mx-auto">
 
                     {/* Hero Header */}
-                    <div className="text-center mb-12 py-12 px-8 bg-gradient-to-br from-green-700 to-green-500 rounded-2xl shadow-lg text-white">
+                    <div className="text-center mb-12 py-12 px-12 bg-green-800 rounded-2xl shadow-lg text-white">
                         <h1 className="text-5xl md:text-6xl font-bold mb-4 drop-shadow-lg">
                             Flashcards
                         </h1>

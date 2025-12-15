@@ -3,9 +3,9 @@ import Footer from "../../components/Footer/Footer";
 import iconQuiz from "../../asset/User/quiz.png";
 import iconFlashcard from "../../asset/User/flash-cards.png";
 import iconRoom from "../../asset/User/room.png";
-import avatar1 from "../../asset/User/plus.png";
-import avatar2 from "../../asset/User/plus.png";
-import avatar3 from "../../asset/User/plus.png";
+import avatar1 from "../../asset/User1.jpg";
+import avatar2 from "../../asset/User2.jpg";
+import avatar3 from "../../asset/user3.webp";
 
 import { useNavigate } from "react-router-dom";
 

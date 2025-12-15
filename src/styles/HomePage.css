@@ -1,8 +1,7 @@
 
 .homepage-hero-section {
-    display: flex;
+    display: block;
     align-items: center;
-    padding: 2rem;
     position: relative;
     background-color: #ffffff;
     max-height: 100%;

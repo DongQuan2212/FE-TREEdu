@@ -12,7 +12,7 @@ function HomePage() {
     return (
         <div>
             <Header />
-            <main className="homepage-hero-section">
+            <main className="homepage-hero-section ">
                 <div className="homepage-hero-content">
                     <div className="homepage-left-content">
                         <h1 className="homepage-main-title">

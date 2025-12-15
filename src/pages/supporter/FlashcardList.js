@@ -21,7 +21,7 @@ const FlashcardList = () => {
         setLoading(true);
         try {
             // Gọi API phân trang (giả sử backend hỗ trợ ?page=&size=)
-            const res = await fetch(`http://localhost:3001/flashcards?page=${page}&size=10`);
+            const res = await fetch(`http://localhost:3001/api/flashcards?page=${page}&size=10`);
             const result = await res.json();
 
             if (result.success && result.data) {
@@ -53,7 +53,7 @@ const FlashcardList = () => {
     const handleDelete = async (id) => {
         if (!window.confirm('Xóa bộ flashcard này?')) return;
         try {
-            const res = await fetch(`http://localhost:3001/flashcards/${id}`, {
+            const res = await fetch(`http://localhost:3001/api/flashcards/${id}`, {
                 method: 'DELETE'
             });
             if (res.ok) {

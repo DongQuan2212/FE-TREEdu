@@ -17,8 +17,8 @@ const SupporterDashboard = () => {
         const fetchStats = async () => {
             try {
                 const [quizRes, flashcardRes] = await Promise.all([
-                    fetch('http://localhost:3001/quiz'),      // hoặc /quiz nếu bạn dùng vậy
-                    fetch('http://localhost:3001/flashcards')
+                    fetch('http://localhost:3001/api/quiz'),      // hoặc /quiz nếu bạn dùng vậy
+                    fetch('http://localhost:3001/api/flashcards')
                 ]);
 
                 const quizData = await quizRes.json();

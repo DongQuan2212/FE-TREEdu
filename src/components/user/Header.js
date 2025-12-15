@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../../asset/logo1.png';
 
+
+
 const Header = () => {
     const navigate = useNavigate();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -10,6 +12,7 @@ const Header = () => {
     const handleQuiz = () => navigate("/quiz");
     const handleFlashcard = () => navigate("/flashcard");
     const handleIntro = () => navigate("/intro");
+    const handleAi = () => navigate("/pronunciation-practice");
 
     const handleProfile = () => {
         navigate("/profile");
@@ -44,7 +47,7 @@ const Header = () => {
                         <li onClick={handleFlashcard} className="cursor-pointer hover:text-lime-600 transition">
                             Flashcard
                         </li>
-                        <li className="cursor-pointer hover:text-lime-600 transition">
+                        <li onClick={handleAi} className="cursor-pointer hover:text-lime-600 transition">
                             Phòng luyện phát âm
                         </li>
                         <li onClick={handleIntro} className="cursor-pointer hover:text-lime-600 transition">

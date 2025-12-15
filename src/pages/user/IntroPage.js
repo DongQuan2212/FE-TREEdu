@@ -5,7 +5,6 @@ import treeAnimation from "../../asset/tree.json";
 import studyAnimation from "../../asset/Study.json";
 import bookAnimation from "../../asset/Books.json";
 import timeAnimation from "../../asset/timehere.json";
-
 function IntroPage() {
     return (
         <div className="min-h-screen bg-white">

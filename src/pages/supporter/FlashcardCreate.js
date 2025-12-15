@@ -35,7 +35,7 @@ const FlashcardCreate = () => {
 
         setSaving(true);
         try {
-            const res = await fetch('http://localhost:3001/flashcards', {
+            const res = await fetch('http://localhost:3001/api/flashcards', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

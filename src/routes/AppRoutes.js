@@ -21,6 +21,8 @@ import QuizEdit from "../pages/supporter/QuizEdit";
 import FlashcardList from "../pages/supporter/FlashcardList";
 import FlashcardCreate from "../pages/supporter/FlashcardCreate";
 import FlashcardWordManager from "../pages/supporter/FlashcardWordManager";
+import PronunciationPracticePage from "../pages/user/PronunciationPracticePage";
+import PronunciationPracticeDetailPage from "../pages/user/PronunciationPracticeDetailPage";
 function AppRoutes() {
     return (
         <Router>
@@ -40,6 +42,8 @@ function AppRoutes() {
                 <Route path="/flashcard" element={<MyFlashCardPage/>} />
                 <Route path="/flashcard/create" element={<CreateFlashcardPage />} />
                 <Route path="/flashcard/detail/:id" element={<FlashcardDetailPage />} />
+                <Route path="/pronunciation-practice" element={<PronunciationPracticePage />} />
+                <Route path="/pronunciation-practice/:topic" element={<PronunciationPracticeDetailPage />} />
 
 
 

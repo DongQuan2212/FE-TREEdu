@@ -123,7 +123,7 @@ function QuizPage() {
                 <div className="max-w-6xl mx-auto">
 
                     {/* Hero */}
-                    <div className="text-center mb-12 py-12 px-8 bg-gradient-to-br from-green-700 to-green-500 rounded-2xl shadow-xl text-white">
+                    <div className="text-center mb-12 py-12 px-8 bg-green-800 rounded-2xl shadow-xl text-white">
                         <h1 className="text-5xl md:text-6xl font-bold mb-4 drop-shadow-lg">
                             Bài Tập Quiz
                         </h1>
