@@ -30,6 +30,10 @@ import ChangePasswordPage from "../pages/user/ChangePasswordPage";
 import QuizHistoryPage from "../pages/user/QuizHistoryPage";
 import FlashcardLearnPage from "../pages/user/FlashcardLearnPage";
 import FlashcardHistoryPage from "../pages/user/FlashcardHistoryPage";
+import QuizManagement from "../pages/admin/QuizManagement";
+import AdminQuizEdit from "../pages/admin/AdminQuizEdit";
+import AdminFlashcardList from "../pages/admin/AdminFlashcardList";
+import FlashcardWordManagerAdmin from "../pages/admin/FlashcardWordManagerAdmin";
 function AppRoutes() {
     return (
         <Router>
@@ -66,9 +70,15 @@ function AppRoutes() {
                 {/* Admin Role */}
                 <Route path="/admin/dashboard" element={<AdminDashboard />} />
                 <Route path="/admin" element={<AdminDashboard />} />
-                <Route path="/admin/user" element={<AdminManagerUser/>} />
+                <Route path="/admin/quiz" element={<QuizManagement />} />
                 <Route path="/admin/employee" element={<AdminManagerEmployee/>} />
-                <Route path="/admin/revenue" element={<RevenueReport/>} />
+                <Route path="/admin/quiz/edit/:id" element={<AdminQuizEdit />} />
+                <Route path="/admin/flashcard" element={<AdminFlashcardList />} />
+                <Route
+                    path="/admin/flashcard/edit/:id"
+                    element={<FlashcardWordManagerAdmin/>}
+                />
+
 
                 {/* Supporter Role */}
                 <Route path="/supporter/dashboard" element={<SupporterDashboard />} />

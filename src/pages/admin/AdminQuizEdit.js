@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Save, ArrowLeft, AlertCircle } from 'lucide-react';
-import SupporterSidebar from '../../components/Supporter/SupporterSidebar';
+import Sidebar from "../../components/Admin/Sidebar";
 import { useNavigate, useParams } from 'react-router-dom';
+import axiosInstance from "../../config/axiosConfig";
 
-const API_URL = 'http://localhost:3001/api';
-
-const QuizEdit = () => {
+const AdminQuizEdit = () => {
     const { id } = useParams();
     const navigate = useNavigate();
 
@@ -24,11 +23,11 @@ const QuizEdit = () => {
     useEffect(() => {
         const fetchQuiz = async () => {
             try {
-                const res = await fetch(`${API_URL}/quiz/edit/${id}`);
-                const result = await res.json();
+                setLoading(true);
+                const response = await axiosInstance.get(`/quiz/edit/${id}`);
 
-                if (result.success && result.data) {
-                    const data = result.data;
+                if (response.data.success && response.data.data) {
+                    const data = response.data.data;
                     const formattedQuestions = data.questions.map(q => ({
                         questionId: q.questionId,
                         content: q.content || '',
@@ -50,12 +49,13 @@ const QuizEdit = () => {
 
                     if (formattedQuestions.length === 0) addQuestion();
                 } else {
-                    alert('Không tìm thấy quiz!');
-                    navigate('/supporter/quizzes');
+                    alert('Không tìm thấy bài quiz!');
+                    navigate('/admin/quiz');
                 }
             } catch (err) {
                 console.error(err);
                 alert('Lỗi tải dữ liệu quiz!');
+                navigate('/admin/quiz');
             } finally {
                 setLoading(false);
             }
@@ -124,8 +124,6 @@ const QuizEdit = () => {
         }));
         if (selectedIdx >= quiz.questions.length - 1) {
             setSelectedIdx(Math.max(0, quiz.questions.length - 2));
-        } else if (selectedIdx > idx) {
-            setSelectedIdx(selectedIdx - 1);
         }
     };
 
@@ -143,34 +141,28 @@ const QuizEdit = () => {
 
         setSaving(true);
         try {
-            const res = await fetch(`${API_URL}/quiz/${id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(quiz)
-            });
-
-            if (res.ok) {
-                alert('Cập nhật quiz thành công!');
-                navigate('/supporter/quizzes');
-            } else {
-                alert('Lỗi khi lưu quiz!');
-            }
-        } catch {
-            alert('Lỗi kết nối server!');
+            await axiosInstance.put(`/quiz/${id}`, quiz);
+            alert('Cập nhật bài quiz thành công!');
+            navigate('/admin/quiz');
+        } catch (error) {
+            console.error(error);
+            alert(error.response?.data?.message || 'Lỗi khi lưu quiz!');
         } finally {
             setSaving(false);
         }
     };
 
     const currentQ = quiz.questions[selectedIdx] || { content: '', options: [], explanation: '' };
-    const filledCount = quiz.questions.filter(q => q.content.trim() && q.options.every(o => o.content.trim())).length;
+    const filledCount = quiz.questions.filter(q =>
+        q.content.trim() && q.options.every(o => o.content.trim())
+    ).length;
 
     if (loading) {
         return (
             <div className="min-h-screen bg-gray-50 flex">
-                <SupporterSidebar />
-                <div className="flex-1 ml-72 flex items-center justify-center">
-                    <div className="text-2xl font-bold text-gray-700">Đang tải quiz...</div>
+                <Sidebar />
+                <div className="flex-1 ml-0 lg:ml-64 flex items-center justify-center">
+                    <div className="text-2xl font-bold text-gray-700">Đang tải bài quiz...</div>
                 </div>
             </div>
         );
@@ -178,112 +170,135 @@ const QuizEdit = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 flex">
-            <SupporterSidebar />
+            <Sidebar />
 
-            <div className="flex-1 ml-72 flex flex-col">
+            <div className="flex-1 ml-0 lg:ml-64 transition-all duration-300 flex flex-col">
                 {/* Header */}
-                <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-20">
-                    <div className="px-5 py-6 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <button onClick={() => navigate(-1)} className="p-3 hover:bg-gray-100 rounded-xl transition">
+                <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+                    <div className="px-6 py-5 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <button
+                                onClick={() => navigate(-1)}
+                                className="p-3 hover:bg-gray-100 rounded-xl transition"
+                            >
                                 <ArrowLeft className="w-6 h-6" />
                             </button>
                             <div>
-                                <h1 className="text-2xl font-bold text-gray-900">Chỉnh sửa Quiz</h1>
-                                <p className="text-gray-600 text-x">ID: {id}</p>
+                                <h1 className="text-2xl font-bold text-gray-900">Chỉnh sửa bài Quiz</h1>
+                                <p className="text-gray-600">ID: {id}</p>
                             </div>
                         </div>
                         <button
                             onClick={saveQuiz}
                             disabled={saving}
-                            className="bg-transparent border hover:bg-green-700 text-black px-8 py-4 rounded-xl font-bold flex items-center gap-3 transition shadow-lg disabled:opacity-70"
+                            className="bg-lime-600 hover:bg-lime-700 text-white px-8 py-4 rounded-xl font-bold flex items-center gap-3 transition shadow-lg disabled:opacity-70"
                         >
-                            {saving ? 'Đang lưu...' : <> <Save className="w-5 h-5" /> Lưu thay đổi</>}
+                            {saving ? 'Đang lưu...' : (
+                                <>
+                                    <Save className="w-5 h-5" />
+                                    Lưu thay đổi
+                                </>
+                            )}
                         </button>
                     </div>
                 </header>
 
-                {/* Thông tin Quiz - Giữ nguyên như cũ */}
-                <div className="p-8 max-w-7xl  mb-8">
-                    <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
+                {/* Thông tin Quiz */}
+                <div className="p-6 max-w-7xl mx-auto mb-8">
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
                         <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3">
-                            <AlertCircle className="w-6 h-6 text-gray-700" />
-                            Thông tin Quiz
+                            <AlertCircle className="w-6 h-6 text-lime-600" />
+                            Thông tin bài Quiz
                         </h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">Tiêu đề *</label>
-                                <input type="text" value={quiz.title} onChange={e => updateQuizInfo('title', e.target.value)}
-                                       className="w-full px-5 py-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gray-900 outline-none transition" />
+                                <input
+                                    type="text"
+                                    value={quiz.title}
+                                    onChange={e => updateQuizInfo('title', e.target.value)}
+                                    className="w-full px-5 py-3.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lime-500 outline-none transition"
+                                />
                             </div>
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">Chủ đề *</label>
-                                <input type="text" value={quiz.topic} onChange={e => updateQuizInfo('topic', e.target.value)}
-                                       className="w-full px-5 py-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gray-900 outline-none transition" />
+                                <input
+                                    type="text"
+                                    value={quiz.topic}
+                                    onChange={e => updateQuizInfo('topic', e.target.value)}
+                                    className="w-full px-5 py-3.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lime-500 outline-none transition"
+                                />
                             </div>
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Cấp độ (1-6)</label>
-                                <select value={quiz.level} onChange={e => updateQuizInfo('level', Number(e.target.value))}
-                                        className="w-full px-5 py-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gray-900 outline-none transition">
-                                    {[1,2,3,4,5,6].map(l => <option key={l} value={l}>Level {l}</option>)}
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">Cấp độ</label>
+                                <select
+                                    value={quiz.level}
+                                    onChange={e => updateQuizInfo('level', Number(e.target.value))}
+                                    className="w-full px-5 py-3.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lime-500 outline-none transition"
+                                >
+                                    {[1,2,3,4,5,6].map(l => <option key={l} value={l}>Cấp độ {l}</option>)}
                                 </select>
                             </div>
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">Thời gian (phút)</label>
-                                <input type="number" min="5" max="180" value={quiz.timer}
-                                       onChange={e => updateQuizInfo('timer', Number(e.target.value))}
-                                       className="w-full px-5 py-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gray-900 outline-none transition" />
+                                <input
+                                    type="number"
+                                    min="5"
+                                    max="180"
+                                    value={quiz.timer}
+                                    onChange={e => updateQuizInfo('timer', Number(e.target.value))}
+                                    className="w-full px-5 py-3.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lime-500 outline-none transition"
+                                />
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Main Content: Split View */}
-                <div className="flex-auto px-8 pb-8">
-                    <div className="max-w-6xl mx-auto">
+                {/* Main Editor */}
+                <div className="flex-1 px-6 pb-8">
+                    <div className="max-w-7xl mx-auto">
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
+                            {/* Editor chính */}
                             <div className="lg:col-span-2">
-                                <div className="bg-white rounded-2xl shadow-xl p-8 min-h-96 flex flex-col">
+                                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 min-h-96 flex flex-col">
                                     <div className="flex justify-between items-center mb-6">
-                                        <h2 className="text-2xl font-bold text-green-700">
-                                            Câu {selectedIdx + 1}
+                                        <h2 className="text-2xl font-bold text-lime-700">
+                                            Câu hỏi {selectedIdx + 1}
                                         </h2>
                                         <span className="text-lg text-gray-600">
                                             Đã hoàn thiện: {filledCount}/{quiz.questions.length}
                                         </span>
                                     </div>
+
                                     <textarea
                                         placeholder="Nội dung câu hỏi..."
                                         value={currentQ.content}
                                         onChange={e => updateCurrent('content', e.target.value)}
-                                        rows="3"
-                                        className="md:text-lg font-mono text-gray-800 mb-8 px-5 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-600 outline-none resize-none"
+                                        rows="4"
+                                        className="text-lg mb-8 px-5 py-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lime-500 outline-none resize-none"
                                     />
 
-                                    <div className="space-y-5 flex-1">
+                                    <div className="space-y-4 flex-1">
                                         {currentQ.options.map((opt, i) => (
                                             <button
                                                 key={i}
                                                 onClick={() => selectCorrect(i)}
-                                                className={`w-full text-left p-4 rounded-xl border-2 transition-all
-                                                ${opt.isCorrect
-                                                    ? 'border-green-600 bg-green-50 font-bold shadow-md'
+                                                className={`w-full text-left p-5 rounded-lg border-2 transition-all shadow-sm
+                                                    ${opt.isCorrect
+                                                    ? 'border-lime-600 bg-lime-50 font-bold'
                                                     : opt.content.trim()
-                                                        ? 'border-gray-300 hover:border-green-500 hover:bg-gray-50'
+                                                        ? 'border-gray-300 hover:border-lime-500 hover:bg-lime-50'
                                                         : 'border-gray-300 hover:border-gray-400'
                                                 }`}
                                             >
-                                                <div className="flex items-start gap-4">
                                                 <textarea
                                                     placeholder={`Đáp án ${String.fromCharCode(65 + i)}`}
                                                     value={opt.content}
                                                     onChange={e => updateOption(i, e.target.value)}
                                                     onClick={e => e.stopPropagation()}
                                                     rows="2"
-                                                    className="flex-1 bg-transparent outline-none font-medium resize-none md:text-lg font-mono"
+                                                    className="w-full bg-transparent outline-none text-lg resize-none"
                                                 />
-                                                </div>
                                             </button>
                                         ))}
                                     </div>
@@ -292,17 +307,18 @@ const QuizEdit = () => {
                                         placeholder="Giải thích chi tiết (hiển thị sau khi trả lời)..."
                                         value={currentQ.explanation || ''}
                                         onChange={e => updateCurrent('explanation', e.target.value)}
-                                        rows="4"
-                                        className="mt-8 px-5 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-600 outline-none resize-none text-gray-700"
+                                        rows="5"
+                                        className="mt-8 px-5 py-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lime-500 outline-none resize-none text-gray-700"
                                     />
                                 </div>
                             </div>
 
-                            {/* Phải: Bảng số câu hỏi */}
+                            {/* Danh sách câu hỏi */}
                             <div className="lg:col-span-1">
-                                <div className="bg-white rounded-2xl shadow-xl p-6">
-                                    <h3 className="text-xl font-bold text-gray-800 mb-6 text-center">Danh sách câu
-                                        hỏi</h3>
+                                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                                    <h3 className="text-xl font-bold text-gray-800 mb-6 text-center">
+                                        Danh sách câu hỏi
+                                    </h3>
                                     <div className="grid grid-cols-5 gap-3 mb-8">
                                         {quiz.questions.map((q, i) => {
                                             const isFilled = q.content.trim() && q.options.every(o => o.content.trim());
@@ -312,10 +328,10 @@ const QuizEdit = () => {
                                                     onClick={() => setSelectedIdx(i)}
                                                     className={`w-12 h-12 rounded-lg font-bold text-lg transition-all shadow-md
                                                         ${i === selectedIdx
-                                                        ? 'bg-green-600 text-white scale-110'
+                                                        ? 'bg-lime-600 text-white scale-110'
                                                         : isFilled
-                                                            ? 'bg-white text-black hover:bg-green-300'
-                                                            : 'bg-white text-black  hover:bg-gray-300'
+                                                            ? 'bg-lime-100 text-lime-800 hover:bg-lime-200'
+                                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                                     }`}
                                                 >
                                                     {i + 1}
@@ -327,9 +343,10 @@ const QuizEdit = () => {
                                     <div className="space-y-4">
                                         <button
                                             onClick={addQuestion}
-                                            className="w-full py-4 bg-transparent hover:bg-green-700 text-black border font-bold rounded-xl transition shadow-lg flex items-center justify-center gap-3"
+                                            className="w-full py-4 bg-lime-600 hover:bg-lime-700 text-white font-bold rounded-xl transition shadow-lg flex items-center justify-center gap-3"
                                         >
-                                            <Plus className="w-5 h-5" /> Thêm câu hỏi
+                                            <Plus className="w-5 h-5" />
+                                            Thêm câu hỏi
                                         </button>
 
                                         {quiz.questions.length > 1 && (
@@ -337,7 +354,8 @@ const QuizEdit = () => {
                                                 onClick={() => deleteQuestion(selectedIdx)}
                                                 className="w-full py-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition shadow-lg flex items-center justify-center gap-3"
                                             >
-                                                <Trash2 className="w-5 h-5" /> Xóa câu hiện tại
+                                                <Trash2 className="w-5 h-5" />
+                                                Xóa câu hiện tại
                                             </button>
                                         )}
                                     </div>
@@ -351,4 +369,4 @@ const QuizEdit = () => {
     );
 };
 
-export default QuizEdit;
+export default AdminQuizEdit;
