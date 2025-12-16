@@ -27,6 +27,7 @@ import VerifyEmailPage from "../pages/verify-result";
 import ForgotPasswordPage from "../pages/ForgotPasswordPage";
 import ProfilePage from "../pages/user/ProfilePage";
 import ChangePasswordPage from "../pages/user/ChangePasswordPage";
+import QuizHistoryPage from "../pages/user/QuizHistoryPage";
 function AppRoutes() {
     return (
         <Router>
@@ -41,6 +42,7 @@ function AppRoutes() {
                 {/* User Routes */}
                 <Route path="/home" element={<Home/>} />
                 <Route path="/profile" element={<ProfilePage/>} />
+                <Route path="/history" element={<QuizHistoryPage/>} />
                 <Route path="/change-password" element={<ChangePasswordPage />} />
 
                 <Route path="/quiz" element={<QuizPage/>} />
