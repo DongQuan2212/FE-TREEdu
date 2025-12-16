@@ -24,6 +24,9 @@ import FlashcardWordManager from "../pages/supporter/FlashcardWordManager";
 import PronunciationPracticePage from "../pages/user/PronunciationPracticePage";
 import PronunciationPracticeDetailPage from "../pages/user/PronunciationPracticeDetailPage";
 import VerifyEmailPage from "../pages/verify-result";
+import ForgotPasswordPage from "../pages/ForgotPasswordPage";
+import ProfilePage from "../pages/user/ProfilePage";
+import ChangePasswordPage from "../pages/user/ChangePasswordPage";
 function AppRoutes() {
     return (
         <Router>
@@ -33,9 +36,13 @@ function AppRoutes() {
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage/>} />
                 <Route path="/verify-result" element={<VerifyEmailPage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
                 {/* User Routes */}
                 <Route path="/home" element={<Home/>} />
+                <Route path="/profile" element={<ProfilePage/>} />
+                <Route path="/change-password" element={<ChangePasswordPage />} />
+
                 <Route path="/quiz" element={<QuizPage/>} />
                 <Route path="/quiz/:quizId" element={<QuizTakingPage />} />
                 <Route path="/intro" element={<IntroPage/>} />
