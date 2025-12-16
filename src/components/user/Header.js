@@ -14,13 +14,15 @@ const Header = () => {
     const handleIntro = () => navigate("/intro");
     const handleAi = () => navigate("/pronunciation-practice");
 
+
     const handleProfile = () => {
-        navigate("/profile");
+        navigate("/profile"); // Trỏ về ProfilePage
         setIsMenuOpen(false);
     };
 
+
     const handleHistory = () => {
-        navigate("/history");
+        navigate("/history"); // Trỏ về QuizHistoryPage
         setIsMenuOpen(false);
     };
 
