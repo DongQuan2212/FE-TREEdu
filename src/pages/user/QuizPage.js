@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Header from "../../components/user/Header";
 import Footer from "../../components/Footer/Footer";
 import axios from 'axios';
-
+import axiosInstance from '../../config/axiosConfig';
 
 import iconTime from "../../asset/User/time.png";
 import iconQuestion from "../../asset/User/question.png";
@@ -30,12 +30,22 @@ function QuizPage() {
     const fetchQuizzes = async () => {
         try {
             setLoading(true);
-            const response = await axios.get(`${API_URL}/quiz`);
+
+            // Dùng axiosInstance thay vì axios
+            const response = await axiosInstance.get('/quiz');
+
             if (response.data.success) {
                 setQuizzes(response.data.data.content || []);
             }
         } catch (err) {
             console.error('Lỗi tải quiz:', err);
+
+            // Nếu 401/403 → redirect login
+            if (err.response?.status === 401 || err.response?.status === 403) {
+                navigate('/login');
+                return;
+            }
+
             setError('Không thể tải danh sách bài quiz. Vui lòng thử lại.');
         } finally {
             setLoading(false);

@@ -4,6 +4,7 @@ import { Search, Eye, Edit2, Trash2, Plus, BookOpen, ChevronLeft, ChevronRight, 
 import SupporterSidebar from '../../components/Supporter/SupporterSidebar';
 import { Link, useNavigate } from 'react-router-dom';
 import CreateFlashcardModal from '../../components/Supporter/CreateFlashcardModal';
+import {flashcardAPI} from "../../config/api";
 const FlashcardList = () => {
     const [flashcards, setFlashcards] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -20,19 +21,24 @@ const FlashcardList = () => {
     const fetchFlashcards = async (page = 0) => {
         setLoading(true);
         try {
-            // Gọi API phân trang (giả sử backend hỗ trợ ?page=&size=)
-            const res = await fetch(`http://localhost:3001/api/flashcards?page=${page}&size=10`);
-            const result = await res.json();
+            const res = await flashcardAPI.getAllFlashcards({
+                params: {
+                    page,
+                    size: 10,
+                },
+            });
+
+            const result = res.data;
 
             if (result.success && result.data) {
-                // Nếu backend trả phân trang giống Spring Data
                 if (result.data.content) {
+                    // Có phân trang (Spring Data)
                     setFlashcards(result.data.content);
                     setCurrentPage(result.data.pageable.pageNumber);
                     setTotalPages(result.data.totalPages);
                     setTotalElements(result.data.totalElements);
                 } else {
-                    // Nếu backend chưa hỗ trợ phân trang → trả mảng trực tiếp
+                    // Không phân trang
                     setFlashcards(result.data);
                     setTotalPages(Math.ceil(result.data.length / 10));
                     setTotalElements(result.data.length);
@@ -40,11 +46,17 @@ const FlashcardList = () => {
             }
         } catch (err) {
             console.error('Lỗi tải flashcard:', err);
-            alert('Không thể tải danh sách flashcard!');
+
+            if (err.response?.status === 403) {
+                alert('Bạn không có quyền truy cập!');
+            } else {
+                alert('Không thể tải danh sách flashcard!');
+            }
         } finally {
             setLoading(false);
         }
     };
+
 
     useEffect(() => {
         fetchFlashcards(currentPage);
@@ -52,20 +64,22 @@ const FlashcardList = () => {
 
     const handleDelete = async (id) => {
         if (!window.confirm('Xóa bộ flashcard này?')) return;
+
         try {
-            const res = await fetch(`http://localhost:3001/api/flashcards/${id}`, {
-                method: 'DELETE'
-            });
-            if (res.ok) {
-                alert('Xóa thành công!');
-                fetchFlashcards(currentPage);
+            await flashcardAPI.deleteFlashcard(id);
+            alert('Xóa thành công!');
+            fetchFlashcards(currentPage);
+        } catch (err) {
+            console.error(err);
+
+            if (err.response?.status === 403) {
+                alert('Bạn không có quyền xóa flashcard!');
             } else {
                 alert('Xóa thất bại!');
             }
-        } catch (err) {
-            alert('Lỗi server!');
         }
     };
+
 
     // Lọc dữ liệu
     const filteredFlashcards = flashcards.filter(fc => {
@@ -188,13 +202,7 @@ const FlashcardList = () => {
                                                 </td>
                                                 <td className="px-5 py-4">
                                                     <div className="flex items-center justify-center gap-2">
-                                                        <button
-                                                            onClick={() => navigate(`/supporter/flashcards/${fc.id}`)}
-                                                            className="p-2 hover:bg-blue-50 rounded text-blue-600"
-                                                            title="Xem chi tiết"
-                                                        >
-                                                            <Eye className="w-4 h-4" />
-                                                        </button>
+
                                                         <button
                                                             onClick={() => navigate(`/supporter/flashcards/edit/${fc.id}`)}
                                                             className="p-2 hover:bg-yellow-50 rounded text-yellow-600"

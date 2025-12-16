@@ -23,6 +23,7 @@ import FlashcardCreate from "../pages/supporter/FlashcardCreate";
 import FlashcardWordManager from "../pages/supporter/FlashcardWordManager";
 import PronunciationPracticePage from "../pages/user/PronunciationPracticePage";
 import PronunciationPracticeDetailPage from "../pages/user/PronunciationPracticeDetailPage";
+import VerifyEmailPage from "../pages/verify-result";
 function AppRoutes() {
     return (
         <Router>
@@ -31,6 +32,7 @@ function AppRoutes() {
                 <Route path="/" element={<HomePage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage/>} />
+                <Route path="/verify-result" element={<VerifyEmailPage />} />
 
                 {/* User Routes */}
                 <Route path="/home" element={<Home/>} />

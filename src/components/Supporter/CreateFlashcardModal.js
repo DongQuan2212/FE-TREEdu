@@ -1,6 +1,7 @@
 // src/components/Supporter/CreateFlashcardModal.js
 import React, { useState } from 'react';
 import { X, Plus, BookOpen, AlertCircle } from 'lucide-react';
+import {flashcardAPI} from "../../config/api";
 
 const CreateFlashcardModal = ({ isOpen, onClose, onSuccess }) => {
     const [formData, setFormData] = useState({
@@ -35,29 +36,37 @@ const CreateFlashcardModal = ({ isOpen, onClose, onSuccess }) => {
 
         setSaving(true);
         try {
-            const res = await fetch('http://localhost:3001/flashcards', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
-            });
+            const res = await flashcardAPI.createFlashcard(formData);
 
-            const result = await res.json();
+            const result = res.data;
 
-            if (res.ok && result.success) {
-                onSuccess(result.data.id); // Gọi callback với ID mới
+            if (result.success) {
+                onSuccess(result.data.id);
                 onClose();
-                // Reset form
-                setFormData({ title: '', description: '', topic: '', level: 1 });
+
+                setFormData({
+                    title: '',
+                    description: '',
+                    topic: '',
+                    level: 1,
+                });
                 setErrors({});
             } else {
                 alert(result.message || 'Tạo thất bại!');
             }
         } catch (err) {
-            alert('Lỗi kết nối server!');
+            console.error(err);
+
+            if (err.response?.status === 403) {
+                alert('Bạn không có quyền tạo flashcard!');
+            } else {
+                alert('Lỗi kết nối server!');
+            }
         } finally {
             setSaving(false);
         }
     };
+
 
     return (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-10 p-2" onClick={onClose}>

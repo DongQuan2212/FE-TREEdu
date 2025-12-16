@@ -9,11 +9,10 @@ const API_BASE_URL = "http://localhost:3001";
 const RegisterPage = () => {
     const navigate = useNavigate();
 
+    // Chỉ giữ lại các trường cần thiết theo DTO
     const [formData, setFormData] = useState({
-        username: "",
         email: "",
         password: "",
-        phoneNumber: "",
         fullName: ""
     });
 
@@ -33,20 +32,26 @@ const RegisterPage = () => {
         setSuccess("");
         setLoading(true);
 
-        // Validate cơ bản
-        if (!formData.username || !formData.email || !formData.password || !formData.fullName) {
+        // Validate cơ bản ở frontend
+        if (!formData.fullName.trim() || !formData.email.trim() || !formData.password.trim()) {
             setError("Vui lòng điền đầy đủ các trường bắt buộc!");
             setLoading(false);
             return;
         }
 
+        // Kiểm tra độ dài mật khẩu tối thiểu (theo @Size(min = 6) ở backend)
+        if (formData.password.length < 6) {
+            setError("Mật khẩu phải ít nhất 6 ký tự!");
+            setLoading(false);
+            return;
+        }
+
         try {
-            await axios.post(`${API_BASE_URL}/register`, {
-                username: formData.username.trim(),
+            await axios.post(`${API_BASE_URL}/api/users/newMember`, {
+                userType: "ROLE_MEMBER",                    // Cố định, không cho người dùng thay đổi
+                fullName: formData.fullName.trim(),
                 email: formData.email.trim(),
-                password: formData.password,
-                phoneNumber: formData.phoneNumber.trim() || null, // có thể để trống
-                fullName: formData.fullName.trim()
+                password: formData.password
             });
 
             setSuccess("Đăng ký thành công! Đang chuyển sang trang đăng nhập...");
@@ -58,10 +63,12 @@ const RegisterPage = () => {
             console.error("Register error:", err);
             if (err.response?.data?.message) {
                 setError(err.response.data.message);
+            } else if (err.response?.status === 400) {
+                setError("Dữ liệu không hợp lệ. Vui lòng kiểm tra lại!");
             } else if (err.response?.status === 409) {
-                setError("Email hoặc tên đăng nhập đã tồn tại!");
+                setError("Email đã được sử dụng!");
             } else {
-                setError("Đăng ký thất bại. Vui lòng thử lại!");
+                setError("Đăng ký thất bại. Vui lòng thử lại sau!");
             }
         } finally {
             setLoading(false);
@@ -82,7 +89,7 @@ const RegisterPage = () => {
                 className="fixed top-6 left-6 z-50 w-12 h-12 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center text-white text-2xl hover:bg-white/40 transition-all hover:scale-110 shadow-lg"
                 title="Quay lại"
             >
-                Back
+                ←
             </button>
 
             <main className="flex-1 flex items-center justify-center px-5 py-10">
@@ -108,23 +115,7 @@ const RegisterPage = () => {
                         )}
 
                         <div className="space-y-5">
-                            {/* Username */}
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Tên đăng nhập <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    name="username"
-                                    value={formData.username}
-                                    onChange={handleChange}
-                                    placeholder="Nhập tên đăng nhập"
-                                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-300 focus:border-lime-500 focus:outline-none focus:ring-4 focus:ring-lime-500/20 transition-all"
-                                    disabled={loading}
-                                />
-                            </div>
-
-                            {/* Full Name */}
+                            {/* Họ và tên */}
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                                     Họ và tên <span className="text-red-500">*</span>
@@ -156,7 +147,7 @@ const RegisterPage = () => {
                                 />
                             </div>
 
-                            {/* Password */}
+                            {/* Mật khẩu */}
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                                     Mật khẩu <span className="text-red-500">*</span>
@@ -166,23 +157,7 @@ const RegisterPage = () => {
                                     name="password"
                                     value={formData.password}
                                     onChange={handleChange}
-                                    placeholder="Tối thiểu 8 ký tự"
-                                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-300 focus:border-lime-500 focus:outline-none focus:ring-4 focus:ring-lime-500/20 transition-all"
-                                    disabled={loading}
-                                />
-                            </div>
-
-                            {/* Phone */}
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Số điện thoại
-                                </label>
-                                <input
-                                    type="text"
-                                    name="phoneNumber"
-                                    value={formData.phoneNumber}
-                                    onChange={handleChange}
-                                    placeholder="0909123456"
+                                    placeholder="Ít nhất 6 ký tự"
                                     className="w-full px-4 py-3 rounded-xl border-2 border-gray-300 focus:border-lime-500 focus:outline-none focus:ring-4 focus:ring-lime-500/20 transition-all"
                                     disabled={loading}
                                 />

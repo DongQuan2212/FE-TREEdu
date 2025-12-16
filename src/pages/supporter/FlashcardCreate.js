@@ -1,4 +1,4 @@
-// src/pages/supporter/FlashcardCreate.js
+
 import React, { useState } from 'react';
 import { ArrowLeft, Save, BookOpen, AlertCircle } from 'lucide-react';
 import SupporterSidebar from '../../components/Supporter/SupporterSidebar';
