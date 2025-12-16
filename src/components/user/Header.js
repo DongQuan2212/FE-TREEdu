@@ -1,236 +1,394 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Logo from '../../asset/logo1.png';
 import { useAuth } from '../../hook/useAuth';
+import {
+    User,
+    Clock,
+    CreditCard,
+    Settings,
+    LogOut,
+    Menu,
+    X
+} from 'lucide-react';
 
-const Header = () => {
+// ============================================
+// CONSTANTS & CONFIG
+// ============================================
+
+const NAV_ITEMS = [
+    { id: 'quiz', label: 'Bài quiz', path: '/quiz' },
+    { id: 'flashcard', label: 'Flashcard', path: '/flashcard' },
+    { id: 'pronunciation', label: 'Luyện phát âm', path: '/pronunciation-practice' },
+    { id: 'intro', label: 'Giới thiệu', path: '/intro' },
+];
+
+const ROLE_CONFIG = {
+    ROLE_ADMIN: {
+        label: 'Admin',
+        icon: '👑',
+        className: 'bg-red-50 text-red-700 border border-red-200',
+        panelPath: '/admin/dashboard',
+        panelLabel: 'Admin Panel'
+    },
+    ROLE_SUPPORTER: {
+        label: 'Supporter',
+        icon: '🛠️',
+        className: 'bg-blue-50 text-blue-700 border border-blue-200',
+        panelPath: '/supporter/dashboard',
+        panelLabel: 'Supporter Panel'
+    },
+    ROLE_MEMBER: {
+        label: 'Member',
+        icon: '👤',
+        className: 'bg-neutral-100 text-neutral-700 border border-neutral-200',
+    }
+};
+
+// ============================================
+// SUBCOMPONENTS
+// ============================================
+
+const RoleBadge = ({ role }) => {
+    const config = ROLE_CONFIG[role] || ROLE_CONFIG.ROLE_MEMBER;
+
+    return (
+        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${config.className}`}>
+            <span>{config.icon}</span>
+            <span>{config.label}</span>
+        </span>
+    );
+};
+
+const NavItem = ({ item, isActive, onClick }) => (
+    <li>
+        <button
+            onClick={onClick}
+            className={`
+                relative px-4 py-2 text-base font-medium transition-colors
+                ${isActive
+                ? 'text-emerald-600'
+                : 'text-neutral-700 hover:text-emerald-600'
+            }
+            `}
+        >
+            {item.label}
+            {isActive && (
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-600 rounded-full"></span>
+            )}
+        </button>
+    </li>
+);
+
+const UserAvatar = ({ loading, onClick }) => (
+    <button
+        onClick={onClick}
+        disabled={loading}
+        className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-neutral-200 hover:border-emerald-500 transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+        aria-label="Menu người dùng"
+    >
+        {loading ? (
+            <div className="w-full h-full bg-neutral-200 animate-pulse" />
+        ) : (
+            <img
+                src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
+                alt="Avatar"
+                className="w-full h-full object-cover"
+            />
+        )}
+        {/* Online indicator */}
+        <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></span>
+    </button>
+);
+
+const DropdownMenuItem = ({ icon: Icon, label, onClick, variant = 'default' }) => {
+    const variantClasses = {
+        default: 'text-neutral-700 hover:bg-neutral-50',
+        danger: 'text-red-600 hover:bg-red-50',
+        primary: 'text-emerald-600 hover:bg-emerald-50 font-medium'
+    };
+
+    return (
+        <button
+            onClick={onClick}
+            className={`
+                w-full px-4 py-3 text-left text-sm transition-colors
+                flex items-center gap-3 
+                ${variantClasses[variant]}
+            `}
+        >
+            <Icon size={18} className="flex-shrink-0" />
+            <span>{label}</span>
+        </button>
+    );
+};
+
+const UserDropdown = ({ user, onClose }) => {
     const navigate = useNavigate();
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const { user, logout, loading } = useAuth();
+    const { logout } = useAuth();
+    const dropdownRef = useRef(null);
 
-    const handleLogoClick = () => navigate("/home");
-    const handleQuiz = () => navigate("/quiz");
-    const handleFlashcard = () => navigate("/flashcard");
-    const handleIntro = () => navigate("/intro");
-    const handleAi = () => navigate("/pronunciation-practice");
+    // Close on click outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                onClose();
+            }
+        };
 
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [onClose]);
 
-    const handleProfile = () => {
-        navigate("/profile"); // Trỏ về ProfilePage
-        setIsMenuOpen(false);
-    };
-    const handleFlashcardHistory = () => {
-        navigate("/flashcard/history");
-        setIsMenuOpen(false);
-    };
+    // Close on escape key
+    useEffect(() => {
+        const handleEscape = (event) => {
+            if (event.key === 'Escape') onClose();
+        };
 
+        document.addEventListener('keydown', handleEscape);
+        return () => document.removeEventListener('keydown', handleEscape);
+    }, [onClose]);
 
-    const handleHistory = () => {
-        navigate("/history"); // Trỏ về QuizHistoryPage
-        setIsMenuOpen(false);
+    const handleNavigation = (path) => {
+        navigate(path);
+        onClose();
     };
 
     const handleLogout = async () => {
         try {
             await logout();
-            setIsMenuOpen(false);
+            onClose();
         } catch (error) {
-            console.error("Logout error:", error);
+            console.error('Logout error:', error);
         }
     };
 
-    // Hiển thị role badge
-    const getRoleBadge = () => {
-        if (!user) return null;
-
-        const roleConfig = {
-            'ROLE_ADMIN': {
-                label: '👑 Admin',
-                bgColor: 'bg-red-100',
-                textColor: 'text-red-700'
-            },
-            'ROLE_SUPPORTER': {
-                label: '🛠️ Supporter',
-                bgColor: 'bg-blue-100',
-                textColor: 'text-blue-700'
-            },
-            'ROLE_MEMBER': {
-                label: '👤 Member',
-                bgColor: 'bg-green-100',
-                textColor: 'text-green-700'
-            }
-        };
-
-        const config = roleConfig[user.role] || roleConfig['ROLE_MEMBER'];
-
-        return (
-            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${config.bgColor} ${config.textColor}`}>
-                {config.label}
-            </span>
-        );
-    };
+    const roleConfig = ROLE_CONFIG[user?.role];
+    const hasPanel = roleConfig?.panelPath;
 
     return (
-        <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 lg:px-20 xl:px-52 py-4 bg-white backdrop-blur-md border-b border-gray-200 shadow-sm">
-            {/* Logo */}
-            <div className="cursor-pointer" onClick={handleLogoClick}>
-                <img src={Logo} alt="TREEdu Logo" className="h-14 lg:h-16 w-auto object-contain" />
+        <div
+            ref={dropdownRef}
+            className="absolute right-0 mt-3 w-72 bg-white rounded-2xl shadow-2xl border border-neutral-200 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200"
+        >
+            {/* User Info Section */}
+            {user && (
+                <div className="px-4 py-3 border-b border-neutral-100">
+                    <div className="flex items-start gap-3 mb-3">
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white font-bold text-lg">
+                            {user.name?.[0]?.toUpperCase() || 'U'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-neutral-900 truncate">
+                                {user.name || 'User'}
+                            </p>
+                            <p className="text-xs text-neutral-500 truncate">
+                                {user.email}
+                            </p>
+                        </div>
+                    </div>
+                    <RoleBadge role={user.role} />
+                </div>
+            )}
+
+            {/* Menu Items */}
+            <div className="py-1">
+                <DropdownMenuItem
+                    icon={User}
+                    label="Thông tin cá nhân"
+                    onClick={() => handleNavigation('/profile')}
+                />
+                <DropdownMenuItem
+                    icon={Clock}
+                    label="Lịch sử học tập"
+                    onClick={() => handleNavigation('/history')}
+                />
+                <DropdownMenuItem
+                    icon={CreditCard}
+                    label="Lịch sử Flashcard"
+                    onClick={() => handleNavigation('/flashcard/history')}
+                />
             </div>
 
-            {/* Nav + Avatar */}
-            <div className="flex items-center gap-8 lg:gap-12">
-                {/* Navigation */}
-                <nav className="hidden lg:block">
-                    <ul className="flex items-center gap-8 text-gray-700 font-medium">
-                        <li onClick={handleQuiz} className="cursor-pointer hover:text-lime-600 transition">
-                            Bài quiz
-                        </li>
-                        <li onClick={handleFlashcard} className="cursor-pointer hover:text-lime-600 transition">
-                            Flashcard
-                        </li>
-                        <li onClick={handleAi} className="cursor-pointer hover:text-lime-600 transition">
-                            Phòng luyện phát âm
-                        </li>
-                        <li onClick={handleIntro} className="cursor-pointer hover:text-lime-600 transition">
-                            Giới thiệu
-                        </li>
-                        <li className="cursor-pointer hover:text-lime-600 transition">
-                            Liên lạc
-                        </li>
+            {/* Admin/Supporter Panel */}
+            {hasPanel && (
+                <>
+                    <div className="h-px bg-neutral-100 my-2" />
+                    <div className="py-2">
+                        <DropdownMenuItem
+                            icon={Settings}
+                            label={roleConfig.panelLabel}
+                            onClick={() => handleNavigation(roleConfig.panelPath)}
+                            variant="primary"
+                        />
+                    </div>
+                </>
+            )}
+
+            {/* Logout */}
+            <div className="h-px bg-neutral-200 my-2" />
+            <div className="py-2">
+                <DropdownMenuItem
+                    icon={LogOut}
+                    label="Đăng xuất"
+                    onClick={handleLogout}
+                    variant="danger"
+                />
+            </div>
+        </div>
+    );
+};
+
+const MobileMenu = ({ isOpen, onClose, navItems, currentPath, onNavigate }) => {
+    useEffect(() => {
+        if (isOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, [isOpen]);
+
+    if (!isOpen) return null;
+
+    return (
+        <>
+            {/* Overlay */}
+            <div
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
+                onClick={onClose}
+            />
+
+            {/* Menu Panel */}
+            <div className="fixed top-0 right-0 bottom-0 w-[280px] bg-white z-50 shadow-2xl lg:hidden animate-in slide-in-from-right duration-300">
+                <div className="flex items-center justify-between p-6 border-b border-neutral-200">
+                    <h2 className="text-lg font-semibold text-neutral-900">Menu</h2>
+                    <button
+                        onClick={onClose}
+                        className="p-2 rounded-lg hover:bg-neutral-100 transition-colors"
+                        aria-label="Đóng menu"
+                    >
+                        <X size={20} />
+                    </button>
+                </div>
+
+                <nav className="p-4">
+                    <ul className="space-y-1">
+                        {navItems.map((item) => {
+                            const isActive = currentPath === item.path;
+                            return (
+                                <li key={item.id}>
+                                    <button
+                                        onClick={() => {
+                                            onNavigate(item.path);
+                                            onClose();
+                                        }}
+                                        className={`
+                                            w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-colors
+                                            ${isActive
+                                            ? 'bg-emerald-50 text-emerald-600'
+                                            : 'text-neutral-700 hover:bg-neutral-50'
+                                        }
+                                        `}
+                                    >
+                                        {item.label}
+                                    </button>
+                                </li>
+                            );
+                        })}
                     </ul>
                 </nav>
+            </div>
+        </>
+    );
+};
 
-                {/* Avatar + Dropdown Menu */}
-                <div className="relative">
+// ============================================
+// MAIN COMPONENT
+// ============================================
+
+const Header = () => {
+    const navigate = useNavigate();
+    const location = useLocation();
+    const { user, loading } = useAuth();
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+    const handleLogoClick = () => navigate('/home');
+    const handleNavigate = (path) => navigate(path);
+
+    return (
+        <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-neutral-200">
+            <div className="max-w-[1400px] mx-auto px-6 lg:px-8">
+                <div className="flex items-center justify-between h-20 lg:h-24">
+
+                    {/* Logo */}
                     <button
-                        onClick={() => setIsMenuOpen(!isMenuOpen)}
-                        className="w-10 h-10 lg:w-11 lg:h-11 rounded-full overflow-hidden border-2 border-gray-300 hover:border-lime-500 transition-all duration-200 hover:scale-105 shadow-md"
-                        disabled={loading}
+                        onClick={handleLogoClick}
+                        className="flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 rounded-lg"
+                        aria-label="Về trang chủ"
                     >
-                        {loading ? (
-                            <div className="w-full h-full bg-gray-200 animate-pulse" />
-                        ) : (
-                            <img
-                                src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
-                                alt="Avatar"
-                                className="w-full h-full object-cover"
-                            />
-                        )}
+                        <img
+                            src={Logo}
+                            alt="TREEdu"
+                            className="h-24 lg:h-24 w-auto object-contain"
+                        />
                     </button>
 
-                    {isMenuOpen && !loading && (
-                        <>
-                            {/* Overlay để click ngoài sẽ tắt */}
-                            <div
-                                className="fixed inset-0 z-40"
-                                onClick={() => setIsMenuOpen(false)}
+                    {/* Desktop Navigation */}
+                    <nav className="hidden lg:block">
+                        <ul className="flex items-center gap-5 text-black">
+                            {NAV_ITEMS.map((item) => (
+                                <NavItem
+                                    key={item.id}
+                                    item={item}
+                                    isActive={location.pathname === item.path}
+                                    onClick={() => handleNavigate(item.path)}
+                                />
+                            ))}
+                        </ul>
+                    </nav>
+
+                    {/* Right Section */}
+                    <div className="flex items-center gap-3">
+                        {/* Mobile Menu Button */}
+                        <button
+                            onClick={() => setIsMobileMenuOpen(true)}
+                            className="lg:hidden p-2 rounded-lg hover:bg-neutral-100 transition-colors"
+                            aria-label="Mở menu"
+                        >
+                            <Menu size={10} />
+                        </button>
+
+                        {/* User Avatar & Dropdown */}
+                        <div className="relative">
+                            <UserAvatar
+                                loading={loading}
+                                onClick={() => setIsMenuOpen(!isMenuOpen)}
                             />
-                            <div
-                                className="absolute right-0 mt-3 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 py-3 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-                                {/* User Info Section */}
-                                {user && (
-                                    <div className="px-5 py-3 border-b border-gray-100">
-                                        <div className="flex items-center gap-3">
-                                            <div
-                                                className="w-12 h-12 rounded-full bg-lime-100 flex items-center justify-center">
-                                                <span className="text-lime-700 font-bold text-lg">
-                                                    {user.name?.charAt(0).toUpperCase() || 'U'}
-                                                </span>
-                                            </div>
-                                            <div className="flex-1">
-                                                <p className="font-semibold text-gray-800 truncate">
-                                                    {user.name || 'User'}
-                                                </p>
-                                                <p className="text-xs text-gray-500 truncate">
-                                                    {user.email}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="mt-2">
-                                            {getRoleBadge()}
-                                        </div>
-                                    </div>
-                                )}
 
-                                {/* Menu Items */}
-                                <button
-                                    onClick={handleProfile}
-                                    className="w-full px-5 py-3 text-left text-gray-700 hover:bg-lime-50 hover:text-lime-700 transition flex items-center gap-3"
-                                >
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                                    </svg>
-                                    <span>Thông tin cá nhân</span>
-                                </button>
-
-                                <button
-                                    onClick={handleHistory}
-                                    className="w-full px-5 py-3 text-left text-gray-700 hover:bg-lime-50 hover:text-lime-700 transition flex items-center gap-3"
-                                >
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                    </svg>
-                                    <span>Lịch sử học tập</span>
-                                </button>
-                                <button
-                                    onClick={handleFlashcardHistory}
-                                    className="w-full px-5 py-3 text-left text-gray-700 hover:bg-lime-50 hover:text-lime-700 transition flex items-center gap-3"
-                                >
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M9 5h6M9 9h6M9 13h6M9 17h6M5 5h.01M5 9h.01M5 13h.01M5 17h.01"
-                                        />
-                                    </svg>
-                                    <span>Lịch sử học Flashcard</span>
-                                </button>
-
-                                {/* Admin/Supporter Panel */}
-                                {user && (user.role === 'ROLE_ADMIN' || user.role === 'ROLE_SUPPORTER') && (
-                                    <>
-                                        <hr className="my-2 border-gray-200"/>
-                                        <button
-                                            onClick={() => {
-                                                navigate(user.role === 'ROLE_ADMIN' ? '/admin/dashboard' : '/supporter/dashboard');
-                                                setIsMenuOpen(false);
-                                            }}
-                                            className="w-full px-5 py-3 text-left text-purple-600 hover:bg-purple-50 transition flex items-center gap-3 font-medium"
-                                        >
-                                            <svg className="w-5 h-5" fill="none" stroke="currentColor"
-                                                 viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                                      d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                            </svg>
-                                            <span>
-                                                {user.role === 'ROLE_ADMIN' ? 'Admin Panel' : 'Supporter Panel'}
-                                            </span>
-                                        </button>
-                                    </>
-                                )}
-
-                                <hr className="my-2 border-gray-200"/>
-
-                                <button
-                                    onClick={handleLogout}
-                                    className="w-full px-5 py-3 text-left text-red-600 hover:bg-red-50 transition flex items-center gap-3 font-medium"
-                                >
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-                                    </svg>
-                                    <span>Đăng xuất</span>
-                                </button>
-                            </div>
-                        </>
-                    )}
+                            {isMenuOpen && !loading && (
+                                <UserDropdown
+                                    user={user}
+                                    onClose={() => setIsMenuOpen(false)}
+                                />
+                            )}
+                        </div>
+                    </div>
                 </div>
             </div>
+
+            {/* Mobile Menu */}
+            <MobileMenu
+                isOpen={isMobileMenuOpen}
+                onClose={() => setIsMobileMenuOpen(false)}
+                navItems={NAV_ITEMS}
+                currentPath={location.pathname}
+                onNavigate={handleNavigate}
+            />
         </header>
     );
 };
