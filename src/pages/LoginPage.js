@@ -23,7 +23,6 @@ const LoginPage = () => {
         }
     };
     const handleGoogleLogin = () => {
-        // Redirect sang backend Google OAuth
         window.location.href = "http://localhost:3001/api/auth/google";
     };
 
