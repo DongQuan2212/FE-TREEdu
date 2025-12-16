@@ -5,7 +5,9 @@ import {
     Users,
     UserCog,
     LogOut,
-    Menu,
+    WholeWord,
+    FileQuestion,
+
     X
 } from "lucide-react";
 import Lottie from "lottie-react";
@@ -29,20 +31,14 @@ const Sidebar = () => {
 
     const menuItems = [
         { to: "/admin", icon: Home, label: "Tổng quan" },
-        { to: "/admin/employee", icon: UserCog, label: "Quản lý nhân viên" },
-        { to: "/admin/user", icon: Users, label: "Quản lý người dùng" },
-        { to: "/admin/revenue", icon: Users, label: "Quản lý doanh thu" },
+        { to: "/admin/employee", icon: UserCog, label: "Quản lý người dùng" },
+        { to: "/admin/quiz", icon: FileQuestion, label: "Quản lý bài quiz" },
+        { to: "/admin/flashcard", icon: WholeWord, label: "Quản lý Flashcard" },
     ];
 
     return (
         <>
-            {/* Mobile menu button */}
-            <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="fixed top-4 left-4 z-50 lg:hidden p-2 rounded-lg bg-white shadow-md"
-            >
-                {isOpen ? <X /> : <Menu />}
-            </button>
+
 
             {/* Sidebar */}
             <aside
@@ -53,30 +49,17 @@ const Sidebar = () => {
 
                     {/* Logo */}
                     <div className="p-6 border-b">
-                        <img src={Logo} alt="Logo" className="h-12 mx-auto" />
+                        <img src={Logo} alt="Logo" className="h-24 mx-auto" />
                     </div>
-
-                    {/* ADMIN INFO */}
-                    <div className="px-6 py-4 border-b text-center">
-                        <p className="text-sm font-semibold text-gray-900">
-                            {user.name}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                            {user.email}
-                        </p>
-                        <span className="inline-block mt-2 text-xs px-3 py-1 rounded-full bg-lime-100 text-lime-700">
-                            Admin
-                        </span>
-                    </div>
-
                     {/* Menu */}
-                    <nav className="flex-1 px-4 py-6 space-y-1">
+                    <nav className="flex-1 px-4 py-6 space-y-6">
                         {menuItems.map((item) => {
                             const Icon = item.icon;
                             return (
                                 <NavLink
                                     key={item.to}
                                     to={item.to}
+                                    end
                                     className={({ isActive }) =>
                                         `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium
                                         ${isActive

@@ -119,7 +119,7 @@ function QuizTakingPage() {
                             {/* Nút thao tác */}
                             <div className="flex justify-center gap-4">
                                 <button
-                                    onClick={() => navigate('/quiz')}
+                                    onClick={() => navigate('/history')}
                                     className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
                                 >
                                     Về danh sách
