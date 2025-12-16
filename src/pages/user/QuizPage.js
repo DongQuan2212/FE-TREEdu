@@ -2,15 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from "react-router-dom";
 import Header from "../../components/user/Header";
 import Footer from "../../components/Footer/Footer";
-import axios from 'axios';
+// import axios from 'axios'; // Không dùng nên có thể bỏ
 import axiosInstance from '../../config/axiosConfig';
 
 import iconTime from "../../asset/User/time.png";
 import iconQuestion from "../../asset/User/question.png";
 import iconTopic from "../../asset/User/topic.png";
 import iconQuizEmpty from "../../asset/User/book.png";
-
-const API_URL = process.env.REACT_APP_API_BASE_URL ;
 
 function QuizPage() {
     const navigate = useNavigate();
@@ -30,22 +28,16 @@ function QuizPage() {
     const fetchQuizzes = async () => {
         try {
             setLoading(true);
-
-            // Dùng axiosInstance thay vì axios
             const response = await axiosInstance.get('/quiz');
-
             if (response.data.success) {
                 setQuizzes(response.data.data.content || []);
             }
         } catch (err) {
             console.error('Lỗi tải quiz:', err);
-
-            // Nếu 401/403 → redirect login
             if (err.response?.status === 401 || err.response?.status === 403) {
                 navigate('/login');
                 return;
             }
-
             setError('Không thể tải danh sách bài quiz. Vui lòng thử lại.');
         } finally {
             setLoading(false);
@@ -71,31 +63,43 @@ function QuizPage() {
         }
     });
 
+    // Style Badge tối giản hơn (Border + Light BG)
     const getLevelBadge = (level) => {
-        const bg = {
-            1: 'bg-green-100 text-green-800',
-            2: 'bg-emerald-100 text-emerald-800',
-            3: 'bg-yellow-100 text-yellow-800',
-            4: 'bg-orange-100 text-orange-800',
-            5: 'bg-red-100 text-red-800',
-            6: 'bg-purple-100 text-purple-800',
-        }[level] || 'bg-gray-100 text-gray-800';
-        return `px-3 py-1 rounded-full text-xs font-semibold ${bg}`;
+        const style = {
+            1: 'border-green-200 bg-green-50 text-green-700',
+            2: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+            3: 'border-yellow-200 bg-yellow-50 text-yellow-700',
+            4: 'border-orange-200 bg-orange-50 text-orange-700',
+            5: 'border-red-200 bg-red-50 text-red-700',
+            6: 'border-purple-200 bg-purple-50 text-purple-700',
+        }[level] || 'border-zinc-200 bg-zinc-50 text-zinc-600';
+
+        return `px-2.5 py-0.5 border text-[10px] font-bold uppercase tracking-wider rounded-md ${style}`;
     };
+
     const handleStartQuiz = (quizId) => {
         navigate(`/quiz/${quizId}`);
     };
+
+    // --- Loading State: Minimalist Skeleton ---
     if (loading) {
         return (
             <>
                 <Header />
-                <main className="min-h-screen bg-gray-50 pt-20 pb-12 px-4">
-                    <div className="max-w-6xl mx-auto text-center py-20">
-                        <div className="animate-pulse">
-                            <div className="h-12 bg-gray-200 rounded w-80 mx-auto mb-4"></div>
-                            <div className="h-8 bg-gray-200 rounded w-96 mx-auto"></div>
+                <main className="min-h-screen bg-zinc-50 pt-32 pb-12 px-6">
+                    <div className="max-w-7xl mx-auto">
+                        <div className="h-10 bg-gray-200 rounded w-48 mb-12 animate-pulse"></div>
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                            <div className="h-10 bg-gray-100 rounded w-full animate-pulse"></div>
+                            <div className="h-10 bg-gray-100 rounded w-full animate-pulse"></div>
+                            <div className="h-10 bg-gray-100 rounded w-full animate-pulse"></div>
+                            <div className="h-10 bg-gray-100 rounded w-full animate-pulse"></div>
                         </div>
-                        <p className="mt-10 text-lg text-gray-600">Đang tải danh sách bài quiz...</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                            {[1, 2, 3, 4, 5, 6].map((n) => (
+                                <div key={n} className="h-56 bg-white border border-gray-200 rounded-xl animate-pulse"></div>
+                            ))}
+                        </div>
                     </div>
                 </main>
                 <Footer />
@@ -103,17 +107,17 @@ function QuizPage() {
         );
     }
 
-    // Error
+    // --- Error State ---
     if (error) {
         return (
             <>
                 <Header />
-                <main className="min-h-screen bg-gray-50 pt-20 pb-12 px-4 pd-100">
-                    <div className="max-w-6xl mx-auto text-center py-200">
-                        <p className="text-red-600 text-xl mb-6">{error}</p>
+                <main className="min-h-screen bg-zinc-50 flex items-center justify-center px-4">
+                    <div className="text-center">
+                        <p className="text-zinc-800 font-medium mb-4">{error}</p>
                         <button
                             onClick={fetchQuizzes}
-                            className="px-8 py-3 bg-green-600 text-white rounded-full hover:bg-green-700 transition font-medium"
+                            className="px-6 py-2 bg-zinc-900 text-white rounded-lg hover:bg-zinc-700 transition text-sm font-medium"
                         >
                             Thử lại
                         </button>
@@ -124,41 +128,43 @@ function QuizPage() {
         );
     }
 
-    // Main render
     return (
         <>
             <Header />
 
-            <main className="min-h-screen bg-gray-50 pt-20 pb-16 px-4">
-                <div className="max-w-6xl mx-auto">
+            <main className="min-h-screen bg-zinc-50 pt-28 pb-20 px-6 sm:px-8">
+                <div className="max-w-7xl mx-auto mt-8">
 
-                    {/* Hero */}
-                    <div className="text-center mb-12 py-12 px-8 bg-green-800 rounded-2xl shadow-xl text-white">
-                        <h1 className="text-5xl md:text-6xl font-bold mb-4 drop-shadow-lg">
-                            Bài Tập Quiz
+                    {/* Header Section */}
+                    <div className="mb-10">
+                        <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-neutral-900 mb-5">
+                            Thư viện Quiz
                         </h1>
-                        <p className="text-xl md:text-2xl opacity-95 max-w-3xl mx-auto">
-                            Kiểm tra kiến thức qua các bài quiz đa dạng chủ đề & cấp độ
+                        <p className="text-zinc-500 font-light">
+                        Rèn luyện kiến thức với {sortedQuizzes.length} bài kiểm tra có sẵn.
                         </p>
                     </div>
 
-                    {/* Search & Filter */}
-                    <div className="bg-white rounded-2xl shadow-lg p-8 mb-10">
-                        <input
-                            type="text"
-                            placeholder="Tìm kiếm bài quiz theo tên..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full px-6 py-4 mb-8 text-lg border-2 border-gray-200 rounded-xl focus:outline-none focus:border-green-600 focus:ring-4 focus:ring-green-100 transition"
-                        />
+                    {/* Filter Bar - Modern & Clean */}
+                    <div className="flex flex-col xl:flex-row gap-4 mb-10 pb-6 border-b border-zinc-200">
+                        {/* Search Input */}
+                        <div className="flex-grow xl:max-w-md relative group">
+                            <input
+                                type="text"
+                                placeholder="Tìm kiếm bài quiz..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full pl-4 pr-4 py-2.5 bg-white border border-zinc-300 rounded-lg text-sm text-zinc-900 focus:outline-none focus:border-zinc-800 focus:ring-1 focus:ring-zinc-800 transition-colors"
+                            />
+                        </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">Cấp độ:</label>
+                        {/* Dropdowns */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 flex-grow xl:flex-grow-0">
+                            <div className="relative">
                                 <select
                                     value={selectedLevel}
                                     onChange={(e) => setSelectedLevel(e.target.value)}
-                                    className="w-full px-5 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-green-600 transition"
+                                    className="w-full px-4 py-2.5 bg-white border border-zinc-300 rounded-lg text-sm text-zinc-700 focus:outline-none focus:border-zinc-800 appearance-none cursor-pointer"
                                 >
                                     <option value="all">Tất cả cấp độ</option>
                                     {[1,2,3,4,5,6].map(l => (
@@ -167,12 +173,11 @@ function QuizPage() {
                                 </select>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">Chủ đề:</label>
+                            <div className="relative">
                                 <select
                                     value={selectedTopic}
                                     onChange={(e) => setSelectedTopic(e.target.value)}
-                                    className="w-full px-5 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-green-600 transition"
+                                    className="w-full px-4 py-2.5 bg-white border border-zinc-300 rounded-lg text-sm text-zinc-700 focus:outline-none focus:border-zinc-800 appearance-none cursor-pointer"
                                 >
                                     <option value="all">Tất cả chủ đề</option>
                                     {[...new Set(quizzes.map(q => q.topic))].map(topic => (
@@ -181,12 +186,11 @@ function QuizPage() {
                                 </select>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">Sắp xếp:</label>
+                            <div className="relative">
                                 <select
                                     value={sortBy}
                                     onChange={(e) => setSortBy(e.target.value)}
-                                    className="w-full px-5 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-green-600 transition"
+                                    className="w-full px-4 py-2.5 bg-white border border-zinc-300 rounded-lg text-sm text-zinc-700 focus:outline-none focus:border-zinc-800 appearance-none cursor-pointer"
                                 >
                                     <option value="title">Tên A → Z</option>
                                     <option value="level">Cấp độ tăng dần</option>
@@ -197,64 +201,62 @@ function QuizPage() {
                         </div>
                     </div>
 
-                    {/* Kết quả */}
-                    <div className="flex justify-between items-center mb-8">
-                        <h2 className="text-3xl font-bold text-gray-800">
-                            Tất cả bài quiz
-                        </h2>
-                        <p className="text-lg text-gray-600">
-                            Tìm thấy <span className="font-bold text-green-600">{sortedQuizzes.length}</span> bài
-                        </p>
-                    </div>
-                    {/* Grid Quiz */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                    {/* Quiz Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {sortedQuizzes.length === 0 ? (
-                            <div className="col-span-full text-center py-16">
-                                <img src={iconQuizEmpty} alt="Chưa có quiz" className="w-32 mx-auto mb-6 opacity-50" />
-                                <p className="text-xl text-gray-500">
-                                    Không tìm thấy bài quiz nào phù hợp.
-                                </p>
+                            <div className="col-span-full py-20 flex flex-col items-center justify-center text-zinc-400">
+                                <img src={iconQuizEmpty} alt="Empty" className="w-16 grayscale opacity-20 mb-4" />
+                                <p className="text-sm font-medium">Không tìm thấy bài quiz phù hợp.</p>
                             </div>
                         ) : (
                             sortedQuizzes.map((quiz) => (
                                 <div
                                     key={quiz.id}
-                                    className="bg-white rounded-2xl shadow-md hover:shadow-2xl transition-all hover:-translate-y-3 border border-gray-100 group cursor-pointer"
                                     onClick={() => handleStartQuiz(quiz.id)}
+                                    className="group relative bg-white rounded-xl border border-zinc-200 p-6 cursor-pointer hover:border-zinc-400 hover:shadow-md transition-all duration-300 flex flex-col justify-between"
                                 >
-                                    <div className="p-8">
-                                        <h3 className="text-xl font-bold text-gray-800 mb-4 line-clamp-2">
+                                    {/* Top Content */}
+                                    <div>
+                                        <div className="flex justify-between items-start mb-4">
+                                            {/* Topic Tag */}
+                                            <div className="flex items-center gap-1.5 px-2 py-1 bg-zinc-100 rounded text-xs text-zinc-600 font-medium">
+                                                <img src={iconTopic} alt="" className="w-3 h-3 grayscale opacity-70" />
+                                                <span className="truncate max-w-[100px]">{quiz.topic}</span>
+                                            </div>
+                                            {/* Level Badge */}
+                                            <span className={getLevelBadge(quiz.level)}>
+                                                LVL {quiz.level}
+                                            </span>
+                                        </div>
+
+                                        <h3 className="text-lg font-bold text-zinc-900 mb-2 leading-tight line-clamp-2 group-hover:text-emerald-700 transition-colors">
                                             {quiz.title}
                                         </h3>
 
-                                        <div className="flex flex-wrap gap-3 mb-6">
-                                            <div className="flex items-center gap-2">
-                                                <img src={iconTopic} alt="Chủ đề" className="w-5 h-5" />
-                                                <span className="text-gray-600 text-sm">{quiz.topic}</span>
+                                        {/* Metadata Row */}
+                                        <div className="flex items-center gap-4 mt-4 text-xs text-zinc-500 font-medium">
+                                            <div className="flex items-center gap-1.5">
+                                                <img src={iconQuestion} alt="" className="w-3.5 h-3.5 grayscale opacity-60" />
+                                                <span>{quiz.questionCount} câu</span>
                                             </div>
-                                            <div className="flex items-center gap-2">
-                                                <img src={iconQuestion} alt="Câu hỏi" className="w-5 h-5" />
-                                                <span className="text-gray-600 text-sm">{quiz.questionCount} câu</span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <img src={iconTime} alt="Thời gian" className="w-5 h-5" />
-                                                <span className="text-gray-600 text-sm">{quiz.timer} phút</span>
+                                            <div className="w-1 h-1 rounded-full bg-zinc-300"></div>
+                                            <div className="flex items-center gap-1.5">
+                                                <img src={iconTime} alt="" className="w-3.5 h-3.5 grayscale opacity-60" />
+                                                <span>{quiz.timer}p</span>
                                             </div>
                                         </div>
-                                        <div className="flex justify-between items-center">
-                                            <span className={getLevelBadge(quiz.level)}>
-                                                Level {quiz.level}
-                                            </span>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleStartQuiz(quiz.id);
-                                                }}
-                                                className="px-6 py-2.5 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition shadow-md"
-                                            >
-                                                Bắt đầu
-                                            </button>
-                                        </div>
+                                    </div>
+
+                                    {/* Action Bottom */}
+                                    <div className="mt-6 pt-4 border-t border-zinc-50 flex items-center justify-between">
+                                        <span className="text-xs font-semibold text-zinc-400 group-hover:text-zinc-600 transition-colors">
+                                            Kiểm tra ngay
+                                        </span>
+                                        <button className="w-8 h-8 rounded-full bg-zinc-50 group-hover:bg-zinc-900 flex items-center justify-center transition-all duration-300">
+                                            <svg className="w-4 h-4 text-zinc-400 group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                            </svg>
+                                        </button>
                                     </div>
                                 </div>
                             ))
