@@ -28,6 +28,8 @@ import ForgotPasswordPage from "../pages/ForgotPasswordPage";
 import ProfilePage from "../pages/user/ProfilePage";
 import ChangePasswordPage from "../pages/user/ChangePasswordPage";
 import QuizHistoryPage from "../pages/user/QuizHistoryPage";
+import FlashcardLearnPage from "../pages/user/FlashcardLearnPage";
+import FlashcardHistoryPage from "../pages/user/FlashcardHistoryPage";
 function AppRoutes() {
     return (
         <Router>
@@ -53,6 +55,9 @@ function AppRoutes() {
                 <Route path="/flashcard" element={<MyFlashCardPage/>} />
                 <Route path="/flashcard/create" element={<CreateFlashcardPage />} />
                 <Route path="/flashcard/detail/:id" element={<FlashcardDetailPage />} />
+                <Route path="/flashcard/:id/learn" element={<FlashcardLearnPage />} />
+                <Route path="/flashcard/history" element={<FlashcardHistoryPage/>} />
+
                 <Route path="/pronunciation-practice" element={<PronunciationPracticePage />} />
                 <Route path="/pronunciation-practice/:topic" element={<PronunciationPracticeDetailPage />} />
 

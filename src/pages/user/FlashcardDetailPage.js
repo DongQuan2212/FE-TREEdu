@@ -8,6 +8,8 @@ function FlashcardDetailPage() {
     const { id } = useParams(); // Đây là flashcardId
     const navigate = useNavigate();
 
+
+
     const [flashcard, setFlashcard] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -114,7 +116,17 @@ function FlashcardDetailPage() {
         setShowEditModal(true);
     };
 
-    // --- 3. HANDLE UPDATE (GỌI API SỬA) ---
+    const handleStartLearning = async () => {
+        try {
+            const res = await flashcardAPI.startLearning(id);
+            if (res.data.status === 200) {
+                navigate(`/flashcard/${id}/learn`);
+            }
+        } catch (err) {
+            alert("Không thể bắt đầu học");
+        }
+    };
+
     const handleUpdateWord = async (e) => {
         e.preventDefault();
 
@@ -226,23 +238,40 @@ function FlashcardDetailPage() {
                                 <h1 className="text-3xl font-bold text-gray-900 mb-2">{flashcard.title}</h1>
                                 {flashcard.description && <p className="text-gray-600 mb-4">{flashcard.description}</p>}
                                 <div className="flex flex-wrap gap-3">
-                                    <span className="px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm font-medium">Level {flashcard.level}</span>
-                                    <span className="px-4 py-2 bg-emerald-100 text-emerald-700 rounded-full text-sm font-medium">{flashcard.topic}</span>
-                                    <span className="px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">{flashcard.wordCount} từ</span>
+                                    <span
+                                        className="px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm font-medium">Level {flashcard.level}</span>
+                                    <span
+                                        className="px-4 py-2 bg-emerald-100 text-emerald-700 rounded-full text-sm font-medium">{flashcard.topic}</span>
+                                    <span
+                                        className="px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">{flashcard.wordCount} từ</span>
                                 </div>
                             </div>
-                            <button onClick={() => setShowAddModal(true)}
-                                    className="px-8 py-3 bg-black text-white rounded-xl font-medium hover:bg-gray-800 transition shadow">
-                                + Thêm từ mới
-                            </button>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setShowAddModal(true)}
+                                    className="px-6 py-3 bg-black text-white rounded-xl font-medium hover:bg-gray-800 transition shadow"
+                                >
+                                    + Thêm từ mới
+                                </button>
+
+                                <button
+                                    onClick={handleStartLearning}
+                                    className="px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700"
+                                >
+                                    Start Learning
+                                </button>
+
+                            </div>
+
                         </div>
                     </div>
 
                     {/* Danh sách từ */}
                     <div className="space-y-6">
-                        {flashcard.words && flashcard.words.length > 0 ? (
+                    {flashcard.words && flashcard.words.length > 0 ? (
                             flashcard.words.map((word) => (
-                                <div key={word.id} className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow group">
+                                <div key={word.id}
+                                     className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow group">
                                     <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
                                         <div className="md:col-span-9 space-y-4">
                                             <div className="flex flex-wrap items-center gap-3">
