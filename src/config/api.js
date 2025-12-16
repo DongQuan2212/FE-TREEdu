@@ -43,10 +43,17 @@ export const flashcardAPI = {
             `/flashcards/${flashcardId}/words/${wordId}`
         );
     },
+    startLearning: (flashcardId) => {
 
-    // Lấy chi tiết một từ
-    getWordById: (flashcardId, wordId) => {
-        return axiosInstance.get(`/flashcards/${flashcardId}/words/${wordId}`);
-    }
+        return axiosInstance.post(`/flashcards/learn/${flashcardId}/start`);
+    },
+
+    markViewed: (flashcardId, data) => {
+        return axiosInstance.put(`/flashcards/learn/${flashcardId}/mark-viewed`, data);
+    },
+
+    getLearnHistory: () => {
+        return axiosInstance.get('/flashcards/learn');
+    },
 };
 
