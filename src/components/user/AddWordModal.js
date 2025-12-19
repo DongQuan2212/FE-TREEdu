@@ -72,15 +72,15 @@ const AddWordModal = ({ isOpen, onClose, wordForm, onInputChange, onSubmit, isLo
                                 className="w-full px-5 py-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
                             >
                                 <option value="">— Chọn loại từ —</option>
-                                <option value="Danh từ">Danh từ</option>
-                                <option value="Động từ">Động từ</option>
-                                <option value="Tính từ">Tính từ</option>
-                                <option value="Trạng từ">Trạng từ</option>
-                                <option value="Đại từ">Đại từ</option>
-                                <option value="Giới từ">Giới từ</option>
-                                <option value="Liên từ">Liên từ</option>
-                                <option value="Thán từ">Thán từ</option>
-                                <option value="Cụm từ">Cụm từ</option>
+                                <option value="NOUN">Danh từ</option>
+                                <option value="VERB">Động từ</option>
+                                <option value="ADJECTIVE">Tính từ</option>
+                                <option value="ADVERB">Trạng từ</option>
+                                <option value="PRONOUN">Đại từ</option>
+                                <option value="PREPOSITION">Giới từ</option>
+                                <option value="CONJUNCTION">Liên từ</option>
+                                <option value="INTERJECTION">Thán từ</option>
+                                <option value="PHRASE">Cụm từ</option>
                             </select>
                         </div>
 
