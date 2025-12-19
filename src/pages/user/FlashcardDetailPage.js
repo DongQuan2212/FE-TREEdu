@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Header from "../../components/user/Header";
 import Footer from "../../components/Footer/Footer";
 import { flashcardAPI } from '../../config/api';
+import { notify } from '../../utils/toastNotify'; // Import notify
 import { Plus, Edit, Trash2, ArrowLeft, BookOpen, Volume2, Link, Layers, X } from 'lucide-react';
 
 function FlashcardDetailPage() {
@@ -69,7 +70,7 @@ function FlashcardDetailPage() {
     const handleAddWord = async (e) => {
         e.preventDefault();
         if (!wordForm.newWord.trim() || !wordForm.meaning.trim()) {
-            alert('Vui lòng nhập từ vựng và nghĩa');
+            notify.warning('Vui lòng nhập từ vựng và nghĩa');
             return;
         }
 
@@ -78,7 +79,7 @@ function FlashcardDetailPage() {
         try {
             const response = await flashcardAPI.addWordToFlashcard(id, payload);
             if (response.data.status === 200 || response.status === 201) {
-                alert('Thêm từ thành công!');
+                notify.success('Thêm từ thành công!');
                 setShowAddModal(false);
                 resetForm();
                 fetchFlashcardDetails();
@@ -86,7 +87,7 @@ function FlashcardDetailPage() {
         } catch (error) {
             console.error("Lỗi thêm từ:", error);
             const msg = error.response?.data?.message || 'Có lỗi xảy ra khi thêm từ';
-            alert(msg);
+            notify.error(msg);
         }
     };
 
@@ -107,7 +108,7 @@ function FlashcardDetailPage() {
 
     const handleStartLearning = async () => {
         if (flashcard?.words?.length === 0) {
-            alert("Bộ flashcard hiện chưa có từ vựng nào. Vui lòng thêm từ trước khi học.");
+            notify.warning("Bộ flashcard hiện chưa có từ vựng nào. Vui lòng thêm từ trước khi học.");
             return;
         }
         try {
@@ -116,7 +117,7 @@ function FlashcardDetailPage() {
                 navigate(`/flashcard/${id}/learn`);
             }
         } catch (err) {
-            alert("Không thể bắt đầu học");
+            notify.error("Không thể bắt đầu học lúc này");
         }
     };
 
@@ -124,12 +125,12 @@ function FlashcardDetailPage() {
         e.preventDefault();
 
         if (!currentWord || !currentWord.id) {
-            alert("Lỗi: Không xác định được ID từ cần sửa");
+            notify.error("Lỗi: Không xác định được ID từ cần sửa");
             return;
         }
 
         if (!wordForm.newWord.trim() || !wordForm.meaning.trim()) {
-            alert('Vui lòng nhập từ vựng và nghĩa');
+            notify.warning('Vui lòng nhập từ vựng và nghĩa');
             return;
         }
 
@@ -139,7 +140,7 @@ function FlashcardDetailPage() {
             const response = await flashcardAPI.updateWord(id, currentWord.id, payload);
 
             if (response.data.status === 200) {
-                alert('Cập nhật thành công!');
+                notify.success('Cập nhật từ vựng thành công!');
                 setShowEditModal(false);
                 resetForm();
                 fetchFlashcardDetails();
@@ -147,21 +148,22 @@ function FlashcardDetailPage() {
         } catch (error) {
             console.error('Lỗi khi cập nhật:', error);
             const msg = error.response?.data?.message || 'Có lỗi khi cập nhật';
-            alert(msg);
+            notify.error(msg);
         }
     };
 
     const handleDeleteWord = async (wordId) => {
+        // Giữ nguyên window.confirm vì nó là popup hệ thống, không ảnh hưởng UI custom
         if (!window.confirm("Bạn chắc chắn muốn xóa từ này khỏi bộ flashcard?")) return;
 
         try {
             const response = await flashcardAPI.deleteWord(id, wordId);
             if (response.status === 200 || response.status === 204) {
-                alert("Xóa thành công");
+                notify.success("Xóa từ thành công");
                 fetchFlashcardDetails();
             }
         } catch (err) {
-            alert(err.response?.data?.message || "Lỗi xóa");
+            notify.error(err.response?.data?.message || "Lỗi khi xóa từ");
         }
     };
 
@@ -173,7 +175,7 @@ function FlashcardDetailPage() {
         return labels[type] || type;
     };
 
-    // --- RENDER ---
+    // --- RENDER (GIỮ NGUYÊN) ---
     if (loading) {
         return (
             <>

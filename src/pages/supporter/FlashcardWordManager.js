@@ -57,9 +57,7 @@ const FlashcardWordManager = () => {
         fetchFlashcard();
     }, [id]);
 
-    // =============================
-    // ADD WORD
-    // =============================
+
     const addWord = async () => {
         if (!newWord.newWord.trim() || !newWord.meaning.trim()) return;
 

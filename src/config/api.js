@@ -55,5 +55,7 @@ export const flashcardAPI = {
     getLearnHistory: () => {
         return axiosInstance.get('/flashcards/learn');
     },
+
+    resetProgress: (id) => axiosInstance.post(`/flashcards/learn/${id}/reset`),
 };
 

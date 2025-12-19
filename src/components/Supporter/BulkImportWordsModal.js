@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { X, Upload, CheckCircle2, Loader2, FileText } from 'lucide-react';
 import * as XLSX from 'xlsx'; // Cài: npm install xlsx
-
+import axiosInstance from '../../config/axiosConfig';
 const BulkImportWordsModal = ({ isOpen, onClose, flashcardId, onSuccess }) => {
     const [file, setFile] = useState(null);
     const [previewData, setPreviewData] = useState([]);
@@ -70,36 +70,50 @@ const BulkImportWordsModal = ({ isOpen, onClose, flashcardId, onSuccess }) => {
 
         for (let i = 0; i < previewData.length; i += chunkSize) {
             const chunk = previewData.slice(i, i + chunkSize);
+
             const promises = chunk.map(async (word) => {
                 try {
-                    const res = await fetch(`http://localhost:3001/flashcards/${flashcardId}/words`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(word)
-                    });
-                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    await axiosInstance.post(
+                        `/flashcards/${flashcardId}/words`,
+                        word
+                    );
+
                     return { success: true, word: word.newWord };
                 } catch (err) {
-                    return { success: false, word: word.newWord, error: err.message };
+                    return {
+                        success: false,
+                        word: word.newWord,
+                        error: err.response?.data?.message || err.message,
+                    };
                 }
             });
 
             const chunkResults = await Promise.all(promises);
+
             chunkResults.forEach(r => {
-                if (r.success) setResults(prev => ({ ...prev, success: prev.success + 1 }));
-                else {
-                    setResults(prev => ({ ...prev, failed: prev.failed + 1 }));
+                if (r.success) {
+                    setResults(prev => ({
+                        ...prev,
+                        success: prev.success + 1,
+                    }));
+                } else {
+                    setResults(prev => ({
+                        ...prev,
+                        failed: prev.failed + 1,
+                    }));
                     errors.push(`${r.word}: ${r.error}`);
                 }
             });
 
-            setProgress(Math.min(100, Math.round(((i + chunkSize) / previewData.length) * 100)));
+            const current = Math.min(i + chunkSize, previewData.length);
+            setProgress(Math.round((current / previewData.length) * 100));
         }
 
         setResults(prev => ({ ...prev, errors }));
         setIsProcessing(false);
         onSuccess?.();
     };
+
 
     return (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={onClose}>

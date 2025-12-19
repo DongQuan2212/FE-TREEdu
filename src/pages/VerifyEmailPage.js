@@ -10,7 +10,7 @@ const VerifyEmailPage = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
 
-    const [status, setStatus] = useState("loading"); // loading, success, error
+    const [status, setStatus] = useState("loading");
     const [message, setMessage] = useState("");
     const [countdown, setCountdown] = useState(5);
 
