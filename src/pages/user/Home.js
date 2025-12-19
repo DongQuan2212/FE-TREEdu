@@ -14,7 +14,7 @@ function HomePage() {
 
     const handleJoinQuiz = () => navigate("/quiz");
     const handleJoinFlashCard = () => navigate("/flashcard");
-    const handleJoinPronunciation = () => navigate("/pronunciation"); // sửa link nếu có
+    const handleJoinPronunciation = () => navigate("/pronunciation-practice"); // sửa link nếu có
 
     return (
         <>
