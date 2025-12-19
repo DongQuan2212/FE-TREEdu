@@ -23,7 +23,8 @@ const LoginPage = () => {
         }
     };
     const handleGoogleLogin = () => {
-        window.location.href = "http://localhost:3001/api/auth/google";
+        // Redirect đến endpoint OAuth2 của Spring Security
+        window.location.href = "http://localhost:3001/oauth2/authorization/google";
     };
 
     const handleLogin = async (e) => {

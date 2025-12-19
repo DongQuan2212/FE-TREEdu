@@ -34,6 +34,7 @@ import QuizManagement from "../pages/admin/QuizManagement";
 import AdminQuizEdit from "../pages/admin/AdminQuizEdit";
 import AdminFlashcardList from "../pages/admin/AdminFlashcardList";
 import FlashcardWordManagerAdmin from "../pages/admin/FlashcardWordManagerAdmin";
+import OAuth2RedirectHandler from "../pages/OAuth2RedirectHandler";
 function AppRoutes() {
     return (
         <Router>
@@ -44,6 +45,7 @@ function AppRoutes() {
                 <Route path="/register" element={<RegisterPage/>} />
                 <Route path="/verify-result" element={<VerifyEmailPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/oauth2/redirect" element={<OAuth2RedirectHandler />} />
 
                 {/* User Routes */}
                 <Route path="/home" element={<Home/>} />
