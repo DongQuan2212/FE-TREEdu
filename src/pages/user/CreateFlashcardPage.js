@@ -1,10 +1,16 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Header from "../../components/user/Header";
+import Header from "../../components/user//Header";
 import Footer from "../../components/Footer/Footer";
 import { flashcardAPI } from '../../config/api';
-import { BookOpenIcon, LightBulbIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline';
-import {XIcon} from "lucide-react";
+import { notify } from '../../utils/toastNotify';
+import {
+    BookOpen,
+    ArrowLeft,
+    Loader2,
+    Info,
+    ChevronDown
+} from 'lucide-react';
 
 function CreateFlashcardPage() {
     const navigate = useNavigate();
@@ -30,13 +36,11 @@ function CreateFlashcardPage() {
 
     const validateForm = () => {
         const newErrors = {};
+        if (!formData.title.trim()) newErrors.title = 'Vui lòng nhập tiêu đề';
+        else if (formData.title.length < 3) newErrors.title = 'Tiêu đề quá ngắn (tối thiểu 3 ký tự)';
 
-        if (!formData.title.trim()) newErrors.title = 'Tiêu đề không được để trống';
-        else if (formData.title.length < 3) newErrors.title = 'Tiêu đề phải có ít nhất 3 ký tự';
-
-        if (!formData.description.trim()) newErrors.description = 'Mô tả không được để trống';
-        if (!formData.topic.trim()) newErrors.topic = 'Chủ đề không được để trống';
-        if (formData.level < 1 || formData.level > 10) newErrors.level = 'Level phải từ 1 đến 10';
+        if (!formData.description.trim()) newErrors.description = 'Vui lòng nhập mô tả';
+        if (!formData.topic.trim()) newErrors.topic = 'Vui lòng nhập chủ đề';
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -51,212 +55,176 @@ function CreateFlashcardPage() {
             const response = await flashcardAPI.createFlashcard(formData);
 
             if (response.data.status === 200 || response.data.status === 201) {
-                alert('Tạo flashcard thành công!');
+                notify.success('Tạo bộ flashcard mới thành công!');
                 navigate(`/flashcard/detail/${response.data.data.id}`);
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('Có lỗi xảy ra khi tạo flashcard. Vui lòng thử lại.');
+            notify.error(error.response?.data?.message || 'Không thể tạo flashcard. Vui lòng thử lại.');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleCancel = () => navigate('/flashcard/me');
+    // Hàm xử lý điều hướng chung
+    const handleBack = () => {
+        navigate('/flashcard');
+    };
 
     return (
-        <>
+        <div className="min-h-screen bg-white flex flex-col font-sans text-gray-900 mt-10">
             <Header />
 
-            <main className="min-h-screen bg-gray-50 pt-20 pb-16 px-4">
-                <div className="max-w-3xl mx-auto">
+            <main className="flex-1 pt-24 pb-20 px-4 sm:px-6">
+                <div className="max-w-2xl mx-auto">
 
-                    {/* Header Hero */}
-                    <div className="text-center mb-10">
-                        <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-green-500 to-emerald-600 rounded-3xl shadow-xl shadow-xl mb-6">
-                            <BookOpenIcon className="w-10 h-10 text-white" />
-                        </div>
-                        <h1 className="text-5xl font-bold text-gray-800 mb-4">
-                            Tạo Flashcard Mới
+                    {/* Navigation Back - Đã sửa link */}
+                    <button
+                        onClick={handleBack}
+                        className="group flex items-center text-sm text-gray-500 hover:text-black transition-colors mb-8"
+                    >
+                        <ArrowLeft className="w-4 h-4 mr-1 group-hover:-translate-x-1 transition-transform" />
+                        Quay lại
+                    </button>
+
+                    {/* Header Section */}
+                    <div className="mb-10">
+                        <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl mb-3">
+                            Tạo bộ thẻ mới
                         </h1>
-                        <p className="text-xl text-gray-600">
-                            Xây dựng bộ từ vựng riêng của bạn một cách dễ dàng
+                        <p className="text-gray-500 text-lg font-light">
+                            Thiết lập thông tin cơ bản cho bộ từ vựng của bạn.
                         </p>
                     </div>
 
-                    {/* Form Card */}
-                    <div className="bg-white rounded-3xl shadow-2xl p-8 md:p-12 border border-gray-100">
-                        <form onSubmit={handleSubmit} className="space-y-8">
+                    {/* Form Section */}
+                    <form onSubmit={handleSubmit} className="space-y-8">
 
-                            {/* Tiêu đề */}
-                            <div>
-                                <label className="block text-lg font-semibold text-gray-700 mb-2">
-                                    Tiêu đề <span className="text-red-500">*</span>
+                        {/* Title Input */}
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-700 block">
+                                Tên bộ thẻ
+                            </label>
+                            <input
+                                type="text"
+                                name="title"
+                                value={formData.title}
+                                onChange={handleChange}
+                                placeholder="Ví dụ: 3000 từ vựng Oxford..."
+                                className={`w-full bg-transparent px-4 py-3.5 border rounded-lg outline-none transition-all placeholder:text-gray-300
+                                    ${errors.title
+                                    ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500'
+                                    : 'border-gray-200 focus:border-black focus:ring-1 focus:ring-black'
+                                }`}
+                            />
+                            {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title}</p>}
+                        </div>
+
+                        {/* Description Input */}
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-700 block">
+                                Mô tả
+                            </label>
+                            <textarea
+                                name="description"
+                                rows="3"
+                                value={formData.description}
+                                onChange={handleChange}
+                                placeholder="Mô tả ngắn gọn về nội dung..."
+                                className={`w-full bg-transparent px-4 py-3.5 border rounded-lg outline-none transition-all resize-none placeholder:text-gray-300
+                                    ${errors.description
+                                    ? 'border-red-500 focus:border-red-500'
+                                    : 'border-gray-200 focus:border-black'
+                                }`}
+                            />
+                            {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description}</p>}
+                        </div>
+
+                        {/* Group: Topic & Level */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-gray-700 block">
+                                    Chủ đề
                                 </label>
-                                <input
-                                    type="text"
-                                    name="title"
-                                    value={formData.title}
-                                    onChange={handleChange}
-                                    placeholder="Ví dụ: 1000 từ vựng TOEIC cơ bản"
-                                    className={`w-full px-5 py-4 text-lg rounded-2xl border-2 transition-all focus:ring-4 focus:ring-green-100 ${
-                                        errors.title
-                                            ? 'border-red-400 focus:border-red-500'
-                                            : 'border-gray-200 focus:border-green-500'
-                                    }`}
-                                    disabled={loading}
-                                />
-                                {errors.title && (
-                                    <p className="mt-2 text-red-600 text-sm flex items-center gap-2">
-                                        <XMarkIcon className="w-5 h-5" />
-                                        {errors.title}
-                                    </p>
-                                )}
-                            </div>
-
-                            {/* Mô tả */}
-                            <div>
-                                <label className="block text-lg font-semibold text-gray-700 mb-2">
-                                    Mô tả <span className="text-red-500">*</span>
-                                </label>
-                                <textarea
-                                    name="description"
-                                    rows="4"
-                                    value={formData.description}
-                                    onChange={handleChange}
-                                    placeholder="Mô tả ngắn gọn về bộ flashcard này..."
-                                    className={`w-full px-5 py-4 text-lg rounded-2xl border-2 transition-all focus:ring-4 focus:ring-green-100 resize-none ${
-                                        errors.description
-                                            ? 'border-red-400 focus:border-red-500'
-                                            : 'border-gray-200 focus:border-green-500'
-                                    }`}
-                                    disabled={loading}
-                                />
-                                {errors.description && (
-                                    <p className="mt-2 text-red-600 text-sm flex items-center gap-2">
-                                        <XMarkIcon className="w-5 h-5" />
-                                        {errors.description}
-                                    </p>
-                                )}
-                            </div>
-
-                            {/* Chủ đề & Level */}
-                            <div className="grid md:grid-cols-2 gap-8">
-                                <div>
-                                    <label className="block text-lg font-semibold text-gray-700 mb-2">
-                                        Chủ đề <span className="text-red-500">*</span>
-                                    </label>
+                                <div className="relative">
+                                    <BookOpen className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                                     <input
                                         type="text"
                                         name="topic"
                                         value={formData.topic}
                                         onChange={handleChange}
-                                        placeholder="Ví dụ: TOEIC, IELTS, Daily Conversation"
-                                        className={`w-full px-5 py-4 text-lg rounded-2xl border-2 transition-all focus:ring-4 focus:ring-green-100 ${
-                                            errors.topic
-                                                ? 'border-red-400 focus:border-red-500'
-                                                : 'border-gray-200 focus:border-green-500'
+                                        placeholder="IELTS, Daily..."
+                                        className={`w-full bg-transparent pl-10 pr-4 py-3.5 border rounded-lg outline-none transition-all placeholder:text-gray-300
+                                            ${errors.topic
+                                            ? 'border-red-500 focus:border-red-500'
+                                            : 'border-gray-200 focus:border-black'
                                         }`}
-                                        disabled={loading}
                                     />
-                                    {errors.topic && (
-                                        <p className="mt-2 text-red-600 text-sm flex items-center gap-2">
-                                            <XIcon className="w-5 h-5" />
-                                            {errors.topic}
-                                        </p>
-                                    )}
                                 </div>
+                                {errors.topic && <p className="text-red-500 text-xs mt-1">{errors.topic}</p>}
+                            </div>
 
-                                <div>
-                                    <label className="block text-lg font-semibold text-gray-700 mb-2">
-                                        Cấp độ <span className="text-red-500">*</span>
-                                    </label>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-gray-700 block">
+                                    Độ khó
+                                </label>
+                                <div className="relative">
                                     <select
                                         name="level"
                                         value={formData.level}
                                         onChange={handleChange}
-                                        className={`w-full px-5 py-4 text-lg rounded-2xl border-2 transition-all focus:ring-4 focus:ring-green-100 ${
-                                            errors.level
-                                                ? 'border-red-400 focus:border-red-500'
-                                                : 'border-gray-200 focus:border-green-500'
-                                        } bg-white`}
-                                        disabled={loading}
+                                        className="w-full bg-transparent pl-4 pr-10 py-3.5 border border-gray-200 rounded-lg outline-none focus:border-black appearance-none cursor-pointer"
                                     >
-                                        {[1,2,3,4,5,6].map(l => (
-                                            <option key={l} value={l}>Level {l} {l <= 2 ? '(Dễ)' : l <= 4 ? '(Trung bình)' : '(Khó)'}</option>
+                                        {[1,2,3,4,5].map(l => (
+                                            <option key={l} value={l}>Level {l}</option>
                                         ))}
                                     </select>
-                                    {errors.level && (
-                                        <p className="mt-2 text-red-600 text-sm flex items-center gap-2">
-                                            <XMarkIcon className="w-5 h-5" />
-                                            {errors.level}
-                                        </p>
-                                    )}
+                                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                                 </div>
                             </div>
+                        </div>
 
-                            {/* Nút hành động */}
-                            <div className="flex flex-col sm:flex-row gap-4 pt-6">
-                                <button
-                                    type="button"
-                                    onClick={handleCancel}
-                                    disabled={loading}
-                                    className="px-8 py-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-2xl font-semibold text-lg transition transform hover:scale-105 disabled:opacity-50"
-                                >
-                                    Hủy bỏ
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={loading}
-                                    className="px-8 py-4 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-2xl font-semibold text-lg shadow-lg transition transform hover:scale-105 disabled:opacity-60 flex items-center justify-center gap-3"
-                                >
-                                    {loading ? (
-                                        <>
-                                            <div className="animate-spin rounded-full h-6 w-6 border-4 border-white border-t-transparent"></div>
-                                            Đang tạo...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <CheckIcon className="w-7 h-7" />
-                                            Tạo Flashcard
-                                        </>
-                                    )}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-
-                    {/* Tips Card */}
-                    <div className="mt-10 bg-gradient-to-r from-green-50 to-emerald-50 rounded-3xl p-8 border border-green-200">
-                        <div className="flex items-start gap-4">
-                            <div className="flex-shrink-0 w-12 h-12 bg-green-500 rounded-2xl flex items-center justify-center shadow-md">
-                                <LightBulbIcon className="w-7 h-7 text-white" />
-                            </div>
-                            <div>
-                                <h3 className="text-xl font-bold text-green-800 mb-3">Mẹo nhỏ để học hiệu quả hơn</h3>
-                                <ul className="space-y-2 text-green-700">
-                                    <li className="flex items-center gap-3">
-                                        <span className="text-2xl">Check</span>
-                                        <span>Chọn tiêu đề ngắn gọn, dễ nhớ</span>
-                                    </li>
-                                    <li className="flex items-center gap-3">
-                                        <span className="text-2xl">Check</span>
-                                        <span>Mô tả chi tiết giúp bạn quản lý tốt hơn sau này</span>
-                                    </li>
-                                    <li className="flex items-center gap-3">
-                                        <span className="text-2xl">Check</span>
-                                        <span>Chọn level phù hợp để hệ thống gợi ý từ vựng phù hợp</span>
-                                    </li>
-                                </ul>
+                        {/* Minimal Info Box */}
+                        <div className="flex gap-4 p-4 bg-gray-50 border border-gray-100 rounded-lg">
+                            <Info className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" />
+                            <div className="text-sm text-gray-500 space-y-1">
+                                <p>• Hãy chọn tiêu đề ngắn gọn.</p>
+                                <p>• Phân loại Level chính xác giúp hệ thống gợi ý tốt hơn.</p>
                             </div>
                         </div>
-                    </div>
 
+                        {/* Action Buttons */}
+                        <div className="pt-4 flex items-center justify-end gap-4 border-t border-gray-100 mt-8">
+                            <button
+                                type="button"
+                                onClick={handleBack} // Đã sửa link cho nút Hủy
+                                className="px-6 py-3 text-sm font-medium text-gray-600 hover:text-black transition-colors"
+                                disabled={loading}
+                            >
+                                Hủy bỏ
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="relative px-8 py-3 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-black transition-all disabled:opacity-70 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
+                            >
+                                {loading ? (
+                                    <div className="flex items-center gap-2">
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        <span>Đang xử lý...</span>
+                                    </div>
+                                ) : (
+                                    "Tạo bộ thẻ"
+                                )}
+                            </button>
+                        </div>
+
+                    </form>
                 </div>
             </main>
 
             <Footer />
-        </>
+        </div>
     );
 }
 

@@ -10,11 +10,11 @@ import IntroPage from "../pages/user/IntroPage";
 import QuizTakingPage from "../pages/user/QuizTakingPage";
 import DiscoverFlashCardPage from "../pages/user/DiscoverFlashCardPage";
 import MyFlashCardPage from "../pages/user/MyFlashCardPage";
-import AdminManagerUser from "../pages/admin/AdminManagerUser";
+
 import AdminManagerEmployee from "../pages/admin/AdminManagerEmployee";
 import CreateFlashcardPage from "../pages/user/CreateFlashcardPage";
 import FlashcardDetailPage from "../pages/user/FlashcardDetailPage";
-import RevenueReport from "../pages/admin/RevenueReport";
+
 import QuizCreator from "../pages/supporter/QuizCreator";
 import QuizList from "../pages/supporter/QuizList";
 import QuizEdit from "../pages/supporter/QuizEdit";
@@ -30,7 +30,7 @@ import ChangePasswordPage from "../pages/user/ChangePasswordPage";
 import QuizHistoryPage from "../pages/user/QuizHistoryPage";
 import FlashcardLearnPage from "../pages/user/FlashcardLearnPage";
 import FlashcardHistoryPage from "../pages/user/FlashcardHistoryPage";
-import QuizManagement from "../pages/admin/QuizManagement";
+import AdminQuizList from "../pages/admin/AdminQuizList";
 import AdminQuizEdit from "../pages/admin/AdminQuizEdit";
 import AdminFlashcardList from "../pages/admin/AdminFlashcardList";
 import FlashcardWordManagerAdmin from "../pages/admin/FlashcardWordManagerAdmin";
@@ -72,7 +72,7 @@ function AppRoutes() {
                 {/* Admin Role */}
                 <Route path="/admin/dashboard" element={<AdminDashboard />} />
                 <Route path="/admin" element={<AdminDashboard />} />
-                <Route path="/admin/quiz" element={<QuizManagement />} />
+                <Route path="/admin/quiz" element={<AdminQuizList />} />
                 <Route path="/admin/employee" element={<AdminManagerEmployee/>} />
                 <Route path="/admin/quiz/edit/:id" element={<AdminQuizEdit />} />
                 <Route path="/admin/flashcard" element={<AdminFlashcardList />} />

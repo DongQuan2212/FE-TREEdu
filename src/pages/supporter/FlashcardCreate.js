@@ -17,7 +17,7 @@ const FlashcardCreate = () => {
     const [errors, setErrors] = useState({});
     const handleChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
-        // Xóa lỗi khi người dùng nhập
+
         if (errors[field]) {
             setErrors(prev => ({ ...prev, [field]: '' }));
         }

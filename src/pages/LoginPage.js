@@ -1,18 +1,30 @@
 import Header from "../components/Header/Header";
 import Footer from "../components/Footer/Footer";
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import axiosInstance from "../config/axiosConfig";
+// 1. Import hàm notify (Hãy đảm bảo đường dẫn đúng tới file bạn chứa object notify)
+import { notify } from "../utils/toastNotify";
 
 const LoginPage = () => {
     const navigate = useNavigate();
+    const location = useLocation();
+
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState("");
-    const [userInfo, setUserInfo] = useState(null);
 
-    // Hàm lấy thông tin user hiện tạino
+    // 2. Xử lý thông báo từ trang khác chuyển tới (ví dụ: Đăng ký thành công)
+    useEffect(() => {
+        if (location.state?.message) {
+            // Thay vì set state, ta bắn thông báo Toast ngay
+            notify.success(location.state.message);
+
+            // Xóa state trong history để F5 không hiện lại
+            window.history.replaceState({}, document.title);
+        }
+    }, [location.state]);
+
     const fetchCurrentUser = async () => {
         try {
             const response = await axiosInstance.post("/auth/current-user");
@@ -22,27 +34,23 @@ const LoginPage = () => {
             return null;
         }
     };
+
     const handleGoogleLogin = () => {
-        // Redirect đến endpoint OAuth2 của Spring Security
         window.location.href = "http://localhost:3001/oauth2/authorization/google";
     };
 
     const handleLogin = async (e) => {
         e.preventDefault();
-        setError("");
         setLoading(true);
         try {
-            // Gọi API login - Backend sẽ tự động set cookie
             await axiosInstance.post("/auth/login", {
                 email: email.trim(),
                 password: password,
             });
 
-            // Lấy thông tin user sau khi login thành công
             const userData = await fetchCurrentUser();
 
             if (userData) {
-                // Lưu thông tin user vào localStorage (không lưu token)
                 localStorage.setItem("userInfo", JSON.stringify({
                     id: userData.id,
                     email: userData.email,
@@ -50,11 +58,12 @@ const LoginPage = () => {
                     role: userData.role,
                 }));
 
-                setUserInfo(userData);
-
-                // Redirect dựa theo role với message
                 const welcomeMessage = `Chào mừng ${userData.name}!`;
 
+                // Tùy chọn: Bạn có thể hiện notify success ở đây trước khi chuyển trang
+                // notify.success("Đăng nhập thành công!");
+
+                // Chuyển hướng
                 if (userData.role === "ROLE_ADMIN") {
                     navigate("/admin/dashboard", { state: { message: welcomeMessage } });
                 } else if (userData.role === "ROLE_SUPPORTER") {
@@ -68,7 +77,6 @@ const LoginPage = () => {
 
         } catch (err) {
             console.error("Login error:", err);
-
             let errorMessage = "Đăng nhập thất bại. Vui lòng thử lại sau!";
 
             if (err.response?.data?.message) {
@@ -81,7 +89,8 @@ const LoginPage = () => {
                 errorMessage = "Không tìm thấy tài khoản!";
             }
 
-            setError(errorMessage);
+            // 3. Sử dụng notify.error thay vì setError
+            notify.error(errorMessage);
         } finally {
             setLoading(false);
         }
@@ -117,16 +126,7 @@ const LoginPage = () => {
                             <p className="text-gray-600 mt-2">Đăng nhập để tiếp tục hành trình học tập</p>
                         </div>
 
-                        {error && (
-                            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm">
-                                <div className="flex items-start">
-                                    <svg className="w-5 h-5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                                    </svg>
-                                    <span>{error}</span>
-                                </div>
-                            </div>
-                        )}
+                        {/* 4. Đã xóa các khối div hiển thị lỗi/success ở đây vì Toastify sẽ hiện popup ở góc màn hình */}
 
                         <form onSubmit={handleLogin} className="space-y-6">
                             <div>
