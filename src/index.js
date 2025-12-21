@@ -6,12 +6,12 @@ import reportWebVitals from './reportWebVitals';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 AOS.init({
-    duration: 800,        // thời gian animation
+    duration: 800,
     easing: 'ease-out-cubic',
-    once: false,          // Đổi thành false → chạy lại mỗi khi scroll qua
-    mirror: true,         // SIÊU HAY: khi scroll lên thì animation sẽ chạy ngược lại!
+    once: false,
+    mirror: true,
     offset: 100,
-    anchorPlacement: 'top-bottom', // mượt hơn
+    anchorPlacement: 'top-bottom',
 });
 
 const root = ReactDOM.createRoot(document.getElementById('root'));

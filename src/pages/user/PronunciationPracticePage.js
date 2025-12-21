@@ -6,10 +6,6 @@ import axiosInstance from "../../config/axiosConfig";
 
 import { PawPrint, Users, School, Pizza, Layers, ArrowRight, Mic } from "lucide-react";
 
-// ============================================
-// SUBCOMPONENTS
-// ============================================
-
 const LoadingState = () => (
     <>
         <Header />
@@ -148,7 +144,7 @@ function PronunciationPracticePage() {
             }
         } catch (err) {
             console.error("Error fetching topics:", err);
-            setError("Không tải được danh sách chủ đề. Vui lòng kiểm tra kết nối và thử lại.");
+            setError("Bạn vui lòng đăng nhập để sử dụng chức năng này");
         } finally {
             setLoading(false);
         }
