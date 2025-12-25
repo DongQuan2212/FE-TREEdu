@@ -4,7 +4,9 @@ export const notify = {
     success: (message) => {
         toast.success(message, {
             style: { border: '1px solid #4caf50', color: '#4caf50' },
-            icon: '🎉'
+            icon: '🎉',
+            position: "top-right",
+            autoClose: 3000,
         });
     },
     warning: (message) => toast.warn(message, { icon: '⚠️' }),

@@ -3,30 +3,51 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Header from "../../components/user/Header";
 import Footer from "../../components/Footer/Footer";
 import axiosInstance from '../../config/axiosConfig';
+
+import { notify } from '../../utils/toastNotify';
+import {
+    showConfirmDialog,
+    showErrorDialog,
+    showSuccessDialog,
+    showInfoDialog
+} from '../../utils/confirmation';
+
 import {
     Clock, CheckCircle, XCircle, ChevronLeft,
-    ChevronRight, Flag, AlertCircle, CheckSquare
+    ChevronRight, Flag, CheckSquare, RotateCcw
 } from 'lucide-react';
 
 function QuizTakingPage() {
     const { quizId } = useParams();
     const navigate = useNavigate();
 
-    // --- STATE ---
+    // --- STATE (Giữ nguyên) ---
     const [attemptId, setAttemptId] = useState(null);
     const [quiz, setQuiz] = useState(null);
     const [questions, setQuestions] = useState([]);
     const [currentIdx, setCurrentIdx] = useState(0);
-    const [answers, setAnswers] = useState({}); // { questionId: answerId }
+    const [answers, setAnswers] = useState({});
+    const [flags, setFlags] = useState({}); // Flag state
     const [timeLeft, setTimeLeft] = useState(0);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [showResult, setShowResult] = useState(false);
     const [result, setResult] = useState(null);
 
-    // --- EFFECTS ---
+    useEffect(() => {
+        const handleBeforeUnload = (e) => {
+            if (!showResult && !submitting && timeLeft > 0) {
+                const message = "Dữ liệu chưa lưu sẽ bị mất.";
+                e.preventDefault();
+                e.returnValue = message;
+                return message;
+            }
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [showResult, submitting, timeLeft]);
 
-    // 1. Start Quiz
+    // 2. Start Quiz
     useEffect(() => {
         const start = async () => {
             try {
@@ -38,23 +59,28 @@ function QuizTakingPage() {
                 setQuestions(d.quiz.questions || []);
                 setTimeLeft(d.timeRemainingSeconds);
                 setLoading(false);
+
+                // Thay notify bằng toast nhẹ nhàng (giữ nguyên vì nó không chặn người dùng)
+                notify.success(`Bắt đầu: ${d.quiz.title}`);
+
             } catch (err) {
                 console.error("Lỗi start:", err);
-                alert("Không thể bắt đầu bài quiz hoặc bài quiz không tồn tại.");
+                // THAY THẾ: Dùng Dialog Lỗi chặn người dùng lại
+                await showErrorDialog("Không thể tải bài thi hoặc bài thi không tồn tại.", "Lỗi kết nối");
                 navigate('/quiz');
             }
         };
         start();
     }, [quizId, navigate]);
 
-    // 2. Timer
+    // 3. Timer (Xử lý hết giờ)
     useEffect(() => {
         if (loading || showResult || !timeLeft) return;
         const timer = setInterval(() => {
             setTimeLeft(prev => {
                 if (prev <= 1) {
                     clearInterval(timer);
-                    handleSubmit(true);
+                    handleTimeUp(); // Gọi hàm xử lý riêng
                     return 0;
                 }
                 return prev - 1;
@@ -64,6 +90,13 @@ function QuizTakingPage() {
     }, [timeLeft, loading, showResult]);
 
     // --- HANDLERS ---
+
+    // Hàm xử lý khi hết giờ
+    const handleTimeUp = async () => {
+        // Hiện thông báo chắn màn hình
+        await showInfoDialog("Thời gian làm bài đã kết thúc. Hệ thống sẽ tự động nộp bài.", "Hết giờ!");
+        handleSubmit(true);
+    };
 
     const formatTime = (s) => {
         const min = Math.floor(s / 60).toString().padStart(2, '0');
@@ -75,11 +108,39 @@ function QuizTakingPage() {
         setAnswers(prev => ({ ...prev, [questionId]: answerId }));
     };
 
-    const handleSubmit = async (isAutoSubmit = false) => {
-        if (!isAutoSubmit && !window.confirm("Bạn chắc chắn muốn nộp bài?")) return;
-        if (submitting) return;
+    const toggleFlag = (questionId) => {
+        setFlags(prev => ({ ...prev, [questionId]: !prev[questionId] }));
+    };
 
+    // Handler làm lại bài
+    const handleRetakeQuiz = async () => {
+        const isConfirmed = await showConfirmDialog({
+            title: "Làm lại bài thi?",
+            text: "Tiến trình hiện tại sẽ bị hủy và trang sẽ tải lại.",
+            confirmText: "Làm lại ngay",
+            cancelText: "Hủy"
+        });
+
+        if (isConfirmed) {
+            window.location.reload();
+        }
+    };
+
+    // Handler Nộp bài
+    const handleSubmit = async (isAutoSubmit = false) => {
+        if (!isAutoSubmit) {
+            const isConfirmed = await showConfirmDialog({
+                title: "Nộp bài thi?",
+                text: "Hãy kiểm tra kỹ các câu hỏi đã đánh dấu (Flag) trước khi nộp.",
+                confirmText: "Vâng, nộp bài",
+                cancelText: "Kiểm tra lại"
+            });
+            if (!isConfirmed) return;
+        }
+
+        if (submitting) return;
         setSubmitting(true);
+
         const payload = {
             attemptId: attemptId,
             answers: Object.entries(answers).map(([qId, aId]) => ({
@@ -92,14 +153,19 @@ function QuizTakingPage() {
             const res = await axiosInstance.post(`/quiz/${quizId}/submit`, payload);
             if (res.data.success) {
                 setResult(res.data.data);
+
+                // THAY THẾ: Hiện popup thành công đẹp mắt trước khi hiện kết quả
+                await showSuccessDialog("Hệ thống đã ghi nhận kết quả của bạn.", "Nộp bài thành công!");
+
                 setShowResult(true);
-                // Cuộn lên đầu trang khi có kết quả
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
         } catch (err) {
             console.error("Lỗi submit:", err);
-            const msg = err.response?.data?.message || "Lỗi kết nối server!";
-            alert(`Nộp bài thất bại: ${msg}`);
+            const msg = err.response?.data?.message || "Vui lòng kiểm tra kết nối mạng.";
+
+            // THAY THẾ: Báo lỗi bằng Dialog để người dùng chú ý
+            await showErrorDialog(msg, "Nộp bài thất bại");
         } finally {
             setSubmitting(false);
         }
@@ -113,20 +179,15 @@ function QuizTakingPage() {
         if (currentIdx > 0) setCurrentIdx(c => c - 1);
     };
 
-    // --- LOADING SKELETON ---
+    // --- LOADING SKELETON (Giữ nguyên) ---
     if (loading) {
         return (
             <>
                 <Header />
                 <main className="min-h-screen bg-zinc-50 pt-32 pb-12 px-6">
-                    <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        <div className="lg:col-span-2 space-y-6">
-                            <div className="h-40 bg-gray-200 rounded-xl animate-pulse"></div>
-                            <div className="space-y-3">
-                                {[1, 2, 3, 4].map(i => <div key={i} className="h-16 bg-gray-100 rounded-lg animate-pulse"></div>)}
-                            </div>
-                        </div>
-                        <div className="h-96 bg-gray-200 rounded-xl animate-pulse"></div>
+                    <div className="max-w-6xl mx-auto animate-pulse space-y-8">
+                        <div className="h-64 bg-gray-200 rounded-xl"></div>
+                        <div className="h-20 bg-gray-200 rounded-xl"></div>
                     </div>
                 </main>
                 <Footer />
@@ -134,19 +195,18 @@ function QuizTakingPage() {
         );
     }
 
-    // --- RESULT VIEW ---
+    // --- RESULT VIEW (Giữ nguyên logic hiển thị) ---
     if (showResult && result) {
         const percentage = result.percentage || 0;
-        const isPass = percentage >= 50; // Giả sử 50% là đậu
+        const isPass = percentage >= 50;
 
         return (
             <>
                 <Header />
                 <main className="min-h-screen bg-zinc-50 pt-28 pb-20 px-4 sm:px-6">
-                    <div className="max-w-4xl mx-auto ">
-
-                        {/* Result Summary Card */}
-                        <div className="bg-white rounded-2xl shadow-xl border border-zinc-100 overflow-hidden mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500 ">
+                    <div className="max-w-4xl mx-auto animate-in fade-in zoom-in duration-300">
+                        {/* Result Card */}
+                        <div className="bg-white rounded-2xl shadow-xl border border-zinc-100 overflow-hidden mb-8">
                             <div className={`p-8 text-center ${isPass ? 'bg-gradient-to-b from-emerald-50 to-white' : 'bg-gradient-to-b from-red-50 to-white'}`}>
                                 <div className={`w-24 h-24 mx-auto rounded-full flex items-center justify-center mb-4 shadow-sm ${isPass ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
                                     {isPass ? <CheckCircle size={48} /> : <XCircle size={48} />}
@@ -154,7 +214,7 @@ function QuizTakingPage() {
                                 <h1 className="text-3xl font-bold text-zinc-900 mb-2">
                                     {isPass ? 'Làm bài tốt lắm!' : 'Cần cố gắng hơn!'}
                                 </h1>
-                                <p className="text-zinc-500 mb-6">Bạn đã hoàn thành bài kiểm tra <b>{quiz?.title}</b></p>
+                                <p className="text-zinc-500 mb-6">Kết quả bài thi: <b>{quiz?.title}</b></p>
 
                                 <div className="flex justify-center gap-8 mb-8">
                                     <div className="text-center">
@@ -177,10 +237,13 @@ function QuizTakingPage() {
                                     >
                                         Về danh sách
                                     </button>
+
+                                    {/* Nút Làm lại bài dùng Dialog */}
                                     <button
-                                        onClick={() => window.location.reload()}
-                                        className="px-6 py-2.5 rounded-lg bg-zinc-900 text-white font-medium hover:bg-zinc-800 transition-colors shadow-lg shadow-zinc-200"
+                                        onClick={handleRetakeQuiz}
+                                        className="px-6 py-2.5 rounded-lg bg-zinc-900 text-white font-medium hover:bg-zinc-800 transition-colors shadow-lg flex items-center gap-2"
                                     >
+                                        <RotateCcw size={18} />
                                         Làm lại bài
                                     </button>
                                 </div>
@@ -190,37 +253,23 @@ function QuizTakingPage() {
                         {/* Detailed Results */}
                         <div className="space-y-4">
                             <h3 className="text-lg font-bold text-zinc-900 px-2 flex items-center gap-2">
-                                <CheckSquare size={20} />
-                                Chi tiết bài làm
+                                <CheckSquare size={20} /> Chi tiết bài làm
                             </h3>
                             {result.results?.map((r, idx) => (
-                                <div key={idx} className="bg-white p-6 rounded-xl border border-zinc-200 shadow-sm transition-all hover:shadow-md">
+                                <div key={idx} className="bg-white p-6 rounded-xl border border-zinc-200 shadow-sm">
                                     <div className="flex gap-4">
                                         <div className="mt-1 flex-shrink-0">
-                                            {r.correct ? (
-                                                <CheckCircle className="text-emerald-500" size={24} />
-                                            ) : (
-                                                <XCircle className="text-red-500" size={24} />
-                                            )}
+                                            {r.correct ? <CheckCircle className="text-emerald-500" size={24} /> : <XCircle className="text-red-500" size={24} />}
                                         </div>
                                         <div className="flex-1">
                                             <p className="font-semibold text-zinc-900 text-lg mb-3">
-                                                <span className="text-zinc-400 font-medium mr-2">Câu {idx + 1}:</span>
-                                                {r.content}
+                                                <span className="text-zinc-400 font-medium mr-2">Câu {idx + 1}:</span>{r.content}
                                             </p>
-
                                             <div className="space-y-2 mb-3">
-                                                {/* Hiển thị câu trả lời của user */}
-                                                <div className={`p-3 rounded-lg border flex items-center gap-2 text-sm ${
-                                                    r.correct
-                                                        ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                                                        : 'bg-red-50 border-red-200 text-red-800'
-                                                }`}>
+                                                <div className={`p-3 rounded-lg border flex items-center gap-2 text-sm ${r.correct ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
                                                     <span className="font-bold min-w-[80px]">Bạn chọn:</span>
                                                     {r.selectedAnswer || <span className="italic opacity-70">Không trả lời</span>}
                                                 </div>
-
-                                                {/* Nếu sai thì hiện đáp án đúng */}
                                                 {!r.correct && (
                                                     <div className="p-3 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-700 flex items-center gap-2 text-sm">
                                                         <span className="font-bold min-w-[80px]">Đáp án đúng:</span>
@@ -228,7 +277,6 @@ function QuizTakingPage() {
                                                     </div>
                                                 )}
                                             </div>
-
                                             {r.explanation && (
                                                 <div className="mt-2 text-sm text-zinc-500 italic pl-3 border-l-2 border-zinc-200">
                                                     Giải thích: {r.explanation}
@@ -246,24 +294,21 @@ function QuizTakingPage() {
         );
     }
 
-// ... (Giữ nguyên các phần import và logic phía trên)
-
     // --- ACTIVE QUIZ VIEW ---
     const q = questions[currentIdx];
     const isLastQuestion = currentIdx === questions.length - 1;
     const answeredCount = Object.keys(answers).length;
     const progressPercent = (answeredCount / questions.length) * 100;
+    const isCurrentFlagged = flags[q.questionId];
 
     return (
         <div className="flex flex-col min-h-screen bg-zinc-50">
             <Header />
 
-            {/* Đã xóa thanh Sticky Header ở đây để giao diện thoáng hơn */}
-
             <main className="flex-1 pt-28 pb-20 px-4 sm:px-6">
                 <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
 
-                    {/* LEFT COLUMN: Question Content (8 cols) */}
+                    {/* LEFT COLUMN */}
                     <div className="lg:col-span-8">
                         <div className="bg-white rounded-2xl shadow-sm border border-zinc-200 overflow-hidden min-h-[500px] flex flex-col">
                             {/* Question Header */}
@@ -272,8 +317,17 @@ function QuizTakingPage() {
                                     <span className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-zinc-100 text-zinc-600 text-sm font-bold">
                                         Câu hỏi {currentIdx + 1}
                                     </span>
-                                    <button className="text-zinc-400 hover:text-yellow-500 transition-colors" title="Đánh dấu câu hỏi">
-                                        <Flag size={20} />
+
+                                    <button
+                                        onClick={() => toggleFlag(q.questionId)}
+                                        className={`transition-all duration-200 p-2 rounded-full hover:bg-zinc-100 
+                                            ${isCurrentFlagged ? 'text-yellow-500' : 'text-zinc-300 hover:text-yellow-400'}`}
+                                        title={isCurrentFlagged ? "Bỏ đánh dấu" : "Đánh dấu xem lại"}
+                                    >
+                                        <Flag
+                                            size={24}
+                                            fill={isCurrentFlagged ? "currentColor" : "none"}
+                                        />
                                     </button>
                                 </div>
                                 <h2 className="text-xl sm:text-2xl font-semibold text-zinc-900 leading-relaxed">
@@ -307,129 +361,98 @@ function QuizTakingPage() {
                                 })}
                             </div>
 
-                            {/* Navigation Footer */}
+                            {/* Footer Nav */}
                             <div className="p-4 sm:p-6 bg-white border-t border-zinc-100 flex items-center justify-between mt-auto">
                                 <button
                                     onClick={handlePrev}
                                     disabled={currentIdx === 0}
                                     className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors
-                                        ${currentIdx === 0
-                                        ? 'text-zinc-300 cursor-not-allowed'
-                                        : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900'}`}
+                                        ${currentIdx === 0 ? 'text-zinc-300 cursor-not-allowed' : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900'}`}
                                 >
-                                    <ChevronLeft size={20} />
-                                    Câu trước
+                                    <ChevronLeft size={20} /> Câu trước
                                 </button>
-
                                 <button
                                     onClick={handleNext}
                                     disabled={isLastQuestion}
                                     className={`flex items-center gap-2 px-5 py-2 rounded-lg font-medium transition-colors
-                                        ${isLastQuestion
-                                        ? 'text-zinc-300 cursor-not-allowed'
-                                        : 'bg-zinc-900 text-white hover:bg-zinc-800 shadow-md shadow-zinc-200'}`}
+                                        ${isLastQuestion ? 'text-zinc-300 cursor-not-allowed' : 'bg-zinc-900 text-white hover:bg-zinc-800 shadow-md'}`}
                                 >
-                                    Câu tiếp theo
-                                    <ChevronRight size={20} />
+                                    Câu tiếp theo <ChevronRight size={20} />
                                 </button>
                             </div>
                         </div>
                     </div>
 
-                    {/* RIGHT COLUMN: Control Panel (4 cols) */}
+                    {/* RIGHT COLUMN */}
                     <div className="lg:col-span-4">
                         <div className="bg-white rounded-2xl shadow-sm border border-zinc-200 p-6 sticky top-28">
 
-                            {/* 1. Quiz Info Header */}
                             <div className="mb-6">
-                                <h1 className="font-bold text-xl text-zinc-900 leading-tight mb-1">
-                                    {quiz?.title}
-                                </h1>
-                                <p className="text-xs text-zinc-400 font-medium">
-                                    ID Bài thi: #{attemptId?.toString().slice(-6)}
-                                </p>
+                                <h1 className="font-bold text-xl text-zinc-900 leading-tight mb-1">{quiz?.title}</h1>
+                                <p className="text-xs text-zinc-400 font-medium">ID: #{attemptId?.toString().slice(-6)}</p>
                             </div>
 
-                            {/* 2. Timer Box (Nổi bật) */}
-                            <div className={`flex items-center justify-between p-4 rounded-xl mb-6 border-2 ${
-                                timeLeft < 60
-                                    ? 'bg-red-50 border-red-100 text-red-600 animate-pulse'
-                                    : 'bg-zinc-50 border-zinc-100 text-zinc-800'
-                            }`}>
+                            <div className={`flex items-center justify-between p-4 rounded-xl mb-6 border-2 ${timeLeft < 60 ? 'bg-red-50 border-red-100 text-red-600 animate-pulse' : 'bg-zinc-50 border-zinc-100 text-zinc-800'}`}>
                                 <div className="flex flex-col">
                                     <span className="text-xs font-semibold opacity-60 uppercase tracking-wider">Thời gian còn lại</span>
-                                    <span className="text-2xl font-mono font-bold tracking-tight">
-                                        {formatTime(timeLeft)}
-                                    </span>
+                                    <span className="text-2xl font-mono font-bold tracking-tight">{formatTime(timeLeft)}</span>
                                 </div>
                                 <Clock size={32} className="opacity-80" strokeWidth={1.5} />
                             </div>
 
-                            {/* 3. Progress Bar */}
                             <div className="mb-8">
                                 <div className="flex justify-between items-end mb-2">
-                                    <span className="text-sm font-medium text-zinc-500">Tiến độ hoàn thành</span>
-                                    <span className="text-sm font-bold text-zinc-900">
-                                        {Math.round(progressPercent)}%
-                                    </span>
+                                    <span className="text-sm font-medium text-zinc-500">Tiến độ</span>
+                                    <span className="text-sm font-bold text-zinc-900">{Math.round(progressPercent)}%</span>
                                 </div>
                                 <div className="w-full bg-zinc-100 rounded-full h-2.5 overflow-hidden">
-                                    <div
-                                        className="h-full bg-emerald-500 transition-all duration-500 ease-out"
-                                        style={{ width: `${progressPercent}%` }}
-                                    ></div>
-                                </div>
-                                <div className="text-right mt-1 text-xs text-zinc-400">
-                                    Đã làm: <span className="font-medium text-zinc-700">{answeredCount}/{questions.length}</span> câu
+                                    <div className="h-full bg-emerald-500 transition-all duration-500 ease-out" style={{ width: `${progressPercent}%` }}></div>
                                 </div>
                             </div>
 
-                            {/* 4. Question Grid */}
                             <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-4 border-t border-zinc-100 pt-6">
                                 Danh sách câu hỏi
                             </h3>
 
-                            <div className="grid grid-cols-5 gap-2 mb-6 max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
-                                {questions.map((_, i) => {
+                            <div className="grid grid-cols-6 gap-2 mb-6 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
+                                {questions.map((qItem, i) => {
                                     const isCurrent = i === currentIdx;
-                                    const isAnswered = answers[questions[i].questionId];
+                                    const isAnswered = answers[qItem.questionId];
+                                    const isFlagged = flags[qItem.questionId];
+
+                                    let btnClass = "bg-zinc-100 text-zinc-500 hover:bg-zinc-200 border-transparent";
+
+                                    if (isFlagged) {
+                                        // Ưu tiên 1: Flagged -> Màu vàng
+                                        btnClass = "bg-yellow-100 text-yellow-700 border-yellow-300 hover:bg-yellow-200 shadow-sm";
+                                    } else if (isAnswered) {
+                                        // Ưu tiên 2: Đã trả lời -> Màu xanh
+                                        btnClass = "bg-emerald-500 text-white shadow-sm border-transparent";
+                                    }
+
+                                    const activeClass = isCurrent ? "ring-2 ring-zinc-900 ring-offset-2 z-10" : "";
 
                                     return (
                                         <button
                                             key={i}
                                             onClick={() => setCurrentIdx(i)}
-                                            className={`aspect-square rounded-lg text-sm font-bold transition-all duration-200 relative border
-                                                ${isCurrent
-                                                ? 'ring-2 ring-zinc-900 ring-offset-2 z-10 border-transparent'
-                                                : 'border-transparent'}
-                                                ${isAnswered
-                                                ? 'bg-emerald-500 text-white shadow-sm'
-                                                : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'}
-                                            `}
+                                            className={`aspect-square rounded-lg text-sm font-bold transition-all duration-200 relative border ${btnClass} ${activeClass}`}
                                         >
                                             {i + 1}
+                                            {isFlagged && isAnswered && (
+                                                <span className="absolute top-1 right-1 w-2 h-2 bg-yellow-500 rounded-full border border-white"></span>
+                                            )}
                                         </button>
                                     );
                                 })}
                             </div>
 
-                            {/* 5. Submit Button */}
                             <button
                                 onClick={() => handleSubmit(false)}
                                 disabled={submitting}
                                 className="w-full py-4 bg-zinc-900 text-white font-bold rounded-xl hover:bg-zinc-800 hover:shadow-lg transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             >
-                                {submitting ? (
-                                    <>
-                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                        Đang nộp...
-                                    </>
-                                ) : (
-                                    <>
-                                        <CheckCircle size={20} />
-                                        Nộp bài thi
-                                    </>
-                                )}
+                                {submitting ? "Đang nộp..." : <><CheckCircle size={20} /> Nộp bài thi</>}
                             </button>
                         </div>
                     </div>

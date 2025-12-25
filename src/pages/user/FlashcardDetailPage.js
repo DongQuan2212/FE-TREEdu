@@ -3,11 +3,16 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Header from "../../components/user/Header";
 import Footer from "../../components/Footer/Footer";
 import { flashcardAPI } from '../../config/api';
-import { notify } from '../../utils/toastNotify'; // Import notify
-import { Plus, Edit, Trash2, ArrowLeft, BookOpen, Volume2, Link, Layers, X } from 'lucide-react';
+import { notify } from '../../utils/toastNotify';
+// 1. Import thêm icon Copy
+import { Plus, Edit, Trash2, ArrowLeft, BookOpen, Volume2, Link, Layers, X, Copy } from 'lucide-react';
+
+// 2. Import Modal nhập hàng loạt (Giả sử bạn dùng chung component với Admin/Supporter)
+// Hãy đảm bảo đường dẫn này đúng với cấu trúc dự án của bạn
+import BulkImportWordsModal from '../../components/Supporter/BulkImportWordsModal';
 
 function FlashcardDetailPage() {
-    const { id } = useParams(); // Đây là flashcardId
+    const { id } = useParams();
     const navigate = useNavigate();
 
     const [flashcard, setFlashcard] = useState(null);
@@ -18,10 +23,11 @@ function FlashcardDetailPage() {
     const [showAddModal, setShowAddModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
 
-    // State quản lý từ đang sửa
+    // 3. State cho Modal nhập hàng loạt
+    const [showBulkImport, setShowBulkImport] = useState(false);
+
     const [currentWord, setCurrentWord] = useState(null);
 
-    // Form data
     const [wordForm, setWordForm] = useState({
         newWord: '',
         meaning: '',
@@ -38,7 +44,10 @@ function FlashcardDetailPage() {
 
     const fetchFlashcardDetails = async () => {
         try {
-            setLoading(true);
+            // Chỉ hiện loading xoay vòng nếu chưa có dữ liệu (lần đầu)
+            // Nếu reload sau khi import thì không cần xoay cả trang
+            if (!flashcard) setLoading(true);
+
             const response = await flashcardAPI.getFlashcardDetails(id);
             if (response.data.status === 200) {
                 setFlashcard(response.data.data);
@@ -51,6 +60,13 @@ function FlashcardDetailPage() {
         } finally {
             setLoading(false);
         }
+    };
+
+    // 4. Xử lý sau khi nhập Excel thành công
+    const handleBulkImportSuccess = () => {
+        notify.success('Nhập dữ liệu hàng loạt thành công!');
+        setShowBulkImport(false);
+        fetchFlashcardDetails(); // Tải lại dữ liệu mới
     };
 
     const resetForm = () => {
@@ -66,7 +82,7 @@ function FlashcardDetailPage() {
         setWordForm(prev => ({ ...prev, [name]: value }));
     };
 
-    // --- 1. HANDLE ADD (THÊM TỪ) ---
+    // --- HANDLE ADD ---
     const handleAddWord = async (e) => {
         e.preventDefault();
         if (!wordForm.newWord.trim() || !wordForm.meaning.trim()) {
@@ -91,7 +107,7 @@ function FlashcardDetailPage() {
         }
     };
 
-    // --- 2. PREPARE EDIT (CHUẨN BỊ SỬA) ---
+    // --- PREPARE EDIT ---
     const handleEditClick = (word) => {
         setCurrentWord(word);
         setWordForm({
@@ -123,12 +139,10 @@ function FlashcardDetailPage() {
 
     const handleUpdateWord = async (e) => {
         e.preventDefault();
-
         if (!currentWord || !currentWord.id) {
             notify.error("Lỗi: Không xác định được ID từ cần sửa");
             return;
         }
-
         if (!wordForm.newWord.trim() || !wordForm.meaning.trim()) {
             notify.warning('Vui lòng nhập từ vựng và nghĩa');
             return;
@@ -153,9 +167,7 @@ function FlashcardDetailPage() {
     };
 
     const handleDeleteWord = async (wordId) => {
-        // Giữ nguyên window.confirm vì nó là popup hệ thống, không ảnh hưởng UI custom
         if (!window.confirm("Bạn chắc chắn muốn xóa từ này khỏi bộ flashcard?")) return;
-
         try {
             const response = await flashcardAPI.deleteWord(id, wordId);
             if (response.status === 200 || response.status === 204) {
@@ -175,7 +187,6 @@ function FlashcardDetailPage() {
         return labels[type] || type;
     };
 
-    // --- RENDER (GIỮ NGUYÊN) ---
     if (loading) {
         return (
             <>
@@ -233,26 +244,36 @@ function FlashcardDetailPage() {
                                 <h1 className="text-3xl font-bold text-zinc-900 mb-2">{flashcard.title}</h1>
                                 {flashcard.description && <p className="text-zinc-600 mb-4">{flashcard.description}</p>}
                                 <div className="flex flex-wrap gap-3 mt-4">
-                                    <span
-                                        className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold border border-blue-200">Level {flashcard.level}</span>
-                                    <span
-                                        className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold border border-emerald-200">{flashcard.topic}</span>
-                                    <span
-                                        className="px-3 py-1 bg-zinc-100 text-zinc-700 rounded-full text-xs font-semibold border border-zinc-200">{flashcard.wordCount} từ</span>
+                                    <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold border border-blue-200">Level {flashcard.level}</span>
+                                    <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold border border-emerald-200">{flashcard.topic}</span>
+                                    <span className="px-3 py-1 bg-zinc-100 text-zinc-700 rounded-full text-xs font-semibold border border-zinc-200">{flashcard.wordCount} từ</span>
                                 </div>
                             </div>
+
+                            {/* --- BUTTONS ACTION AREA --- */}
                             <div className="flex flex-col sm:flex-row gap-3 md:pt-2">
+                                {/* Button Thêm Mới */}
                                 <button
                                     onClick={() => setShowAddModal(true)}
-                                    className="flex items-center gap-2 px-6 py-3 bg-zinc-900 text-white rounded-xl font-medium hover:bg-zinc-800 transition text-sm shadow-md"
+                                    className="flex items-center gap-2 px-5 py-3 bg-zinc-900 text-white rounded-xl font-medium hover:bg-zinc-800 transition text-sm shadow-md"
                                 >
-                                    <Plus size={18} /> Thêm từ mới
+                                    <Plus size={18} /> Thêm từ
                                 </button>
+
+                                {/* Button Nhập Hàng Loạt (MỚI) */}
+                                <button
+                                    onClick={() => setShowBulkImport(true)}
+                                    className="flex items-center gap-2 px-5 py-3 bg-white border border-zinc-300 text-zinc-700 rounded-xl font-medium hover:bg-zinc-50 transition text-sm shadow-md"
+                                >
+                                    <Copy size={18} /> Nhập Excel
+                                </button>
+
+                                {/* Button Học */}
                                 <button
                                     onClick={handleStartLearning}
-                                    className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition text-sm shadow-md"
+                                    className="flex items-center gap-2 px-5 py-3 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition text-sm shadow-md"
                                 >
-                                    <BookOpen size={18} /> Bắt đầu học
+                                    <BookOpen size={18} /> Học ngay
                                 </button>
                             </div>
                         </div>
@@ -267,11 +288,8 @@ function FlashcardDetailPage() {
                     <div className="space-y-6">
                         {flashcard.words && flashcard.words.length > 0 ? (
                             flashcard.words.map((word) => (
-                                <div key={word.id}
-                                     className="bg-white rounded-xl border border-zinc-200 p-6 hover:shadow-lg transition-all duration-300 group">
+                                <div key={word.id} className="bg-white rounded-xl border border-zinc-200 p-6 hover:shadow-lg transition-all duration-300 group">
                                     <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
-
-                                        {/* Left: Content (Col 1-9) */}
                                         <div className="md:col-span-9 space-y-3">
                                             <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2">
                                                 <h3 className="text-2xl font-extrabold text-zinc-900">{word.newWord}</h3>
@@ -286,21 +304,15 @@ function FlashcardDetailPage() {
                                                     </button>
                                                 )}
                                             </div>
-
-                                            {/* Definition */}
                                             <div>
                                                 <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1">Định nghĩa:</p>
                                                 <p className="text-base text-zinc-800">{word.meaning}</p>
                                             </div>
-
-                                            {/* Example */}
                                             {word.example && (
                                                 <div className="bg-zinc-50 rounded-lg px-4 py-3 border-l-4 border-zinc-300">
                                                     <p className="text-base italic text-zinc-700">“{word.example}”</p>
                                                 </div>
                                             )}
-
-                                            {/* Actions */}
                                             <div className="flex gap-3 pt-3 border-t border-zinc-100">
                                                 <button onClick={() => handleEditClick(word)}
                                                         className="flex items-center gap-1 px-3 py-1.5 bg-white border border-zinc-300 text-zinc-700 rounded-lg text-sm font-medium hover:bg-zinc-50 transition shadow-sm">
@@ -312,8 +324,6 @@ function FlashcardDetailPage() {
                                                 </button>
                                             </div>
                                         </div>
-
-                                        {/* Right: Image (Col 10-12) */}
                                         <div className="md:col-span-3 flex justify-center md:justify-end">
                                             {word.imageURL ? (
                                                 <img src={word.imageURL} alt={word.newWord}
@@ -331,19 +341,27 @@ function FlashcardDetailPage() {
                         ) : (
                             <div className="text-center py-16 bg-white rounded-xl border border-dashed border-zinc-300">
                                 <p className="text-xl text-zinc-600 mb-4">Bộ flashcard này chưa có từ vựng nào.</p>
-                                <button
-                                    onClick={() => setShowAddModal(true)}
-                                    className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition shadow-md flex items-center gap-2 mx-auto"
-                                >
-                                    <Plus size={18} /> Thêm từ đầu tiên
-                                </button>
+                                <div className="flex justify-center gap-3">
+                                    <button
+                                        onClick={() => setShowAddModal(true)}
+                                        className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition shadow-md flex items-center gap-2"
+                                    >
+                                        <Plus size={18} /> Thêm thủ công
+                                    </button>
+                                    <button
+                                        onClick={() => setShowBulkImport(true)}
+                                        className="px-6 py-3 bg-white border border-zinc-300 text-zinc-700 rounded-xl font-medium hover:bg-zinc-50 transition shadow-md flex items-center gap-2"
+                                    >
+                                        <Copy size={18} /> Nhập Excel
+                                    </button>
+                                </div>
                             </div>
                         )}
                     </div>
                 </div>
             </main>
 
-            {/* === MODAL THÊM TỪ (Tối giản) === */}
+            {/* === MODAL THÊM TỪ === */}
             <WordModal
                 showModal={showAddModal}
                 title="Thêm từ mới vào Flashcard"
@@ -354,7 +372,7 @@ function FlashcardDetailPage() {
                 actionText="Thêm từ"
             />
 
-            {/* === MODAL SỬA TỪ (Tối giản) === */}
+            {/* === MODAL SỬA TỪ === */}
             <WordModal
                 showModal={showEditModal}
                 title={`Chỉnh sửa: ${currentWord?.newWord || 'Từ vựng'}`}
@@ -365,12 +383,20 @@ function FlashcardDetailPage() {
                 actionText="Cập nhật"
             />
 
+            {/* === MODAL IMPORT EXCEL (MỚI) === */}
+            <BulkImportWordsModal
+                isOpen={showBulkImport}
+                onClose={() => setShowBulkImport(false)}
+                flashcardId={id}
+                onSuccess={handleBulkImportSuccess}
+            />
+
             <Footer />
         </>
     );
 }
 
-// Component Modal tái sử dụng
+// Component Modal tái sử dụng (Giữ nguyên như cũ)
 const WordModal = ({ showModal, title, wordForm, handleInputChange, handleSubmit, closeModal, actionText }) => {
     if (!showModal) return null;
 
@@ -396,7 +422,6 @@ const WordModal = ({ showModal, title, wordForm, handleInputChange, handleSubmit
 };
 
 
-// Component con để tái sử dụng Input (đã được làm đẹp)
 const FormInputs = ({ wordForm, handleInputChange }) => (
     <>
         <div>
@@ -437,8 +462,6 @@ const FormInputs = ({ wordForm, handleInputChange }) => (
                        className="w-full px-4 py-2.5 border border-zinc-300 rounded-lg focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 transition-colors" placeholder="/həˈloʊ/"/>
             </div>
         </div>
-
-        {/* URL Inputs with Icon */}
         <div className="space-y-4">
             <div className="relative">
                 <label className="block text-sm font-medium text-zinc-700 mb-1">URL Hình ảnh</label>

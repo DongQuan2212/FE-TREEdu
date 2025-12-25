@@ -130,10 +130,10 @@ const AdminHomepage = () => {
     ];
 
     const quickActions = [
-        { title: "Quản lý User", desc: "Phân quyền & Khóa", icon: UserCheck, color: "from-blue-500 to-blue-600", path: "/admin/users" },
-        { title: "Quản lý Flashcard", desc: "Duyệt & Tạo mới", icon: Layers, color: "from-purple-500 to-purple-600", path: "/admin/flashcards" },
-        { title: "Quản lý Quiz", desc: "Ngân hàng câu hỏi", icon: Activity, color: "from-orange-500 to-red-600", path: "/admin/quizzes" },
-        { title: "Báo cáo", desc: "Xuất file thống kê", icon: TrendingUp, color: "from-green-500 to-emerald-600", path: "/admin/reports" },
+        { title: "Quản lý User", desc: "Phân quyền & Khóa", icon: UserCheck, color: "from-blue-500 to-blue-600", path: "/admin/employee" },
+        { title: "Quản lý Flashcard", desc: "Duyệt & Tạo mới", icon: Layers, color: "from-purple-500 to-purple-600", path: "/admin/flashcard" },
+        { title: "Quản lý Quiz", desc: "Ngân hàng câu hỏi", icon: Activity, color: "from-orange-500 to-red-600", path: "/admin/quiz" },
+
     ];
 
     if (dashboardData.loading) {
@@ -154,10 +154,7 @@ const AdminHomepage = () => {
                     <div className="px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
                         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
                         <div className="flex items-center gap-4">
-                            <button className="p-2 hover:bg-gray-100 rounded-lg transition relative">
-                                <Bell className="w-5 h-5 text-gray-600" />
-                                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
-                            </button>
+
                             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-lime-500 to-green-700 flex items-center justify-center text-white font-bold text-lg shadow-lg">
                                 A
                             </div>
@@ -340,7 +337,6 @@ const AdminHomepage = () => {
                         </div>
                     </div>
 
-                    {/* 3. QUICK ACTIONS */}
                     <h3 className="text-xl font-bold text-gray-900 mb-6">Truy cập nhanh</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
                         {quickActions.map((action, index) => (
