@@ -24,12 +24,9 @@ const SupporterDashboard = () => {
                 const quizData = await quizRes.json();
                 const flashcardData = await flashcardRes.json();
 
-                // FIX CHÍNH ĐÂY – data nằm trong data.content
                 const totalQuizzes = quizData.success && quizData.data?.content
                     ? quizData.data.content.length
                     : 0;
-
-                // Nếu backend có trả về totalElements thì dùng luôn (chính xác hơn)
                 const totalQuizzesAccurate = quizData.data?.totalElements || totalQuizzes;
 
                 const totalFlashcards = flashcardData.success && flashcardData.data

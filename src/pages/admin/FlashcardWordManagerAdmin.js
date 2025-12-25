@@ -1,5 +1,4 @@
-// src/pages/admin/FlashcardWordManager.js
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     ArrowLeft,
     Plus,
@@ -15,12 +14,11 @@ import {
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 
-// 1. Import Sidebar & Components
 import Sidebar from '../../components/Admin/Sidebar';
 import AddWordModal from '../../components/user/AddWordModal';
+
 import BulkImportWordsModal from '../../components/Supporter/BulkImportWordsModal';
 
-// 2. Import API & Utils
 import { flashcardAPI } from '../../config/api';
 import { notify } from '../../utils/toastNotify';
 
@@ -28,7 +26,7 @@ const FlashcardWordManagerAdmin = () => {
     const { id } = useParams();
     const navigate = useNavigate();
 
-    // Data State
+    // State Data
     const [flashcard, setFlashcard] = useState(null);
     const [words, setWords] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -38,7 +36,7 @@ const FlashcardWordManagerAdmin = () => {
     const [showBulkImport, setShowBulkImport] = useState(false);
     const [saving, setSaving] = useState(false);
 
-    // Inline Edit State
+    // Inline Edit State (Giữ nguyên tính năng của Admin)
     const [editingWordId, setEditingWordId] = useState(null);
     const [editingWord, setEditingWord] = useState({});
 
@@ -52,10 +50,9 @@ const FlashcardWordManagerAdmin = () => {
         audioURL: ''
     });
 
-    // --- FETCH DATA ---
-    // Sử dụng useCallback để tránh tạo lại hàm không cần thiết
-    const fetchFlashcard = useCallback(async () => {
-        setLoading(true);
+    // --- FETCH DATA (Đồng bộ logic với Supporter) ---
+    const fetchFlashcard = async (isBackgroundRefresh = false) => {
+        if (!isBackgroundRefresh) setLoading(true);
         try {
             const res = await flashcardAPI.getFlashcardDetails(id);
             if (res.data.success) {
@@ -66,25 +63,25 @@ const FlashcardWordManagerAdmin = () => {
             console.error(error);
             notify.error('Không thể tải dữ liệu bộ từ vựng!');
         } finally {
-            setLoading(false);
+            if (!isBackgroundRefresh) setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (id) {
+            fetchFlashcard();
         }
     }, [id]);
 
-    useEffect(() => {
-        fetchFlashcard();
-    }, [fetchFlashcard]);
-
     // --- HANDLER: BULK IMPORT SUCCESS ---
-    // Tách logic này ra để giống với bên Supporter và đảm bảo ổn định
     const handleBulkImportSuccess = () => {
-        fetchFlashcard();
+        // Refresh dữ liệu ngầm (không hiện loading quay vòng toàn trang)
+        fetchFlashcard(true);
         notify.success('Nhập liệu hàng loạt thành công!');
-        // Modal sẽ tự đóng hoặc được đóng bởi component cha thông qua props isOpen
-        // Tuy nhiên BulkImportWordsModal thường tự xử lý đóng hoặc ta set state ở đây nếu cần
         setShowBulkImport(false);
     };
 
-    // --- HANDLERS: ADD WORD ---
+    // --- HANDLER: ADD SINGLE WORD ---
     const handleAddWord = async () => {
         if (!newWord.newWord.trim() || !newWord.meaning.trim()) {
             notify.warn('Vui lòng nhập từ và nghĩa!');
@@ -368,11 +365,11 @@ const FlashcardWordManagerAdmin = () => {
                 isLoading={saving}
             />
 
-            {/* ĐÃ SỬA: Cách gọi Modal BulkImport giống hệt trang Supporter */}
+            {/* FIXED: Bulk Import giống Supporter */}
             <BulkImportWordsModal
                 isOpen={showBulkImport}
                 onClose={() => setShowBulkImport(false)}
-                flashcardId={id}
+                flashcardId={id} // Đảm bảo ID được truyền vào đúng
                 onSuccess={handleBulkImportSuccess}
             />
         </div>

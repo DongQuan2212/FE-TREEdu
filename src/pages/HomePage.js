@@ -8,7 +8,7 @@ import Footer from "../components/Footer/Footer";
 
 import imgQuiz from "../asset/quiz.jpg"
 import imgDic from "../asset/flashcard.jpg"
-import imgAI from "../asset/ai.jpg"
+import imgAI from "../asset/ai1.jpg"
 
 import imgCom1 from "../asset/icom1.jpg"
 import imgCom2 from "../asset/icom2.jpg"
@@ -43,7 +43,7 @@ function HomePage() {
                     <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-green-100 via-transparent to-transparent opacity-50" />
                 </motion.div>
 
-                <div className="relative z-10 container mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center h-full pt-20">
+                <div className="relative z-10 container mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center h-full pt-20 mr-10">
                     {/* Left: Text */}
                     <motion.div
                         initial={{ opacity: 0, x: -60 }}

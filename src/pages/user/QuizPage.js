@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from "react-router-dom";
 import Header from "../../components/user/Header";
 import Footer from "../../components/Footer/Footer";
-// import axios from 'axios'; // Không dùng nên có thể bỏ
+
 import axiosInstance from '../../config/axiosConfig';
 
 import iconTime from "../../asset/User/time.png";
