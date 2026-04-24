@@ -9,29 +9,25 @@ const ForgotPasswordPage = () => {
     const [email, setEmail] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
-    const [success, setSuccess] = useState("");
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError("");
-        setSuccess("");
         setLoading(true);
 
         try {
             await axiosInstance.post(
                 "/auth/forgot-password",
-                null, // 👈 body rỗng
+                null,
                 {
                     params: {
                         email: email.trim(),
-                        newPassword: "reset123", // 👈 gán cứng
                     },
                 }
             );
 
-            setSuccess(
-                "Đã gửi mã xác thực đặt lại mật khẩu về email của bạn. Vui lòng kiểm tra hộp thư!"
-            );
+            // Redirect sang verify-otp với type=RESET_PASSWORD
+            navigate(`/verify-otp?email=${encodeURIComponent(email.trim())}&type=RESET_PASSWORD`);
         } catch (err) {
             console.error("Forgot password error:", err);
 
@@ -82,13 +78,6 @@ const ForgotPasswordPage = () => {
                         {error && (
                             <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm">
                                 {error}
-                            </div>
-                        )}
-
-                        {/* Success */}
-                        {success && (
-                            <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg text-sm">
-                                {success}
                             </div>
                         )}
 

@@ -54,9 +54,9 @@ const RegisterPage = () => {
                 password: formData.password
             });
 
-            setSuccess("Đăng ký thành công! Đang chuyển sang trang đăng nhập...");
+            setSuccess("Đăng ký thành công! Đang chuyển sang trang xác thực email...");
             setTimeout(() => {
-                navigate("/login");
+                navigate(`/verify-otp?email=${encodeURIComponent(formData.email)}`);
             }, 2000);
 
         } catch (err) {
