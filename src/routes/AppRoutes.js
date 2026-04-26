@@ -24,6 +24,7 @@ import FlashcardWordManager from "../pages/supporter/FlashcardWordManager";
 import PronunciationPracticePage from "../pages/user/PronunciationPracticePage";
 import PronunciationPracticeDetailPage from "../pages/user/PronunciationPracticeDetailPage";
 import VerifyEmailPage from "../pages/verify-result";
+import VerifyOtpPage from "../pages/VerifyOtpPage";
 import ForgotPasswordPage from "../pages/ForgotPasswordPage";
 import ProfilePage from "../pages/user/ProfilePage";
 import ChangePasswordPage from "../pages/user/ChangePasswordPage";
@@ -43,6 +44,7 @@ function AppRoutes() {
                 <Route path="/" element={<HomePage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage/>} />
+                <Route path="/verify-otp" element={<VerifyOtpPage />} />
                 <Route path="/verify-result" element={<VerifyEmailPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/oauth2/redirect" element={<OAuth2RedirectHandler />} />

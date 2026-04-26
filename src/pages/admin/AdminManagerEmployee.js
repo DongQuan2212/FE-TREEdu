@@ -113,7 +113,7 @@ const EmployeeManagement = () => {
                     fullName: formData.fullName,
                     password: formData.password
                 });
-                notify.success('Thêm nhân viên mới thành công!');
+                notify.success('Thêm tài khoản nhân viên mới thành công!');
             } else {
                 await axiosInstance.put(`/users/${selectedEmployee.id}`, formData);
                 notify.success('Cập nhật thông tin thành công!');
