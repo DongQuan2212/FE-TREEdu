@@ -48,7 +48,7 @@ function AppRoutes() {
                 <Route path="/verify-result" element={<VerifyEmailPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/oauth2/redirect" element={<OAuth2RedirectHandler />} />
-
+                <Route path="/reset-password-otp" element={<ResetPasswordOtpPage />} />
                 {/* User Routes */}
                 <Route path="/home" element={<Home/>} />
                 <Route path="/profile" element={<ProfilePage/>} />

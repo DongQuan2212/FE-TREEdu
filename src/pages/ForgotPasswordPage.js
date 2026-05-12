@@ -27,7 +27,7 @@ const ForgotPasswordPage = () => {
             );
 
             // Redirect sang verify-otp với type=RESET_PASSWORD
-            navigate(`/verify-otp?email=${encodeURIComponent(email.trim())}&type=RESET_PASSWORD`);
+            navigate(`/reset-password-otp?email=${encodeURIComponent(email.trim())}`);
         } catch (err) {
             console.error("Forgot password error:", err);
 
