@@ -36,6 +36,8 @@ import AdminQuizEdit from "../pages/admin/AdminQuizEdit";
 import AdminFlashcardList from "../pages/admin/AdminFlashcardList";
 import FlashcardWordManagerAdmin from "../pages/admin/FlashcardWordManagerAdmin";
 import OAuth2RedirectHandler from "../pages/OAuth2RedirectHandler";
+import AdminQuizCreate from "../pages/admin/AdminQuizCreate";
+import ResetPasswordOtpPage from "../pages/ResetPasswordOtpPage";
 function AppRoutes() {
     return (
         <Router>
@@ -75,6 +77,7 @@ function AppRoutes() {
                 <Route path="/admin/dashboard" element={<AdminDashboard />} />
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/admin/quiz" element={<AdminQuizList />} />
+                <Route path="/admin/quiz/create" element={<AdminQuizCreate />} />
                 <Route path="/admin/employee" element={<AdminManagerEmployee/>} />
                 <Route path="/admin/quiz/edit/:id" element={<AdminQuizEdit />} />
                 <Route path="/admin/flashcard" element={<AdminFlashcardList />} />

@@ -9,7 +9,9 @@ import {
     ArrowLeft,
     Loader2,
     Info,
-    ChevronDown
+    ChevronDown,
+    Globe,
+    Lock
 } from 'lucide-react';
 
 function CreateFlashcardPage() {
@@ -18,7 +20,8 @@ function CreateFlashcardPage() {
         title: '',
         description: '',
         level: 1,
-        topic: ''
+        topic: '',
+        visibility: 'PUBLIC' // Thêm trường mới ở đây
     });
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState({});
@@ -52,6 +55,7 @@ function CreateFlashcardPage() {
 
         try {
             setLoading(true);
+            // formData lúc này đã bao gồm field visibility
             const response = await flashcardAPI.createFlashcard(formData);
 
             if (response.data.status === 200 || response.data.status === 201) {
@@ -66,7 +70,6 @@ function CreateFlashcardPage() {
         }
     };
 
-    // Hàm xử lý điều hướng chung
     const handleBack = () => {
         navigate('/flashcard');
     };
@@ -78,7 +81,6 @@ function CreateFlashcardPage() {
             <main className="flex-1 pt-24 pb-20 px-4 sm:px-6">
                 <div className="max-w-2xl mx-auto">
 
-                    {/* Navigation Back - Đã sửa link */}
                     <button
                         onClick={handleBack}
                         className="group flex items-center text-sm text-gray-500 hover:text-black transition-colors mb-8"
@@ -87,7 +89,6 @@ function CreateFlashcardPage() {
                         Quay lại
                     </button>
 
-                    {/* Header Section */}
                     <div className="mb-10">
                         <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl mb-3">
                             Tạo bộ thẻ mới
@@ -97,7 +98,6 @@ function CreateFlashcardPage() {
                         </p>
                     </div>
 
-                    {/* Form Section */}
                     <form onSubmit={handleSubmit} className="space-y-8">
 
                         {/* Title Input */}
@@ -140,8 +140,9 @@ function CreateFlashcardPage() {
                             {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description}</p>}
                         </div>
 
-                        {/* Group: Topic & Level */}
+                        {/* Group: Topic & Level & Visibility */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Topic */}
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-gray-700 block">
                                     Chủ đề
@@ -164,6 +165,7 @@ function CreateFlashcardPage() {
                                 {errors.topic && <p className="text-red-500 text-xs mt-1">{errors.topic}</p>}
                             </div>
 
+                            {/* Level */}
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-gray-700 block">
                                     Độ khó
@@ -175,12 +177,51 @@ function CreateFlashcardPage() {
                                         onChange={handleChange}
                                         className="w-full bg-transparent pl-4 pr-10 py-3.5 border border-gray-200 rounded-lg outline-none focus:border-black appearance-none cursor-pointer"
                                     >
-                                        {[1,2,3,4,5].map(l => (
+                                        {[1, 2, 3, 4, 5].map(l => (
                                             <option key={l} value={l}>Level {l}</option>
                                         ))}
                                     </select>
                                     <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                                 </div>
+                            </div>
+
+                            {/* Visibility Field - Trường mới thêm */}
+                            <div className="space-y-2 md:col-span-2">
+                                <label className="text-sm font-medium text-gray-700 block">
+                                    Chế độ hiển thị
+                                </label>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({ ...prev, visibility: 'PUBLIC' }))}
+                                        className={`flex items-center justify-center gap-3 px-4 py-3.5 border rounded-lg transition-all ${
+                                            formData.visibility === 'PUBLIC'
+                                                ? 'border-black bg-gray-50 ring-1 ring-black'
+                                                : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                                        }`}
+                                    >
+                                        <Globe className={`w-4 h-4 ${formData.visibility === 'PUBLIC' ? 'text-blue-500' : ''}`} />
+                                        <span className="text-sm font-medium">Công khai</span>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({ ...prev, visibility: 'PRIVATE' }))}
+                                        className={`flex items-center justify-center gap-3 px-4 py-3.5 border rounded-lg transition-all ${
+                                            formData.visibility === 'PRIVATE'
+                                                ? 'border-black bg-gray-50 ring-1 ring-black'
+                                                : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                                        }`}
+                                    >
+                                        <Lock className={`w-4 h-4 ${formData.visibility === 'PRIVATE' ? 'text-amber-500' : ''}`} />
+                                        <span className="text-sm font-medium">Riêng tư</span>
+                                    </button>
+                                </div>
+                                <p className="text-[11px] text-gray-400 mt-1">
+                                    {formData.visibility === 'PUBLIC'
+                                        ? "Mọi người đều có thể tìm thấy và học bộ thẻ này."
+                                        : "Chỉ bạn mới có thể xem và quản lý bộ thẻ này."}
+                                </p>
                             </div>
                         </div>
 
@@ -190,6 +231,7 @@ function CreateFlashcardPage() {
                             <div className="text-sm text-gray-500 space-y-1">
                                 <p>• Hãy chọn tiêu đề ngắn gọn.</p>
                                 <p>• Phân loại Level chính xác giúp hệ thống gợi ý tốt hơn.</p>
+                                <p>• Chế độ Riêng tư giúp bảo mật nội dung cá nhân của bạn.</p>
                             </div>
                         </div>
 
@@ -197,7 +239,7 @@ function CreateFlashcardPage() {
                         <div className="pt-4 flex items-center justify-end gap-4 border-t border-gray-100 mt-8">
                             <button
                                 type="button"
-                                onClick={handleBack} // Đã sửa link cho nút Hủy
+                                onClick={handleBack}
                                 className="px-6 py-3 text-sm font-medium text-gray-600 hover:text-black transition-colors"
                                 disabled={loading}
                             >
@@ -218,11 +260,9 @@ function CreateFlashcardPage() {
                                 )}
                             </button>
                         </div>
-
                     </form>
                 </div>
             </main>
-
             <Footer />
         </div>
     );

@@ -57,5 +57,12 @@ export const flashcardAPI = {
     },
 
     resetProgress: (id) => axiosInstance.post(`/flashcards/learn/${id}/reset`),
+
+    reportFlashcard: (flashcardId, data) => {
+        return axiosInstance.post(
+            `/flashcard-reports/${flashcardId}`,
+            data
+        );
+    },
 };
 
