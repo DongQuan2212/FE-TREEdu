@@ -1,3 +1,4 @@
+import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import HomePage from "../pages/HomePage";
 import LoginPage from "../pages/LoginPage";
@@ -38,6 +39,11 @@ import FlashcardWordManagerAdmin from "../pages/admin/FlashcardWordManagerAdmin"
 import OAuth2RedirectHandler from "../pages/OAuth2RedirectHandler";
 import AdminQuizCreate from "../pages/admin/AdminQuizCreate";
 import ResetPasswordOtpPage from "../pages/ResetPasswordOtpPage";
+
+// 1. Thêm import của hai trang quản lý báo cáo/xét duyệt ở đây
+import FlashcardReportList from "../pages/supporter/FlashcardReportList";
+import AdminReviewList from "../pages/admin/AdminReviewList"; // <-- THÊM DÒNG NÀY
+
 function AppRoutes() {
     return (
         <Router>
@@ -51,12 +57,12 @@ function AppRoutes() {
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/oauth2/redirect" element={<OAuth2RedirectHandler />} />
                 <Route path="/reset-password-otp" element={<ResetPasswordOtpPage />} />
+
                 {/* User Routes */}
                 <Route path="/home" element={<Home/>} />
                 <Route path="/profile" element={<ProfilePage/>} />
                 <Route path="/history" element={<QuizHistoryPage/>} />
                 <Route path="/change-password" element={<ChangePasswordPage />} />
-
                 <Route path="/quiz" element={<QuizPage/>} />
                 <Route path="/quiz/:quizId" element={<QuizTakingPage />} />
                 <Route path="/intro" element={<IntroPage/>} />
@@ -67,11 +73,8 @@ function AppRoutes() {
                 <Route path="/flashcard/detail/:id" element={<FlashcardDetailPage />} />
                 <Route path="/flashcard/:id/learn" element={<FlashcardLearnPage />} />
                 <Route path="/flashcard/history" element={<FlashcardHistoryPage/>} />
-
                 <Route path="/pronunciation-practice" element={<PronunciationPracticePage />} />
                 <Route path="/pronunciation-practice/:topic" element={<PronunciationPracticeDetailPage />} />
-
-
 
                 {/* Admin Role */}
                 <Route path="/admin/dashboard" element={<AdminDashboard />} />
@@ -81,11 +84,9 @@ function AppRoutes() {
                 <Route path="/admin/employee" element={<AdminManagerEmployee/>} />
                 <Route path="/admin/quiz/edit/:id" element={<AdminQuizEdit />} />
                 <Route path="/admin/flashcard" element={<AdminFlashcardList />} />
-                <Route
-                    path="/admin/flashcard/edit/:id"
-                    element={<FlashcardWordManagerAdmin/>}
-                />
-
+                <Route path="/admin/flashcard/edit/:id" element={<FlashcardWordManagerAdmin/>} />
+                {/* 2. THÊM ROUTE XÉT DUYỆT CỦA ADMIN VÀO ĐÂY */}
+                <Route path="/admin/flashcard-reviews" element={<AdminReviewList />} />
 
                 {/* Supporter Role */}
                 <Route path="/supporter/dashboard" element={<SupporterDashboard />} />
@@ -97,6 +98,7 @@ function AppRoutes() {
                 <Route path="/supporter/flashcards/create" element={<FlashcardCreate />} />
                 <Route path="/supporter/flashcards/edit/:id" element={<FlashcardWordManager />} />
                 <Route path="/supporter/flashcards/:id/words" element={<FlashcardWordManager />} />
+                <Route path="/supporter/flashcard-reports" element={<FlashcardReportList />} />
             </Routes>
         </Router>
     );

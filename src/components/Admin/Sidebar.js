@@ -7,8 +7,8 @@ import {
     LogOut,
     WholeWord,
     FileQuestion,
-
-    X
+    X,
+    ShieldAlert
 } from "lucide-react";
 import Lottie from "lottie-react";
 import treeAnimation from "../../asset/tree.json";
@@ -34,6 +34,7 @@ const Sidebar = () => {
         { to: "/admin/employee", icon: UserCog, label: "Quản lý người dùng" },
         { to: "/admin/quiz", icon: FileQuestion, label: "Quản lý bài quiz" },
         { to: "/admin/flashcard", icon: WholeWord, label: "Quản lý Flashcard" },
+        { to: "/admin/flashcard-reviews", icon: ShieldAlert, label: "Thẩm định Flashcard" },
     ];
 
     return (

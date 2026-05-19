@@ -65,4 +65,21 @@ export const flashcardAPI = {
         );
     },
 };
+export const flashcardReportAPI = {
+    getPendingReports: () => axiosInstance.get('/flashcard-reports/pending'),
+    updateReportStatus: (reportId, status) => axiosInstance.put(`/flashcard-reports/${reportId}/status`, { status })
+};
+// Thêm vào config/api.js của bạn
+export const flashcardReviewAPI = {
+    // Admin lấy danh sách các Flashcard đang bị Supporter gắn cờ chờ duyệt
+    getPendingReviews: () => {
+        return axiosInstance.get('/flashcard-reviews/pending');
+    },
 
+    submitDecision: (reviewRequestId, status, adminComment) => {
+        return axiosInstance.put(`/flashcard-reviews/${reviewRequestId}/decision`, {
+            status,
+            adminComment
+        });
+    }
+};
