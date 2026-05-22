@@ -69,16 +69,20 @@ const NavItem = ({ item, isActive, onClick }) => (
     </li>
 );
 
-const UserAvatar = ({ loading, onClick }) => (
+const UserAvatar = ({ user, loading, onClick }) => (
     <button
         onClick={onClick}
         disabled={loading}
-        className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-neutral-200 hover:border-emerald-500 transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+        className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-neutral-200 hover:border-emerald-500 transition-all duration-200 hover:scale-105 focus:outline-none"
     >
         {loading ? (
             <div className="w-full h-full bg-neutral-200 animate-pulse" />
         ) : (
-            <img src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="Avatar" className="w-full h-full object-cover" />
+            <img
+                src={user?.avatarUrl || "https://cdn-icons-png.flaticon.com/512/149/149071.png"}
+                alt="Avatar"
+                className="w-full h-full object-cover"
+            />
         )}
         <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></span>
     </button>
@@ -124,15 +128,20 @@ const UserDropdown = ({ user, onClose }) => {
     const hasPanel = roleConfig?.panelPath;
 
     return (
-        <div ref={dropdownRef} className="absolute right-0 mt-3 w-72 bg-white rounded-2xl shadow-2xl border border-neutral-200 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div ref={dropdownRef} className="absolute right-0 mt-3 w-72 bg-white rounded-2xl shadow-2xl border border-neutral-200 py-2 z-50">
             {user && (
                 <div className="px-4 py-3 border-b border-neutral-100">
                     <div className="flex items-start gap-3 mb-3">
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white font-bold text-lg">
-                            {user.name?.[0]?.toUpperCase() || 'U'}
-                        </div>
+                        {/* HIỂN THỊ ẢNH ĐẠI DIỆN THỰC TẾ HOẶC CHỮ CÁI ĐẦU */}
+                        {user.avatarUrl ? (
+                            <img src={user.avatarUrl} alt="Avatar" className="w-12 h-12 rounded-full object-cover border border-neutral-100" />
+                        ) : (
+                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white font-bold text-lg">
+                                {user.name?.[0]?.toUpperCase() || 'U'}
+                            </div>
+                        )}
                         <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-neutral-900 truncate">{user.name || 'User'}</p>
+                            <p className="font-semibold text-neutral-900 truncate">{user.fullName || user.name || 'User'}</p>
                             <p className="text-xs text-neutral-500 truncate">{user.email}</p>
                         </div>
                     </div>
@@ -285,7 +294,9 @@ const Header = () => {
                         ) : user ? (
                             // 2. Trường hợp ĐÃ ĐĂNG NHẬP: Giữ nguyên Avatar & Dropdown
                             <div className="relative">
+                                {/* Đổi dòng này trong phần AUTH LOGIC của component Header */}
                                 <UserAvatar
+                                    user={user} // Thêm prop này vào
                                     loading={loading}
                                     onClick={() => setIsMenuOpen(!isMenuOpen)}
                                 />
