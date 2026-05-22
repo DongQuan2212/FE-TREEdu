@@ -16,7 +16,11 @@ export const flashcardAPI = {
     createFlashcard: (data) => {
         return axiosInstance.post('/flashcards', data);
     },
-
+    changeVisibility: (id, visibility) => {
+        return axiosInstance.put(`/flashcards/${id}/visibility`, null, {
+            params: { visibility } // Đẩy query param dạng ?visibility=PUBLIC lên URL
+        });
+    },
     // Cập nhật flashcard
     updateFlashcard: (flashcardId, data) => {
         return axiosInstance.put(`/flashcards/${flashcardId}`, data);

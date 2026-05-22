@@ -1,3 +1,4 @@
+// src/pages/user/FlashcardDetailPage.js
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from "../../components/user/Header";
@@ -22,6 +23,9 @@ function FlashcardDetailPage() {
     const [showAddModal, setShowAddModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showBulkImport, setShowBulkImport] = useState(false);
+
+    // State bổ sung xử lý loading riêng cho nút đổi trạng thái hiển thị
+    const [visibilityLoading, setVisibilityLoading] = useState(false);
 
     const [currentWord, setCurrentWord] = useState(null);
     const [wordForm, setWordForm] = useState({
@@ -51,6 +55,42 @@ function FlashcardDetailPage() {
 
     // Kiểm tra quyền chỉnh sửa
     const canEdit = flashcard?.isOwner === true;
+
+    // ====== LOGIC ĐỔI TRẠNG THÁI HIỂN THỊ (VISIBILITY) ======
+    const handleToggleVisibility = async () => {
+        if (!canEdit || visibilityLoading) return;
+
+        // Kiểm tra chặn nếu bộ thẻ bị dính cờ vi phạm (Khớp với logic nghiệp vụ Backend)
+        if (flashcard.isViolated) {
+            notify.error("Bộ thẻ này đã bị đánh dấu vi phạm, không thể chuyển sang Công khai!");
+            return;
+        }
+
+        const nextVisibility = flashcard.visibility === 'PUBLIC' ? 'PRIVATE' : 'PUBLIC';
+        const confirmMessage = nextVisibility === 'PUBLIC'
+            ? "Bạn muốn CÔNG KHAI bộ thẻ này cho mọi thành viên cùng học?"
+            : "Bạn muốn chuyển bộ thẻ này về chế độ RIÊNG TƯ?";
+
+        if (!window.confirm(confirmMessage)) return;
+
+        try {
+            setVisibilityLoading(true);
+
+            // Gọi API truyền query param theo định dạng: /{id}/visibility?visibility=PUBLIC|PRIVATE
+            const response = await flashcardAPI.changeVisibility(id, nextVisibility);
+
+            if (response.status === 200 || response.data?.success) {
+                notify.success(nextVisibility === 'PUBLIC' ? "Đã công khai bộ từ vựng!" : "Đã chuyển về riêng tư!");
+                // Cập nhật nhanh State mà không cần tải lại toàn bộ trang
+                setFlashcard(prev => ({ ...prev, visibility: nextVisibility }));
+            }
+        } catch (error) {
+            console.error(error);
+            notify.error(error.response?.data?.message || "Không thể thay đổi quyền riêng tư.");
+        } finally {
+            setVisibilityLoading(false);
+        }
+    };
 
     const handleBulkImportSuccess = () => {
         notify.success('Nhập dữ liệu hàng loạt thành công!');
@@ -162,10 +202,35 @@ function FlashcardDetailPage() {
                                     {flashcard.type === 'SYSTEM' ? 'Hệ thống' : 'Thành viên'}
                                 </span>
 
-                                <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[10px] font-bold uppercase bg-zinc-100 text-zinc-600 border border-zinc-200">
-                                    {flashcard.visibility === 'PUBLIC' ? <Globe size={12} /> : <Lock size={12} />}
-                                    {flashcard.visibility === 'PUBLIC' ? 'Công khai' : 'Riêng tư'}
-                                </span>
+                                {/* ĐÃ SỬA: Biến badge visibility tĩnh thành nút bấm chuyển đổi động cho chủ sở hữu */}
+                                {canEdit ? (
+                                    <button
+                                        onClick={handleToggleVisibility}
+                                        disabled={visibilityLoading}
+                                        title="Click để thay đổi quyền riêng tư"
+                                        className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[10px] font-bold uppercase border transition-all cursor-pointer select-none active:scale-95 disabled:opacity-50 ${
+                                            flashcard.visibility === 'PUBLIC'
+                                                ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+                                                : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                                        }`}
+                                    >
+                                        {flashcard.visibility === 'PUBLIC' ? <Globe size={12} /> : <Lock size={12} />}
+                                        {flashcard.visibility === 'PUBLIC' ? 'Công khai' : 'Riêng tư'} (Thay đổi)
+                                    </button>
+                                ) : (
+                                    // Giữ nguyên hiển thị dạng Badge tĩnh cho người dùng thông thường vãng lai
+                                    <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[10px] font-bold uppercase bg-zinc-100 text-zinc-600 border border-zinc-200">
+                                        {flashcard.visibility === 'PUBLIC' ? <Globe size={12} /> : <Lock size={12} />}
+                                        {flashcard.visibility === 'PUBLIC' ? 'Công khai' : 'Riêng tư'}
+                                    </span>
+                                )}
+
+                                {/* ĐỂ BẢO VỆ UX: Hiển thị cảnh báo trực quan nếu bộ thẻ bị Admin khóa vi phạm */}
+                                {flashcard.isViolated && (
+                                    <span className="flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-bold uppercase bg-red-50 text-red-600 border border-red-200 animate-pulse">
+                                        <ShieldCheck size={12} /> Đã khóa vi phạm
+                                    </span>
+                                )}
                             </div>
 
                             <div className="flex flex-col md:flex-row justify-between items-start gap-6">
@@ -271,7 +336,7 @@ function FlashcardDetailPage() {
                 </div>
             </main>
 
-            {/* Modals (Giữ nguyên logic của bạn nhưng bọc trong check canEdit nếu cần) */}
+            {/* Modals */}
             {canEdit && (
                 <>
                     <WordModal
