@@ -1,42 +1,38 @@
 import React, { useState, useEffect } from 'react';
 import {
-    Search, ShieldAlert, CheckCircle, XCircle, Clock, Calendar,
-    ChevronLeft, ChevronRight, X, Eye, Loader2
+    Search, ShieldAlert, CheckCircle, XCircle, Calendar,
+    X, Eye, Loader2, BookOpen, Globe, Lock, Volume2, Layers
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import Sidebar from "../../components/Admin/Sidebar";
-import { flashcardReviewAPI } from '../../config/api';
+// Import thêm flashcardAPI để lấy chi tiết từ vựng phục vụ Modal xem nhanh
+import { flashcardReviewAPI, flashcardAPI } from '../../config/api';
 import { notify } from '../../utils/toastNotify';
 
 const AdminReviewList = () => {
-    const navigate = useNavigate();
     const [reviews, setReviews] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
 
-    // Phân trang đồng bộ
-    const [currentPage, setCurrentPage] = useState(0);
-    const [totalPages, setTotalPages] = useState(1);
-    const [totalElements, setTotalElements] = useState(0);
-
-    // State quản lý Modal đưa ra quyết định
+    // State quản lý Modal đưa ra quyết định xử phạt
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedReviewId, setSelectedReviewId] = useState(null);
     const [decisionType, setDecisionType] = useState(''); // 'REVIEW_VIOLATION' hoặc 'REVIEW_APPROVED'
     const [adminComment, setAdminComment] = useState('');
     const [submitLoading, setSubmitLoading] = useState(false);
 
-    // Tải dữ liệu từ Backend
+    // ====== STATE MỚI: QUẢN LÝ MODAL XEM CHI TIẾT FLASHCARD TẠI CHỖ ======
+    const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+    const [previewLoading, setPreviewLoading] = useState(false);
+    const [previewData, setPreviewData] = useState(null);
+
+    // Tải dữ liệu danh sách vi phạm từ Backend
     const fetchPendingReviews = async () => {
         setLoading(true);
         try {
             const response = await flashcardReviewAPI.getPendingReviews();
-            // Đọc cấu trúc bọc dữ liệu chuẩn: response.data.success và lấy mảng trong response.data.data
             if (response.data && response.data.success) {
                 const data = response.data.data || [];
                 setReviews(data);
-                setTotalElements(data.length);
-                setTotalPages(Math.ceil(data.length / 10) || 1);
             }
         } catch (err) {
             console.error('Lỗi tải danh sách yêu cầu review:', err);
@@ -50,11 +46,27 @@ const AdminReviewList = () => {
         fetchPendingReviews();
     }, []);
 
-    useEffect(() => {
-        setCurrentPage(0);
-    }, [searchTerm]);
+    // ====== HÀM MỚI: GỌI API LẤY CHI TIẾT FLASHCARD ĐỂ HIỂN THỊ MODAL ======
+    const handleOpenPreviewModal = async (flashcardId) => {
+        setIsPreviewModalOpen(true);
+        setPreviewLoading(true);
+        setPreviewData(null);
+        try {
+            const response = await flashcardAPI.getFlashcardDetails(flashcardId);
+            if (response.data && response.data.status === 200) {
+                setPreviewData(response.data.data);
+            } else {
+                notify.error('Không tìm thấy dữ liệu chi tiết của bộ flashcard này.');
+            }
+        } catch (err) {
+            console.error('Lỗi lấy chi tiết flashcard:', err);
+            notify.error('Không thể kết nối lấy chi tiết từ vựng.');
+        } finally {
+            setPreviewLoading(false);
+        }
+    };
 
-    // Mở Modal phán quyết
+    // Mở Modal phán quyết xử phạt
     const openDecisionModal = (reviewId, type) => {
         setSelectedReviewId(reviewId);
         setDecisionType(type);
@@ -62,7 +74,7 @@ const AdminReviewList = () => {
         setIsModalOpen(true);
     };
 
-    // Thực thi gửi dữ liệu lên Backend
+    // Thực thi gửi quyết định xử phạt lên Backend
     const handleConfirmDecision = async () => {
         if (!adminComment.trim()) {
             notify.warning('Vui lòng nhập lời nhắn hoặc lý do xử lý!');
@@ -71,10 +83,9 @@ const AdminReviewList = () => {
 
         setSubmitLoading(true);
         try {
-            // Gọi API truyền lên đúng cấu trúc trùng khớp Postman
             const response = await flashcardReviewAPI.submitDecision(
                 selectedReviewId,
-                decisionType, // Sẽ gửi đi 'REVIEW_VIOLATION' hoặc 'REVIEW_APPROVED'
+                decisionType,
                 adminComment
             );
 
@@ -85,7 +96,7 @@ const AdminReviewList = () => {
                         : 'Đã phê duyệt thành công! Giữ nguyên nội dung bộ flashcard.'
                 );
                 setIsModalOpen(false);
-                fetchPendingReviews(); // Reload lại danh sách sau khi xử lý thành công
+                fetchPendingReviews();
             }
         } catch (err) {
             console.error('Lỗi xử lý yêu cầu review:', err);
@@ -95,7 +106,6 @@ const AdminReviewList = () => {
         }
     };
 
-    // Tìm kiếm Client-side theo ID Flashcard hoặc Lý do từ mảng dữ liệu trả về
     const displayedReviews = reviews.filter(review => {
         const matchSearch = searchTerm === '' ||
             (review.flashcardId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -125,7 +135,7 @@ const AdminReviewList = () => {
                                 Admin – Thẩm định Flashcard
                             </h1>
                             <p className="text-sm text-gray-600 mt-1">
-                                Có {totalElements} yêu cầu từ Supporter cần bạn duyệt
+                                Có {reviews.length} yêu cầu từ Supporter cần bạn duyệt
                             </p>
                         </div>
                     </div>
@@ -158,87 +168,215 @@ const AdminReviewList = () => {
                                 <p className="text-gray-500">Hệ thống sạch bóng! Không có yêu cầu review vi phạm nào tồn đọng.</p>
                             </div>
                         ) : (
-                            <>
-                                <div className="overflow-x-auto">
-                                    <table className="w-full">
-                                        <thead className="bg-gray-50 border-b border-gray-200">
-                                        <tr>
-                                            <th className="px-5 py-3 text-left text-xs font-medium text-gray-600 uppercase">Flashcard ID</th>
-                                            <th className="px-5 py-3 text-left text-xs font-medium text-gray-600 uppercase">Lý do từ Supporter</th>
-                                            <th className="px-5 py-3 text-left text-xs font-medium text-gray-600 uppercase">Supporter Gửi</th>
-                                            <th className="px-5 py-3 text-center text-xs font-medium text-gray-600 uppercase">Thời gian gửi</th>
-                                            <th className="px-5 py-3 text-center text-xs font-medium text-gray-600 uppercase">Tổng đơn liên đới</th>
-                                            <th className="px-5 py-3 text-center text-xs font-medium text-gray-600 uppercase">Quyết định tối cao</th>
-                                        </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-200 text-sm">
-                                        {displayedReviews.map((review) => (
-                                            <tr key={review.id} className="hover:bg-gray-50 transition">
-                                                <td className="px-5 py-4 font-medium whitespace-nowrap">
-                                                    <div className="flex items-center gap-2">
-                                                            <span className="font-mono text-xs text-gray-700 bg-gray-100 border border-gray-200 px-2 py-1 rounded">
-                                                                {review.flashcardId}
-                                                            </span>
-                                                        <button
-                                                            onClick={() => navigate(`/flashcard/detail/${review.flashcardId}`)}
-                                                            className="p-1 hover:bg-gray-200 rounded text-blue-600 transition"
-                                                            title="Xem nội dung chi tiết bộ thẻ"
-                                                        >
-                                                            <Eye className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
-                                                </td>
-
-                                                <td className="px-5 py-4 max-w-xs truncate italic text-gray-700">
-                                                    "{review.reason || 'Không rõ lý do'}"
-                                                </td>
-
-                                                <td className="px-5 py-4 font-mono text-xs text-gray-500 whitespace-nowrap">
-                                                    {review.supporterId || '—'}
-                                                </td>
-
-                                                <td className="px-5 py-4 text-center whitespace-nowrap text-gray-500">
-                                                    <div className="flex items-center justify-center gap-1 text-xs">
-                                                        <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                                                        {formatDateTime(review.requestedAt)}
-                                                    </div>
-                                                </td>
-
-                                                <td className="px-5 py-4 text-center font-semibold text-gray-800">
-                                                        <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200">
-                                                            {review.reportIds?.length || 0} đơn
+                            <div className="overflow-x-auto">
+                                <table className="w-full">
+                                    <thead className="bg-gray-50 border-b border-gray-200">
+                                    <tr>
+                                        <th className="px-5 py-3 text-left text-xs font-medium text-gray-600 uppercase">Flashcard ID</th>
+                                        <th className="px-5 py-3 text-left text-xs font-medium text-gray-600 uppercase">Lý do từ Supporter</th>
+                                        <th className="px-5 py-3 text-left text-xs font-medium text-gray-600 uppercase">Supporter Gửi</th>
+                                        <th className="px-5 py-3 text-center text-xs font-medium text-gray-600 uppercase">Thời gian gửi</th>
+                                        <th className="px-5 py-3 text-center text-xs font-medium text-gray-600 uppercase">Tổng đơn liên đới</th>
+                                        <th className="px-5 py-3 text-center text-xs font-medium text-gray-600 uppercase">Quyết định tối cao</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-200 text-sm">
+                                    {displayedReviews.map((review) => (
+                                        <tr key={review.id} className="hover:bg-gray-50 transition">
+                                            <td className="px-5 py-4 font-medium whitespace-nowrap">
+                                                <div className="flex items-center gap-2">
+                                                        <span className="font-mono text-xs text-gray-700 bg-gray-100 border border-gray-200 px-2 py-1 rounded">
+                                                            {review.flashcardId}
                                                         </span>
-                                                </td>
+                                                    {/* ĐÃ SỬA: Thay đổi onClick để gọi Modal Preview tại chỗ */}
+                                                    <button
+                                                        onClick={() => handleOpenPreviewModal(review.flashcardId)}
+                                                        className="p-1 hover:bg-gray-200 rounded text-blue-600 transition"
+                                                        title="Xem nhanh nội dung chi tiết bộ thẻ tại chỗ"
+                                                    >
+                                                        <Eye className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </td>
 
-                                                <td className="px-5 py-4">
-                                                    <div className="flex justify-center gap-2">
-                                                        {/* NÚT PHẠT VI PHẠM */}
-                                                        <button
-                                                            onClick={() => openDecisionModal(review.id, 'REVIEW_VIOLATION')}
-                                                            className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition"
-                                                            title="Xác nhận vi phạm (Khóa bộ Flashcard)"
-                                                        >
-                                                            <XCircle className="w-4 h-4" />
-                                                        </button>
-                                                        {/* NÚT PHÊ DUYỆT CHÍNH XÁC (Thay thế DISMISSED bằng APPROVED chuẩn Postman) */}
-                                                        <button
-                                                            onClick={() => openDecisionModal(review.id, 'REVIEW_APPROVED')}
-                                                            className="p-2 hover:bg-emerald-50 text-emerald-600 rounded-lg transition"
-                                                            title="Xác nhận thông tin chính xác (Duyệt thông qua)"
-                                                        >
-                                                            <CheckCircle className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </>
+                                            <td className="px-5 py-4 max-w-xs truncate italic text-gray-700">
+                                                "{review.reason || 'Không rõ lý do'}"
+                                            </td>
+
+                                            <td className="px-5 py-4 font-mono text-xs text-gray-500 whitespace-nowrap">
+                                                {review.supporterId || '—'}
+                                            </td>
+
+                                            <td className="px-5 py-4 text-center whitespace-nowrap text-gray-500">
+                                                <div className="flex items-center justify-center gap-1 text-xs">
+                                                    <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                                                    {formatDateTime(review.requestedAt)}
+                                                </div>
+                                            </td>
+
+                                            <td className="px-5 py-4 text-center font-semibold text-gray-800">
+                                                    <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200">
+                                                        {review.reportIds?.length || 0} đơn
+                                                    </span>
+                                            </td>
+
+                                            <td className="px-5 py-4">
+                                                <div className="flex justify-center gap-2">
+                                                    <button
+                                                        onClick={() => openDecisionModal(review.id, 'REVIEW_VIOLATION')}
+                                                        className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition"
+                                                        title="Xác nhận vi phạm (Khóa bộ Flashcard)"
+                                                    >
+                                                        <XCircle className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => openDecisionModal(review.id, 'REVIEW_APPROVED')}
+                                                        className="p-2 hover:bg-emerald-50 text-emerald-600 rounded-lg transition"
+                                                        title="Xác nhận thông tin chính xác (Duyệt thông qua)"
+                                                    >
+                                                        <CheckCircle className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         )}
                     </div>
                 </main>
+
+                {/* ======================================================= */}
+                {/* MODAL MỚI: XEM CHI TIẾT NỘI DUNG FLASHCARD TẠI CHỖ (PREVIEW) */}
+                {/* ======================================================= */}
+                {isPreviewModalOpen && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[85vh] flex flex-col overflow-hidden">
+
+                            {/* Modal Header */}
+                            <div className="p-6 border-b border-gray-150 flex items-center justify-between bg-gray-50">
+                                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                                    <BookOpen className="w-5 h-5 text-gray-500" />
+                                    Nội dung chi tiết bộ Flashcard cần thẩm định
+                                </h2>
+                                <button
+                                    onClick={() => setIsPreviewModalOpen(false)}
+                                    className="p-2 hover:bg-gray-200 rounded-lg transition text-gray-500"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            {/* Modal Body (Cuộn nội dung độc lập) */}
+                            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                                {previewLoading ? (
+                                    <div className="py-20 text-center flex flex-col items-center justify-center gap-3">
+                                        <Loader2 className="w-8 h-8 animate-spin text-gray-900" />
+                                        <p className="text-sm text-gray-500">Đang tải cấu trúc dữ liệu từ vựng...</p>
+                                    </div>
+                                ) : previewData ? (
+                                    <>
+                                        {/* Phần thông tin tổng quan của Bộ thẻ */}
+                                        <div className="bg-gray-50 border border-gray-200 p-5 rounded-xl">
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <span className={`px-2 py-0.5 text-[10px] font-bold rounded uppercase border ${
+                                                    previewData.type === 'SYSTEM' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-purple-50 text-purple-600 border-purple-100'
+                                                }`}>
+                                                    {previewData.type === 'SYSTEM' ? 'Hệ thống' : 'Thành viên'}
+                                                </span>
+                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded uppercase bg-gray-200 text-gray-700">
+                                                    {previewData.visibility === 'PUBLIC' ? <Globe className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
+                                                    {previewData.visibility === 'PUBLIC' ? 'Công khai' : 'Riêng tư'}
+                                                </span>
+                                            </div>
+                                            <h3 className="text-2xl font-black text-gray-900 mb-2">{previewData.title}</h3>
+                                            <p className="text-gray-600 text-sm italic mb-4">
+                                                {previewData.description || 'Chưa có mô tả cho bộ thẻ này.'}
+                                            </p>
+
+                                            <div className="grid grid-cols-3 gap-4 border-t border-gray-200 pt-4 text-center">
+                                                <div>
+                                                    <p className="text-[10px] font-bold text-gray-400 uppercase">Chủ đề</p>
+                                                    <p className="font-semibold text-gray-800 text-sm">{previewData.topic}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] font-bold text-gray-400 uppercase">Trình độ</p>
+                                                    <p className="font-semibold text-gray-800 text-sm">Level {previewData.level}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] font-bold text-gray-400 uppercase">Tổng số từ</p>
+                                                    <p className="font-semibold text-gray-800 text-sm">{previewData.wordCount} từ</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Phần danh sách từ vựng chi tiết bên trong */}
+                                        <div className="space-y-3">
+                                            <h4 className="text-sm font-bold text-gray-900 flex items-center gap-1.5 uppercase tracking-wider">
+                                                <Layers className="w-4 h-4 text-gray-400" />
+                                                Danh sách từ vựng ({previewData.words?.length || 0})
+                                            </h4>
+
+                                            {previewData.words && previewData.words.length > 0 ? (
+                                                previewData.words.map((word) => (
+                                                    <div key={word.id} className="border border-gray-200 rounded-xl p-4 flex gap-4 hover:border-gray-400 transition bg-white">
+                                                        <div className="flex-1">
+                                                            <div className="flex items-center gap-2 mb-1.5">
+                                                                <span className="text-base font-bold text-gray-900">{word.newWord}</span>
+                                                                <span className="text-xs text-gray-400">({word.wordForm})</span>
+                                                                {word.phoneme && <span className="text-xs text-gray-500 font-mono">/{word.phoneme}/</span>}
+                                                                {word.audioURL && (
+                                                                    <button
+                                                                        onClick={() => new Audio(word.audioURL).play()}
+                                                                        className="text-gray-400 hover:text-gray-900 transition"
+                                                                    >
+                                                                        <Volume2 className="w-3.5 h-3.5" />
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                            <p className="text-sm text-gray-700 mb-2">
+                                                                <span className="font-medium text-gray-900">Nghĩa:</span> {word.meaning}
+                                                            </p>
+                                                            {word.example && (
+                                                                <p className="text-xs text-gray-500 italic bg-gray-50 p-2 rounded border-l-2 border-gray-300">
+                                                                    "{word.example}"
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                        {word.imageURL && (
+                                                            <img
+                                                                src={word.imageURL}
+                                                                alt=""
+                                                                className="w-16 h-16 object-cover rounded-lg border border-gray-100 flex-shrink-0"
+                                                            />
+                                                        )}
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <p className="text-sm text-gray-500 text-center py-6 border border-dashed border-gray-200 rounded-xl">
+                                                    Bộ thẻ này rỗng, không chứa từ vựng nào.
+                                                </p>
+                                            )}
+                                        </div>
+                                    </>
+                                ) : (
+                                    <p className="text-sm text-red-500 text-center py-6">Không tìm thấy dữ liệu.</p>
+                                )}
+                            </div>
+
+                            {/* Modal Footer */}
+                            <div className="p-4 border-t border-gray-150 bg-gray-50 flex justify-end">
+                                <button
+                                    onClick={() => setIsPreviewModalOpen(false)}
+                                    className="px-5 py-2 bg-gray-900 hover:bg-black text-white text-sm font-medium rounded-lg transition"
+                                >
+                                    Đóng cửa sổ
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* MODAL PHÁN QUYẾT ADMIN */}
                 {isModalOpen && (
