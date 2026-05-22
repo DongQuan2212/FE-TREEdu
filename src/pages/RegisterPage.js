@@ -9,11 +9,17 @@ const API_BASE_URL = "http://localhost:3001";
 const RegisterPage = () => {
     const navigate = useNavigate();
 
-    // Chỉ giữ lại các trường cần thiết theo DTO
+    // Mở rộng formData chứa đầy đủ các trường cũ và mới
     const [formData, setFormData] = useState({
+        fullName: "",
         email: "",
         password: "",
-        fullName: ""
+        rePassword: "",
+        phoneNumber: "",
+        avatarUrl: "",
+        birthYear: "",
+        address: "",
+        gender: "MALE" // Giá trị mặc định hợp lệ theo Enum của bạn
     });
 
     const [loading, setLoading] = useState(false);
@@ -21,9 +27,10 @@ const RegisterPage = () => {
     const [success, setSuccess] = useState("");
 
     const handleChange = (e) => {
+        const { name, value } = e.target;
         setFormData({
             ...formData,
-            [e.target.name]: e.target.value
+            [name]: name === "birthYear" ? (value ? parseInt(value, 10) : "") : value
         });
     };
 
@@ -32,27 +39,61 @@ const RegisterPage = () => {
         setSuccess("");
         setLoading(true);
 
-        // Validate cơ bản ở frontend
-        if (!formData.fullName.trim() || !formData.email.trim() || !formData.password.trim()) {
-            setError("Vui lòng điền đầy đủ các trường bắt buộc!");
+        // 1. Validate các trường bắt buộc ở Frontend
+        if (!formData.fullName.trim() || !formData.email.trim() || !formData.password.trim() || !formData.rePassword.trim()) {
+            setError("Vui lòng điền đầy đủ các trường bắt buộc (*)");
             setLoading(false);
             return;
         }
 
-        // Kiểm tra độ dài mật khẩu tối thiểu (theo @Size(min = 6) ở backend)
-        if (formData.password.length < 6) {
-            setError("Mật khẩu phải ít nhất 6 ký tự!");
+        // 2. Kiểm tra khớp mật khẩu
+        if (formData.password !== formData.rePassword) {
+            setError("Mật khẩu nhập lại không trùng khớp!");
             setLoading(false);
             return;
+        }
+
+        if (formData.password.length < 6) {
+            setError("Mật khẩu phải chứa ít nhất 6 ký tự!");
+            setLoading(false);
+            return;
+        }
+
+        // 3. Validate định dạng Số điện thoại Việt Nam (nếu có nhập)
+        if (formData.phoneNumber) {
+            const phoneRegex = /^(0[3|5|7|8|9])+([0-9]{8})$/;
+            if (!phoneRegex.test(formData.phoneNumber)) {
+                setError("Số điện thoại không đúng định dạng Việt Nam!");
+                setLoading(false);
+                return;
+            }
+        }
+
+        // 4. Validate năm sinh (nếu có nhập)
+        if (formData.birthYear) {
+            if (formData.birthYear < 1900 || formData.birthYear > 2026) {
+                setError("Năm sinh không hợp lệ (Phải từ 1900 đến 2026)!");
+                setLoading(false);
+                return;
+            }
         }
 
         try {
-            await axios.post(`${API_BASE_URL}/api/users/newMember`, {
-                userType: "ROLE_MEMBER",                    // Cố định, không cho người dùng thay đổi
+            // Chuẩn bị payload khớp chính xác 100% với Postman log thành công của bạn
+            const payload = {
                 fullName: formData.fullName.trim(),
                 email: formData.email.trim(),
-                password: formData.password
-            });
+                password: formData.password,
+                rePassword: formData.rePassword,
+                phoneNumber: formData.phoneNumber.trim() || null,
+                avatarUrl: formData.avatarUrl.trim() || null,
+                birthYear: formData.birthYear || null,
+                address: formData.address.trim() || null,
+                gender: formData.gender
+            };
+
+            // Nếu endpoint backend của bạn không dùng tiền tố /api, hãy sửa lại thành `${API_BASE_URL}/users/newMember`
+            await axios.post(`${API_BASE_URL}/api/users/newMember`, payload);
 
             setSuccess("Đăng ký thành công! Đang chuyển sang trang xác thực email...");
             setTimeout(() => {
@@ -64,9 +105,9 @@ const RegisterPage = () => {
             if (err.response?.data?.message) {
                 setError(err.response.data.message);
             } else if (err.response?.status === 400) {
-                setError("Dữ liệu không hợp lệ. Vui lòng kiểm tra lại!");
+                setError("Dữ liệu không hợp lệ. Vui lòng kiểm tra kỹ các ràng buộc!");
             } else if (err.response?.status === 409) {
-                setError("Email đã được sử dụng!");
+                setError("Email này đã được sử dụng trên hệ thống!");
             } else {
                 setError("Đăng ký thất bại. Vui lòng thử lại sau!");
             }
@@ -75,17 +116,12 @@ const RegisterPage = () => {
         }
     };
 
-    const handleBack = () => {
-        navigate(-1);
-    };
-
     return (
         <div className="min-h-screen bg-gradient-to-br from-green-50 to-lime-50 flex flex-col">
             <Header />
 
-            {/* Nút quay lại */}
             <button
-                onClick={handleBack}
+                onClick={() => navigate(-1)}
                 className="fixed top-6 left-6 z-50 w-12 h-12 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center text-white text-2xl hover:bg-white/40 transition-all hover:scale-110 shadow-lg"
                 title="Quay lại"
             >
@@ -93,97 +129,133 @@ const RegisterPage = () => {
             </button>
 
             <main className="flex-1 flex items-center justify-center px-5 py-10">
-                <div className="w-full max-w-md mt-20">
-                    <div className="bg-white/95 backdrop-blur-xl rounded-1xl p-8 sm:p-10 shadow-2xl border border-white/30">
+                {/* Tăng chiều rộng max-w-2xl để chứa giao diện 2 cột cân đối */}
+                <div className="w-full max-w-2xl mt-20">
+                    <div className="bg-white/95 backdrop-blur-xl rounded-2xl p-8 sm:p-10 shadow-2xl border border-white/30">
                         <div className="text-center mb-8">
                             <h2 className="text-3xl font-bold text-gray-800">Tạo tài khoản mới</h2>
-                            <p className="text-gray-600 mt-2">Tham gia cùng chúng tôi ngay hôm nay!</p>
+                            <p className="text-gray-600 mt-2">Tham gia cùng chúng tôi để nâng cấp vốn từ vựng ngay hôm nay!</p>
                         </div>
 
-                        {/* Thông báo thành công */}
                         {success && (
-                            <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg text-sm text-center">
+                            <div className="mb-6 p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg text-sm text-center font-medium">
                                 {success}
                             </div>
                         )}
 
-                        {/* Thông báo lỗi */}
                         {error && (
-                            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm text-center">
+                            <div className="mb-6 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm text-center font-medium">
                                 {error}
                             </div>
                         )}
 
-                        <div className="space-y-5">
-                            {/* Họ và tên */}
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Họ và tên <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    name="fullName"
-                                    value={formData.fullName}
-                                    onChange={handleChange}
-                                    placeholder="Nguyễn Văn A"
-                                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-300 focus:border-lime-500 focus:outline-none focus:ring-4 focus:ring-lime-500/20 transition-all"
-                                    disabled={loading}
-                                />
+                        {/* Sử dụng Grid layout chia form làm 2 cột rõ ràng */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+
+                            {/* --- CỘT 1: THÔNG TIN TÀI KHOẢN (BẮT BUỘC) --- */}
+                            <div className="space-y-4 sm:border-r sm:pr-5 border-gray-100">
+                                <h3 className="text-sm font-bold uppercase tracking-wider text-lime-600 mb-2">Thông tin bắt buộc</h3>
+
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Họ và tên <span className="text-red-500">*</span></label>
+                                    <input
+                                        type="text" name="fullName" value={formData.fullName} onChange={handleChange} placeholder="Nguyễn Văn A"
+                                        className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-lime-500 focus:outline-none transition-all text-sm" disabled={loading}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Email <span className="text-red-500">*</span></label>
+                                    <input
+                                        type="email" name="email" value={formData.email} onChange={handleChange} placeholder="you@example.com"
+                                        className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-lime-500 focus:outline-none transition-all text-sm" disabled={loading}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Mật khẩu <span className="text-red-500">*</span></label>
+                                    <input
+                                        type="password" name="password" value={formData.password} onChange={handleChange} placeholder="Ít nhất 6 ký tự"
+                                        className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-lime-500 focus:outline-none transition-all text-sm" disabled={loading}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Nhập lại mật khẩu <span className="text-red-500">*</span></label>
+                                    <input
+                                        type="password" name="rePassword" value={formData.rePassword} onChange={handleChange} placeholder="Trùng khớp với mật khẩu"
+                                        className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-lime-500 focus:outline-none transition-all text-sm" disabled={loading}
+                                    />
+                                </div>
                             </div>
 
-                            {/* Email */}
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Email <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="email"
-                                    name="email"
-                                    value={formData.email}
-                                    onChange={handleChange}
-                                    placeholder="you@example.com"
-                                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-300 focus:border-lime-500 focus:outline-none focus:ring-4 focus:ring-lime-500/20 transition-all"
-                                    disabled={loading}
-                                />
-                            </div>
+                            {/* --- CỘT 2: HỒ SƠ CÁ NHÂN (TÙY CHỌN thêm mới) --- */}
+                            <div className="space-y-4">
+                                <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-2">Hồ sơ cá nhân (Tùy chọn)</h3>
 
-                            {/* Mật khẩu */}
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Mật khẩu <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="password"
-                                    name="password"
-                                    value={formData.password}
-                                    onChange={handleChange}
-                                    placeholder="Ít nhất 6 ký tự"
-                                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-300 focus:border-lime-500 focus:outline-none focus:ring-4 focus:ring-lime-500/20 transition-all"
-                                    disabled={loading}
-                                />
-                            </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Số điện thoại</label>
+                                    <input
+                                        type="text" name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} placeholder="0912345678"
+                                        className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-lime-500 focus:outline-none transition-all text-sm" disabled={loading}
+                                    />
+                                </div>
 
-                            {/* Nút Đăng ký */}
-                            <button
-                                onClick={handleRegister}
-                                disabled={loading}
-                                className={`w-full py-4 font-bold text-lg rounded-xl shadow-lg transform transition-all duration-200 mt-6 ${
-                                    loading
-                                        ? "bg-gray-400 cursor-not-allowed text-gray-200"
-                                        : "bg-lime-500 hover:bg-lime-600 active:bg-lime-700 text-white hover:shadow-xl hover:-translate-y-1"
-                                }`}
-                            >
-                                {loading ? "Đang tạo tài khoản..." : "Đăng Ký Ngay"}
-                            </button>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Năm sinh</label>
+                                        <input
+                                            type="number" name="birthYear" value={formData.birthYear} onChange={handleChange} placeholder="2000" min="1900" max="2026"
+                                            className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-lime-500 focus:outline-none transition-all text-sm" disabled={loading}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Giới tính</label>
+                                        <select
+                                            name="gender" value={formData.gender} onChange={handleChange}
+                                            className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-lime-500 focus:outline-none transition-all text-sm bg-white" disabled={loading}
+                                        >
+                                            <option value="MALE">Nam</option>
+                                            <option value="FEMALE">Nữ</option>
+                                            <option value="OTHER">Khác</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Địa chỉ</label>
+                                    <input
+                                        type="text" name="address" value={formData.address} onChange={handleChange} placeholder="Ví dụ: TP.HCM, Hà Nội"
+                                        className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-lime-500 focus:outline-none transition-all text-sm" disabled={loading}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Link ảnh đại diện (URL)</label>
+                                    <input
+                                        type="text" name="avatarUrl" value={formData.avatarUrl} onChange={handleChange} placeholder="https://example.com/avatar.jpg"
+                                        className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-lime-500 focus:outline-none transition-all text-sm" disabled={loading}
+                                    />
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="mt-8 pt-6 border-t border-gray-200 text-center">
+                        {/* Nút Đăng ký kéo dài toàn bộ chiều rộng phía dưới */}
+                        <button
+                            onClick={handleRegister} disabled={loading}
+                            className={`w-full py-3.5 font-bold text-lg rounded-xl shadow-lg transform transition-all duration-200 mt-8 ${
+                                loading
+                                    ? "bg-gray-400 cursor-not-allowed text-gray-200"
+                                    : "bg-lime-500 hover:bg-lime-600 active:bg-lime-700 text-white hover:shadow-xl hover:-translate-y-0.5"
+                            }`}
+                        >
+                            {loading ? "Đang tạo tài khoản..." : "Đăng Ký Ngay"}
+                        </button>
+
+                        <div className="mt-6 pt-5 border-t border-gray-100 text-center">
                             <p className="text-gray-600 text-sm">
                                 Đã có tài khoản?{" "}
-                                <span
-                                    onClick={() => navigate("/login")}
-                                    className="font-bold text-lime-600 hover:underline cursor-pointer"
-                                >
+                                <span onClick={() => navigate("/login")} className="font-bold text-lime-600 hover:underline cursor-pointer">
                                     Đăng nhập ngay
                                 </span>
                             </p>
