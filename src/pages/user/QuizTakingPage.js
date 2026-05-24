@@ -12,22 +12,24 @@ import {
     showInfoDialog
 } from '../../utils/confirmation';
 
+// ⭐ THÊM: Import thêm Star, Award, Zap để làm icon cho phần XP và Level
 import {
     Clock, CheckCircle, XCircle, ChevronLeft,
-    ChevronRight, Flag, CheckSquare, RotateCcw
+    ChevronRight, Flag, CheckSquare, RotateCcw,
+    Star, Award, Zap
 } from 'lucide-react';
 
 function QuizTakingPage() {
     const { quizId } = useParams();
     const navigate = useNavigate();
 
-    // --- STATE (Giữ nguyên) ---
+    // --- STATE ---
     const [attemptId, setAttemptId] = useState(null);
     const [quiz, setQuiz] = useState(null);
     const [questions, setQuestions] = useState([]);
     const [currentIdx, setCurrentIdx] = useState(0);
     const [answers, setAnswers] = useState({});
-    const [flags, setFlags] = useState({}); // Flag state
+    const [flags, setFlags] = useState({});
     const [timeLeft, setTimeLeft] = useState(0);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
@@ -60,12 +62,10 @@ function QuizTakingPage() {
                 setTimeLeft(d.timeRemainingSeconds);
                 setLoading(false);
 
-                // Thay notify bằng toast nhẹ nhàng (giữ nguyên vì nó không chặn người dùng)
                 notify.success(`Bắt đầu: ${d.quiz.title}`);
 
             } catch (err) {
                 console.error("Lỗi start:", err);
-                // THAY THẾ: Dùng Dialog Lỗi chặn người dùng lại
                 await showErrorDialog("Không thể tải bài thi hoặc bài thi không tồn tại.", "Lỗi kết nối");
                 navigate('/quiz');
             }
@@ -80,7 +80,7 @@ function QuizTakingPage() {
             setTimeLeft(prev => {
                 if (prev <= 1) {
                     clearInterval(timer);
-                    handleTimeUp(); // Gọi hàm xử lý riêng
+                    handleTimeUp();
                     return 0;
                 }
                 return prev - 1;
@@ -90,10 +90,7 @@ function QuizTakingPage() {
     }, [timeLeft, loading, showResult]);
 
     // --- HANDLERS ---
-
-    // Hàm xử lý khi hết giờ
     const handleTimeUp = async () => {
-        // Hiện thông báo chắn màn hình
         await showInfoDialog("Thời gian làm bài đã kết thúc. Hệ thống sẽ tự động nộp bài.", "Hết giờ!");
         handleSubmit(true);
     };
@@ -112,7 +109,6 @@ function QuizTakingPage() {
         setFlags(prev => ({ ...prev, [questionId]: !prev[questionId] }));
     };
 
-    // Handler làm lại bài
     const handleRetakeQuiz = async () => {
         const isConfirmed = await showConfirmDialog({
             title: "Làm lại bài thi?",
@@ -126,7 +122,6 @@ function QuizTakingPage() {
         }
     };
 
-    // Handler Nộp bài
     const handleSubmit = async (isAutoSubmit = false) => {
         if (!isAutoSubmit) {
             const isConfirmed = await showConfirmDialog({
@@ -153,18 +148,13 @@ function QuizTakingPage() {
             const res = await axiosInstance.post(`/quiz/${quizId}/submit`, payload);
             if (res.data.success) {
                 setResult(res.data.data);
-
-                // THAY THẾ: Hiện popup thành công đẹp mắt trước khi hiện kết quả
                 await showSuccessDialog("Hệ thống đã ghi nhận kết quả của bạn.", "Nộp bài thành công!");
-
                 setShowResult(true);
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
         } catch (err) {
             console.error("Lỗi submit:", err);
             const msg = err.response?.data?.message || "Vui lòng kiểm tra kết nối mạng.";
-
-            // THAY THẾ: Báo lỗi bằng Dialog để người dùng chú ý
             await showErrorDialog(msg, "Nộp bài thất bại");
         } finally {
             setSubmitting(false);
@@ -179,7 +169,7 @@ function QuizTakingPage() {
         if (currentIdx > 0) setCurrentIdx(c => c - 1);
     };
 
-    // --- LOADING SKELETON (Giữ nguyên) ---
+    // --- LOADING SKELETON ---
     if (loading) {
         return (
             <>
@@ -195,7 +185,7 @@ function QuizTakingPage() {
         );
     }
 
-    // --- RESULT VIEW (Giữ nguyên logic hiển thị) ---
+    // --- RESULT VIEW ---
     if (showResult && result) {
         const percentage = result.percentage || 0;
         const isPass = percentage >= 50;
@@ -216,19 +206,45 @@ function QuizTakingPage() {
                                 </h1>
                                 <p className="text-zinc-500 mb-6">Kết quả bài thi: <b>{quiz?.title}</b></p>
 
-                                <div className="flex justify-center gap-8 mb-8">
+                                {/* Gốc: Bảng Điểm số */}
+                                <div className="flex justify-center gap-8 mb-6">
                                     <div className="text-center">
                                         <div className="text-3xl font-bold text-zinc-900">{result.score}/{result.totalQuestions}</div>
-                                        <div className="text-xs text-zinc-500 uppercase font-medium tracking-wide">Câu đúng</div>
+                                        <div className="text-xs text-zinc-500 uppercase font-medium tracking-wide mt-1">Câu đúng</div>
                                     </div>
                                     <div className="w-px bg-zinc-200 h-12"></div>
                                     <div className="text-center">
                                         <div className={`text-3xl font-bold ${isPass ? 'text-emerald-600' : 'text-red-600'}`}>
                                             {percentage}%
                                         </div>
-                                        <div className="text-xs text-zinc-500 uppercase font-medium tracking-wide">Điểm số</div>
+                                        <div className="text-xs text-zinc-500 uppercase font-medium tracking-wide mt-1">Điểm số</div>
                                     </div>
                                 </div>
+
+                                {/* ⭐ MỚI: Bảng chỉ số Gamification (XP & Level) */}
+                                <div className="flex justify-center gap-8 mb-6 p-4 bg-zinc-50/70 rounded-2xl border border-zinc-200 max-w-sm mx-auto shadow-sm">
+                                    <div className="text-center w-1/2">
+                                        <div className="text-2xl font-bold text-yellow-500 flex items-center justify-center gap-1">
+                                            <Star size={24} fill="currentColor" className="text-yellow-400"/> +{result.xpGained || 0}
+                                        </div>
+                                        <div className="text-[10px] sm:text-xs text-zinc-500 uppercase font-medium tracking-wide mt-1">XP Nhận được</div>
+                                    </div>
+                                    <div className="w-px bg-zinc-200 h-10 my-auto"></div>
+                                    <div className="text-center w-1/2">
+                                        <div className="text-2xl font-bold text-blue-600 flex items-center justify-center gap-1">
+                                            <Award size={24} className="text-blue-500"/> {result.currentLevel || 1}
+                                        </div>
+                                        <div className="text-[10px] sm:text-xs text-zinc-500 uppercase font-medium tracking-wide mt-1">Cấp độ hiện tại</div>
+                                    </div>
+                                </div>
+
+                                {/* ⭐ MỚI: Banner chúc mừng Thăng Cấp */}
+                                {result.leveledUp && (
+                                    <div className="mb-8 mx-auto max-w-sm p-3 bg-gradient-to-r from-amber-100 to-yellow-100 border border-yellow-300 rounded-xl text-yellow-800 font-bold flex items-center justify-center gap-2 animate-bounce shadow-sm">
+                                        <Zap size={20} className="text-yellow-600" fill="currentColor" />
+                                        Tuyệt vời! Bạn đã thăng lên Cấp {result.currentLevel}
+                                    </div>
+                                )}
 
                                 <div className="flex justify-center gap-3">
                                     <button
@@ -238,7 +254,6 @@ function QuizTakingPage() {
                                         Về danh sách
                                     </button>
 
-                                    {/* Nút Làm lại bài dùng Dialog */}
                                     <button
                                         onClick={handleRetakeQuiz}
                                         className="px-6 py-2.5 rounded-lg bg-zinc-900 text-white font-medium hover:bg-zinc-800 transition-colors shadow-lg flex items-center gap-2"
@@ -423,10 +438,8 @@ function QuizTakingPage() {
                                     let btnClass = "bg-zinc-100 text-zinc-500 hover:bg-zinc-200 border-transparent";
 
                                     if (isFlagged) {
-                                        // Ưu tiên 1: Flagged -> Màu vàng
                                         btnClass = "bg-yellow-100 text-yellow-700 border-yellow-300 hover:bg-yellow-200 shadow-sm";
                                     } else if (isAnswered) {
-                                        // Ưu tiên 2: Đã trả lời -> Màu xanh
                                         btnClass = "bg-emerald-500 text-white shadow-sm border-transparent";
                                     }
 
