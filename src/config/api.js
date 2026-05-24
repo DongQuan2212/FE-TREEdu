@@ -73,6 +73,24 @@ export const flashcardReportAPI = {
     getPendingReports: () => axiosInstance.get('/flashcard-reports/pending'),
     updateReportStatus: (reportId, status) => axiosInstance.put(`/flashcard-reports/${reportId}/status`, { status })
 };
+
+// Thêm vào file API hiện tại của ông
+export const missionAPI = {
+    // 1️⃣ Lấy danh sách nhiệm vụ hôm nay
+    getDailyMissions: () => {
+        return axiosInstance.get('/missions/daily');
+    },
+
+    // 2️⃣ Điểm danh ngày mới
+    checkIn: () => {
+        return axiosInstance.post('/missions/check-in');
+    },
+
+    // 3️⃣ Nhận thưởng theo ID nhiệm vụ
+    claimReward: (missionId) => {
+        return axiosInstance.post(`/missions/${missionId}/claim-reward`);
+    }
+};
 // Thêm vào config/api.js của bạn
 export const flashcardReviewAPI = {
     // Admin lấy danh sách các Flashcard đang bị Supporter gắn cờ chờ duyệt

@@ -289,8 +289,7 @@ const ProfilePage = () => {
         </div>
     );
 
-    // Tính toán tiến trình XP (Giả định mỗi mốc cấp độ là 1000 XP)
-    const xpProgress = Math.min(((user.xp || 0) % 1000) / 10, 100);
+    const xpProgress = user.progressPercentage !== undefined ? user.progressPercentage : 0; // Lấy trực tiếp % từ Backend
     const genderLabel = user.gender === "MALE" ? "Nam" : user.gender === "FEMALE" ? "Nữ" : "Khác";
     const initials = (user.fullName || "U").split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase();
 
@@ -318,20 +317,22 @@ const ProfilePage = () => {
                             </div>
                             <span className="pf-role-badge">{formatRole(user.role)}</span>
 
-                            {/* Cấp độ hiển thị thực tế từ DB */}
+                            {/* 🛡️ Tìm khối Cấp độ hiển thị thực tế từ DB và thay thế bằng code dưới đây */}
                             <div style={{ marginTop: 24, paddingTop: 20, borderTop: "1px solid #f0f0ee", textAlign: "left" }}>
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                                    <span style={{ fontSize: 12, fontWeight: 500, color: "#555", display: "flex", alignItems: "center", gap: 5 }}>
-                                        <Award size={13} color="#b98c2a" />
-                                        Cấp {user.level || 1}
-                                    </span>
+        <span style={{ fontSize: 12, fontWeight: 500, color: "#555", display: "flex", alignItems: "center", gap: 5 }}>
+            <Award size={13} color="#b98c2a" />
+            Cấp {user.level || 1}
+        </span>
                                     <span style={{ fontSize: 12, color: "#aaa" }}>{user.xp || 0} XP</span>
                                 </div>
                                 <div className="pf-xp-bar">
+                                    {/* Thanh bar chạy mượt mà theo % thực tế từ thuật toán RPG */}
                                     <div className="pf-xp-fill" style={{ width: `${xpProgress}%` }}></div>
                                 </div>
                                 <p style={{ fontSize: 11, color: "#bbb", marginTop: 5, textAlign: "right" }}>
-                                    {1000 - ((user.xp || 0) % 1000)} XP để lên cấp
+                                    {/* 🚀 Đổi từ tính toán cứng % 1000 sang trường dynamic chuẩn từ Backend */}
+                                    {user.xpNeededForNextLevel !== undefined ? user.xpNeededForNextLevel : 0} XP để lên cấp
                                 </p>
                             </div>
                         </div>

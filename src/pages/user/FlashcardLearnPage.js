@@ -26,36 +26,62 @@ const Toast = ({ message, type, onClose }) => {
 };
 
 // --- SUB-COMPONENT: COMPLETION SCREEN ---
-const CompletionScreen = ({ totalWords, onReset, onExit, resetting }) => (
-    <div className="flex flex-col items-center justify-center py-12 px-4 text-center animate-in zoom-in duration-300">
-        <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mb-6">
-            <span className="text-5xl">🏆</span>
+const CompletionScreen = ({ totalWords, xpGained, leveledUp, onReset, onExit, resetting }) => (
+    <div className="flex flex-col items-center justify-center py-8 px-4 text-center animate-in zoom-in duration-500">
+
+        {/* Banner Thăng Cấp (Chỉ hiện khi levelUp = true) */}
+        {leveledUp && (
+            <div className="mb-6 animate-bounce bg-gradient-to-r from-amber-400 to-yellow-500 text-white px-6 py-2 rounded-full font-bold shadow-lg flex items-center gap-2 border-2 border-white">
+                <span className="text-xl">🎉</span>
+                <span>THĂNG CẤP!</span>
+                <span className="text-xl">🎉</span>
+            </div>
+        )}
+
+        {/* Icon Cúp */}
+        <div className="w-28 h-28 bg-emerald-100 rounded-full flex items-center justify-center mb-6 shadow-inner relative">
+            <span className="text-6xl animate-pulse">🏆</span>
         </div>
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">Tuyệt vời!</h2>
-        <p className="text-gray-600 mb-8 max-w-md">
-            Bạn đã hoàn thành tất cả <span className="font-bold text-emerald-600">{totalWords}</span> từ vựng trong bộ này.
+
+        <h2 className="text-3xl font-extrabold text-gray-900 mb-3">Xuất sắc!</h2>
+        <p className="text-gray-600 mb-6 max-w-md text-lg">
+            Bạn đã chinh phục thành công <span className="font-bold text-emerald-600">{totalWords}</span> từ vựng.
         </p>
 
+        {/* Khung hiển thị XP nhận được */}
+        {(xpGained > 0 || xpGained != null) && (
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-8 w-full max-w-xs flex flex-col items-center justify-center shadow-sm hover:shadow-md transition-shadow cursor-default">
+                <span className="text-amber-600 font-semibold text-xs uppercase tracking-wider mb-1">
+                    Điểm kinh nghiệm
+                </span>
+                <div className="flex items-center gap-2">
+                    <span className="text-4xl font-black text-amber-500">+{xpGained || 0}</span>
+                    <span className="text-amber-500 font-bold text-xl mt-1">XP</span>
+                </div>
+            </div>
+        )}
+
+        {/* Nút điều hướng */}
         <div className="flex flex-col sm:flex-row gap-4 w-full max-w-sm">
             <button
                 onClick={onReset}
                 disabled={resetting}
-                className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 bg-neutral-900 text-white rounded-xl hover:bg-neutral-800 transition-all shadow-lg hover:shadow-xl disabled:opacity-70"
+                className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 bg-neutral-900 text-white rounded-xl hover:bg-neutral-800 transition-all shadow-lg hover:shadow-xl disabled:opacity-70 font-semibold"
             >
                 {resetting ? (
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
                     <>
                         <RotateCcw size={20} />
-                        <span>Học lại từ đầu</span>
+                        <span>Học lại</span>
                     </>
                 )}
             </button>
             <button
                 onClick={onExit}
-                className="flex-1 px-6 py-3.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium"
+                className="flex-1 px-6 py-3.5 bg-white border-2 border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all font-semibold"
             >
-                Quay lại chi tiết
+                Quay lại
             </button>
         </div>
     </div>
@@ -222,6 +248,8 @@ function FlashcardLearnPage() {
                         <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-8">
                             <CompletionScreen
                                 totalWords={flashcard.totalWords}
+                                xpGained={flashcard.xpGained}
+                                leveledUp={flashcard.leveledUp}
                                 onReset={handleReset}
                                 onExit={() => navigate(`/flashcard/detail/${id}`)}
                                 resetting={resetting}
