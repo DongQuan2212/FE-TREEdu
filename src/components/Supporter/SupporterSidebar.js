@@ -1,6 +1,7 @@
 // src/components/Supporter/SupporterSidebar.js
 import React, { useEffect } from 'react';
-import { Home, BookOpen, CreditCard, LogOut, User, AlertTriangle } from 'lucide-react';
+// Thêm Headphones vào đây
+import { Home, BookOpen, CreditCard, LogOut, User, AlertTriangle, Headphones } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hook/useAuth';
 
@@ -98,6 +99,19 @@ const SupporterSidebar = () => {
                 >
                     <AlertTriangle className="w-5 h-5" />
                     Báo cáo Flashcard
+                </NavLink>
+                <NavLink
+                    to="/supporter/dictations"
+                    className={({ isActive }) =>
+                        `flex items-center gap-4 px-4 py-3.5 rounded-xl text-base font-medium transition-all ${
+                            isActive
+                                ? 'bg-gray-900 text-white shadow-sm'
+                                : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                        }`
+                    }
+                >
+                    <Headphones className="w-5 h-5" />
+                    Nghe chép chính tả
                 </NavLink>
             </nav>
 

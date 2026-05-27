@@ -105,3 +105,65 @@ export const flashcardReviewAPI = {
         });
     }
 };
+// Thêm vào config/api.js
+export const dictationAPI = {
+
+
+    getById: (id) => {
+        return axiosInstance.get(`/dictation/${id}`);
+    },
+    // 1. Lấy tất cả bài nghe (Dành cho Admin/Supporter)
+    getAllForAdmin: () => {
+        return axiosInstance.get('/dictation/all');
+    },
+
+    // 2. Member lấy danh sách bài đã PUBLISHED (Dành cho Học viên)
+    getAllForMember: () => {
+        return axiosInstance.get('/dictation');
+    },
+
+    generateByAI: (formData) => {
+        return axiosInstance.post('/dictation/generate-by-ai', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            },
+            // 🌟 THÊM DÒNG NÀY: Cho phép API này đợi tối đa 5 phút (300,000 ms)
+            // vì AI bóc băng cần thời gian xử lý deep learning.
+            timeout: 300000
+        });
+    },
+    checkAnswer: (id, data) => {
+        return axiosInstance.post(`/dictation/${id}/check`, data);
+    },
+
+    updateStatus: (id, status) => {
+        return axiosInstance.put(`/dictation/${id}/status`, null, {
+            params: { status }
+        });
+    },
+
+    // 5. Cập nhật chi tiết bài nghe (Sửa chữ, level...)
+    updateLesson: (id, data) => {
+        return axiosInstance.put(`/dictation/${id}`, data);
+    }
+
+};
+// Thêm vào config/api.js để quản lý thông tin User
+export const userAPI = {
+    // Lấy thông tin chi tiết của user đang đăng nhập (XP, Level, Streak, Avatar...)
+    getProfile: () => {
+        return axiosInstance.get('/users/me');
+    }
+};
+// Thêm vào config/api.js để quản lý Bảng xếp hạng
+export const leaderboardAPI = {
+    // Lấy bảng xếp hạng chuỗi ngày học liên tiếp (Streak)
+    getStreak: () => {
+        return axiosInstance.get('/leaderboard/streak');
+    },
+
+    // Lấy bảng xếp hạng tổng điểm kinh nghiệm (XP)
+    getTotalXp: () => {
+        return axiosInstance.get('/leaderboard/total-xp');
+    }
+};
