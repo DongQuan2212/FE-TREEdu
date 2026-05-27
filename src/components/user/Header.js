@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Logo from '../../asset/logo1.png';
 import { useAuth } from '../../hook/useAuth';
+import { userAPI } from '../../config/api';
 import {
     User,
     Clock,
@@ -11,18 +12,17 @@ import {
     Menu,
     X,
     LogIn,
-    UserPlus
+    UserPlus,
+    Flame,
+    Award
 } from 'lucide-react';
 
-// ... (Giữ nguyên phần CONSTANTS & CONFIG, RoleBadge, NavItem, DropdownMenuItem, UserAvatar, UserDropdown) ...
-// Để ngắn gọn, tôi sẽ không paste lại các component con không thay đổi bên trên.
-// Hãy giữ nguyên code từ đầu file cho đến hết component UserDropdown.
-
 const NAV_ITEMS = [
-    { id: 'quiz', label: 'Bài quiz', path: '/quiz' },
-    { id: 'flashcard', label: 'Flashcard', path: '/flashcard' },
-    { id: 'pronunciation', label: 'Luyện phát âm', path: '/pronunciation-practice' },
-    { id: 'intro', label: 'Giới thiệu', path: '/intro' },
+    { id: 'quiz',         label: 'Bài quiz',          path: '/quiz' },
+    { id: 'flashcard',    label: 'Flashcard',          path: '/flashcard' },
+    { id: 'dictation',    label: 'Nghe chính tả',      path: '/dictation' },
+    { id: 'pronunciation',label: 'Luyện phát âm',      path: '/pronunciation-practice' },
+    { id: 'intro',        label: 'Giới thiệu',         path: '/intro' },
 ];
 
 const ROLE_CONFIG = {
@@ -57,6 +57,24 @@ const RoleBadge = ({ role }) => {
     );
 };
 
+const UserAvatar = ({ user, profile, loading, onClick }) => {
+    const finalAvatar = profile?.avatarUrl || user?.avatarUrl || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+    return (
+        <button
+            onClick={onClick}
+            disabled={loading}
+            className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-neutral-200 hover:border-emerald-500 transition-all duration-200 hover:scale-105 focus:outline-none"
+        >
+            {loading ? (
+                <div className="w-full h-full bg-neutral-200 animate-pulse" />
+            ) : (
+                <img src={finalAvatar} alt="Avatar" className="w-full h-full object-cover" />
+            )}
+            <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></span>
+        </button>
+    );
+};
+
 const NavItem = ({ item, isActive, onClick }) => (
     <li>
         <button
@@ -67,25 +85,6 @@ const NavItem = ({ item, isActive, onClick }) => (
             {isActive && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-600 rounded-full"></span>}
         </button>
     </li>
-);
-
-const UserAvatar = ({ user, loading, onClick }) => (
-    <button
-        onClick={onClick}
-        disabled={loading}
-        className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-neutral-200 hover:border-emerald-500 transition-all duration-200 hover:scale-105 focus:outline-none"
-    >
-        {loading ? (
-            <div className="w-full h-full bg-neutral-200 animate-pulse" />
-        ) : (
-            <img
-                src={user?.avatarUrl || "https://cdn-icons-png.flaticon.com/512/149/149071.png"}
-                alt="Avatar"
-                className="w-full h-full object-cover"
-            />
-        )}
-        <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></span>
-    </button>
 );
 
 const DropdownMenuItem = ({ icon: Icon, label, onClick, variant = 'default' }) => {
@@ -102,7 +101,7 @@ const DropdownMenuItem = ({ icon: Icon, label, onClick, variant = 'default' }) =
     );
 };
 
-const UserDropdown = ({ user, onClose }) => {
+const UserDropdown = ({ user, profile, onClose }) => {
     const navigate = useNavigate();
     const { logout } = useAuth();
     const dropdownRef = useRef(null);
@@ -115,39 +114,63 @@ const UserDropdown = ({ user, onClose }) => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [onClose]);
 
-    useEffect(() => {
-        const handleEscape = (event) => { if (event.key === 'Escape') onClose(); };
-        document.addEventListener('keydown', handleEscape);
-        return () => document.removeEventListener('keydown', handleEscape);
-    }, [onClose]);
-
     const handleNavigation = (path) => { navigate(path); onClose(); };
     const handleLogout = async () => { try { await logout(); onClose(); } catch (error) { console.error(error); } };
 
     const roleConfig = ROLE_CONFIG[user?.role];
     const hasPanel = roleConfig?.panelPath;
 
+    const displayName = profile?.fullName || user?.fullName || user?.name || 'User';
+    const displayAvatar = profile?.avatarUrl || user?.avatarUrl;
+
     return (
-        <div ref={dropdownRef} className="absolute right-0 mt-3 w-72 bg-white rounded-2xl shadow-2xl border border-neutral-200 py-2 z-50">
-            {user && (
-                <div className="px-4 py-3 border-b border-neutral-100">
-                    <div className="flex items-start gap-3 mb-3">
-                        {/* HIỂN THỊ ẢNH ĐẠI DIỆN THỰC TẾ HOẶC CHỮ CÁI ĐẦU */}
-                        {user.avatarUrl ? (
-                            <img src={user.avatarUrl} alt="Avatar" className="w-12 h-12 rounded-full object-cover border border-neutral-100" />
-                        ) : (
-                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white font-bold text-lg">
-                                {user.name?.[0]?.toUpperCase() || 'U'}
-                            </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-neutral-900 truncate">{user.fullName || user.name || 'User'}</p>
-                            <p className="text-xs text-neutral-500 truncate">{user.email}</p>
+        <div ref={dropdownRef} className="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-2xl border border-neutral-200 py-2 z-50">
+            <div className="px-4 py-3 border-b border-neutral-100">
+                <div className="flex items-start gap-3 mb-3">
+                    {displayAvatar ? (
+                        <img src={displayAvatar} alt="Avatar" className="w-12 h-12 rounded-full object-cover border border-neutral-100" />
+                    ) : (
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white font-bold text-lg">
+                            {displayName?.[0]?.toUpperCase() || 'U'}
                         </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-neutral-900 truncate">{displayName}</p>
+                        <p className="text-xs text-neutral-500 truncate">{user?.email}</p>
                     </div>
-                    <RoleBadge role={user.role} />
                 </div>
-            )}
+                <div className="flex items-center justify-between mt-2">
+                    <RoleBadge role={user?.role} />
+
+                    {/* Hiển thị ngọn lửa Streak học tập */}
+                    {profile && (
+                        <div className="flex items-center gap-1 text-orange-500 text-xs font-bold bg-orange-50 px-2 py-1 rounded-lg border border-orange-100 animate-pulse">
+                            <Flame size={14} className="fill-current"/>
+                            <span>{profile.streakCount} Ngày</span>
+                        </div>
+                    )}
+                </div>
+
+                {/* Thanh hiển thị Level & XP */}
+                {profile && (
+                    <div className="mt-4 bg-neutral-50 p-2.5 rounded-xl border border-neutral-100">
+                        <div className="flex justify-between items-center text-xs mb-1">
+                            <span className="font-bold text-emerald-700 flex items-center gap-1">
+                                <Award size={14}/> Cấp độ {profile.level}
+                            </span>
+                            <span className="text-neutral-500 font-medium">{profile.xp} XP</span>
+                        </div>
+                        <div className="w-full bg-neutral-200 h-2 rounded-full overflow-hidden">
+                            <div
+                                className="bg-emerald-500 h-full transition-all duration-500"
+                                style={{ width: `${profile.progressPercentage || 0}%` }}
+                            />
+                        </div>
+                        <p className="text-[10px] text-neutral-400 mt-1 text-right">Còn {profile.xpNeededForNextLevel} XP để lên cấp</p>
+                    </div>
+                )}
+            </div>
+
             <div className="py-1">
                 <DropdownMenuItem icon={User} label="Thông tin cá nhân" onClick={() => handleNavigation('/profile')} />
                 <DropdownMenuItem icon={Clock} label="Lịch sử học tập" onClick={() => handleNavigation('/history')} />
@@ -169,9 +192,6 @@ const UserDropdown = ({ user, onClose }) => {
     );
 };
 
-// ============================================
-// MOBILE MENU (Đã Cập Nhật Logic User)
-// ============================================
 const MobileMenu = ({ isOpen, onClose, navItems, currentPath, onNavigate, user }) => {
     useEffect(() => {
         if (isOpen) document.body.style.overflow = 'hidden';
@@ -206,8 +226,6 @@ const MobileMenu = ({ isOpen, onClose, navItems, currentPath, onNavigate, user }
                                 </li>
                             );
                         })}
-
-                        {/* Mobile Auth Buttons if NOT logged in */}
                         {!user && (
                             <>
                                 <div className="h-px bg-neutral-200 my-4" />
@@ -236,19 +254,44 @@ const MobileMenu = ({ isOpen, onClose, navItems, currentPath, onNavigate, user }
     );
 };
 
-// ============================================
-// HEADER MAIN COMPONENT (Đã Cập Nhật)
-// ============================================
-
 const Header = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { user, loading } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+    const [profile, setProfile] = useState(null);
+    const [profileLoading, setProfileLoading] = useState(false);
+
+    // 🌟 ĐÃ CẬP NHẬT: Gọi API thông qua userAPI xịn vừa cấu hình
+    useEffect(() => {
+        const fetchUserProfile = async () => {
+            if (!user) {
+                setProfile(null);
+                return;
+            }
+            setProfileLoading(true);
+            try {
+                // Sử dụng hàm getProfile() từ config/api.js
+                const res = await userAPI.getProfile();
+                if (res && res.data) {
+                    setProfile(res.data);
+                }
+            } catch (error) {
+                console.error("❌ Lỗi khi lấy thông tin chi tiết qua userAPI:", error);
+            } finally {
+                setProfileLoading(false);
+            }
+        };
+
+        fetchUserProfile();
+    }, [user]);
+
     const handleLogoClick = () => navigate('/home');
     const handleNavigate = (path) => navigate(path);
+
+    const isTotalLoading = authLoading || (user && profileLoading && !profile);
 
     return (
         <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-neutral-200">
@@ -277,9 +320,8 @@ const Header = () => {
                         </ul>
                     </nav>
 
-                    {/* Right Section - LOGIC THAY ĐỔI Ở ĐÂY */}
+                    {/* Right Section */}
                     <div className="flex items-center gap-3">
-                        {/* Mobile Menu Button */}
                         <button
                             onClick={() => setIsMobileMenuOpen(true)}
                             className="lg:hidden p-2 rounded-lg hover:bg-neutral-100 transition-colors"
@@ -288,27 +330,25 @@ const Header = () => {
                         </button>
 
                         {/* AUTH LOGIC */}
-                        {loading ? (
-                            // 1. Trường hợp đang load: Giữ khung tròn loading để tránh layout shift
+                        {isTotalLoading ? (
                             <div className="w-10 h-10 rounded-full bg-neutral-200 animate-pulse" />
                         ) : user ? (
-                            // 2. Trường hợp ĐÃ ĐĂNG NHẬP: Giữ nguyên Avatar & Dropdown
                             <div className="relative">
-                                {/* Đổi dòng này trong phần AUTH LOGIC của component Header */}
                                 <UserAvatar
-                                    user={user} // Thêm prop này vào
-                                    loading={loading}
+                                    user={user}
+                                    profile={profile}
+                                    loading={isTotalLoading}
                                     onClick={() => setIsMenuOpen(!isMenuOpen)}
                                 />
-                                {isMenuOpen && !loading && (
+                                {isMenuOpen && (
                                     <UserDropdown
                                         user={user}
+                                        profile={profile}
                                         onClose={() => setIsMenuOpen(false)}
                                     />
                                 )}
                             </div>
                         ) : (
-                            // 3. Trường hợp CHƯA ĐĂNG NHẬP: Hiện nút Đăng nhập / Đăng ký
                             <div className="hidden lg:flex items-center gap-3">
                                 <button
                                     onClick={() => navigate('/login')}
@@ -328,7 +368,6 @@ const Header = () => {
                 </div>
             </div>
 
-            {/* Mobile Menu - Truyền thêm prop user */}
             <MobileMenu
                 isOpen={isMobileMenuOpen}
                 onClose={() => setIsMobileMenuOpen(false)}

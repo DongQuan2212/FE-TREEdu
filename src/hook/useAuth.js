@@ -10,8 +10,7 @@ export const useAuth = () => {
     const fetchFullUserData = async () => {
         // Chạy song song cả API Auth gốc và API lấy profile chi tiết
         const [authResponse, meResponse] = await Promise.all([
-            axiosInstance.post('/auth/current-user'),
-            axiosInstance.get('/users/me')
+            axiosInstance.post('/auth/current-user')
         ]);
 
         const authData = authResponse.data.data;

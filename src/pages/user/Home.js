@@ -1,430 +1,483 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
 import Header from "../../components/user/Header";
 import Footer from "../../components/Footer/Footer";
 import iconQuiz from "../../asset/User/quiz.png";
 import iconFlashcard from "../../asset/User/flash-cards.png";
 import iconRoom from "../../asset/User/room.png";
-import { missionAPI } from "../../config/api";
+import avatar1 from "../../asset/User1.jpg";
+import avatar2 from "../../asset/User2.jpg";
+import avatar3 from "../../asset/user3.webp";
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+import { useNavigate } from "react-router-dom";
+import { Headphones, Flame, Trophy, Zap } from "lucide-react";
+import { leaderboardAPI } from "../../config/api";
 
-const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
-const getFirstDayOfWeek = (year, month) => new Date(year, month, 1).getDay();
+/* ─── helpers ──────────────────────────────────────────────────────────────── */
+const getInitials = (name) => {
+    if (!name) return "V";
+    const words = name.trim().split(" ").filter((w) => w.length > 0);
+    if (words.length === 0) return "V";
+    return words.slice(-2).map((w) => w[0]).join("").toUpperCase();
+};
 
-const MONTH_NAMES = [
-    "Tháng 1","Tháng 2","Tháng 3","Tháng 4","Tháng 5","Tháng 6",
-    "Tháng 7","Tháng 8","Tháng 9","Tháng 10","Tháng 11","Tháng 12",
+const AVATAR_COLORS = [
+    ["#dbeafe", "#1e40af"],
+    ["#dcfce7", "#166534"],
+    ["#fce7f3", "#9d174d"],
+    ["#ede9fe", "#5b21b6"],
+    ["#ffedd5", "#9a3412"],
+    ["#f0fdf4", "#14532d"],
 ];
-const DOW = ["CN","T2","T3","T4","T5","T6","T7"];
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+const formatValue = (val, isStreak) =>
+    !isStreak && val >= 1000 ? `${(val / 1000).toFixed(1)}k` : val;
 
-function CalendarPanel({ checkedDays, onCheckin, todayChecked }) {
-    const today = new Date();
-    const [viewYear, setViewYear] = useState(today.getFullYear());
-    const [viewMonth, setViewMonth] = useState(today.getMonth());
+/* hash userId → index màu avatar ổn định theo từng người */
+const hashUserId = (userId = "") => {
+    let h = 0;
+    for (let i = 0; i < userId.length; i++) h = (h * 31 + userId.charCodeAt(i)) >>> 0;
+    return h % AVATAR_COLORS.length;
+};
 
-    const isCurrentMonth = viewYear === today.getFullYear() && viewMonth === today.getMonth();
-    const daysInMonth = getDaysInMonth(viewYear, viewMonth);
-    const firstDay = getFirstDayOfWeek(viewYear, viewMonth);
+/* ─── keyframes ─────────────────────────────────────────────────────────────── */
+const KEYFRAMES = `
+@keyframes podium-rise {
+    from { opacity: 0; transform: translateY(28px); }
+    to   { opacity: 1; transform: translateY(0);    }
+}
+@keyframes crown-float {
+    0%, 100% { transform: translateX(-50%) translateY(0);   }
+    50%       { transform: translateX(-50%) translateY(-5px); }
+}
+@keyframes lb-row-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0);   }
+}
+`;
 
-    const changeMonth = (dir) => {
-        let m = viewMonth + dir, y = viewYear;
-        if (m > 11) { m = 0; y++; }
-        if (m < 0) { m = 11; y--; }
-        setViewMonth(m); setViewYear(y);
-    };
+/* ─── PodiumCard ─────────────────────────────────────────────────────────────── */
+function PodiumCard({ entry, isStreak, animDelay }) {
+    const rank = entry.rank;
+    const [avatarBg, avatarColor] = AVATAR_COLORS[hashUserId(entry.userId)];
+    const isTop1 = rank === 1;
+    const unit = isStreak ? "ngày" : "XP";
+    const valColor = isStreak ? "#d97706" : "#2563eb";
+    const iconColor = isStreak ? "#d97706" : "#2563eb";
 
-    let streak = 0;
-    for (let d = today.getDate(); d >= 1; d--) {
-        const key = `${today.getFullYear()}-${today.getMonth()}-${d}`;
-        if (checkedDays.has(key)) streak++;
-        else break;
-    }
+    /* podium block heights */
+    const blockH = isTop1 ? "h-[90px]" : rank === 2 ? "h-[64px]" : "h-[46px]";
 
-    const checkedThisMonth = [...checkedDays].filter(k => k.startsWith(`${viewYear}-${viewMonth}-`)).length;
+    /* card accent */
+    const blockBg =
+        rank === 1
+            ? "bg-amber-50 border-amber-200"
+            : rank === 2
+                ? "bg-gray-50 border-gray-200"
+                : "bg-orange-50 border-orange-200";
+
+    /* avatar size */
+    const avatarSize = isTop1
+        ? "w-[68px] h-[68px] text-lg"
+        : "w-[54px] h-[54px] text-[15px]";
+
+    /* rank number color on block */
+    const rankNumColor =
+        rank === 1 ? "text-amber-500" : rank === 2 ? "text-slate-400" : "text-orange-400";
 
     return (
-        <div className="tredu-panel">
-            <div className="tredu-panel-header">
-                <div className="tredu-panel-title">
-                    <span className="tredu-title-icon">📅</span>
-                    Lịch điểm danh
+        <div
+            className="flex flex-col items-center"
+            style={{
+                animation: `podium-rise 0.45s ease ${animDelay}ms both`,
+                width: isTop1 ? 160 : 140,
+            }}
+        >
+            {/* avatar + badge */}
+            <div className="relative mb-2">
+                <div
+                    className={`rounded-full flex items-center justify-center font-semibold border-2 border-white overflow-hidden ${avatarSize}`}
+                    style={{ background: avatarBg, color: avatarColor, boxShadow: "0 0 0 1.5px #e5e7eb" }}
+                >
+                    {entry.avatarUrl ? (
+                        <img src={entry.avatarUrl} alt={entry.displayName} className="w-full h-full object-cover" />
+                    ) : (
+                        getInitials(entry.displayName)
+                    )}
                 </div>
-                <div className="tredu-month-nav">
-                    <button className="tredu-nav-btn" onClick={() => changeMonth(-1)}>‹</button>
-                    <span className="tredu-month-label">{MONTH_NAMES[viewMonth]} {viewYear}</span>
-                    <button className="tredu-nav-btn" onClick={() => changeMonth(1)} disabled={isCurrentMonth}>›</button>
-                </div>
+
+                {rank === 1 && (
+                    <span
+                        style={{
+                            position: "absolute",
+                            top: -22,
+                            left: "50%",
+                            transform: "translateX(-50%)",
+                            fontSize: 22,
+                            animation: "crown-float 2.6s ease-in-out infinite",
+                            lineHeight: 1,
+                        }}
+                        aria-label="Hạng nhất"
+                    >
+                        👑
+                    </span>
+                )}
+
+                {rank !== 1 && (
+                    <span
+                        className={`absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-semibold border-2 border-white ${
+                            rank === 2 ? "bg-slate-200 text-slate-600" : "bg-orange-200 text-orange-700"
+                        }`}
+                    >
+                        {rank}
+                    </span>
+                )}
             </div>
 
-            <div className="tredu-cal-grid">
-                {DOW.map(d => <div key={d} className="tredu-dow-label">{d}</div>)}
+            {/* name */}
+            <p
+                className="font-semibold text-gray-900 text-center mb-0.5 leading-tight"
+                style={{ fontSize: isTop1 ? 13 : 12, maxWidth: isTop1 ? 148 : 128, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+            >
+                {entry.displayName || "Ẩn danh"}
+            </p>
 
-                {Array.from({ length: firstDay }).map((_, i) => (
-                    <div key={`e-${i}`} className="tredu-cal-cell tredu-cal-empty" />
-                ))}
+            {entry.isMe && (
+                <span className="text-[10px] px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-semibold leading-none mb-0.5">
+                    Bạn
+                </span>
+            )}
 
-                {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => {
-                    const key = `${viewYear}-${viewMonth}-${day}`;
-                    const isChecked = checkedDays.has(key);
-                    const isToday = isCurrentMonth && day === today.getDate();
-                    const isFuture = isCurrentMonth && day > today.getDate();
-                    const isPast = isCurrentMonth && day < today.getDate();
-                    const isNotCurrentMonth = !isCurrentMonth;
+            <p className="text-[11px] text-gray-400 mb-1.5">Cấp {entry.level || 1}</p>
 
-                    let cls = "tredu-cal-cell";
-                    if (isChecked) cls += " tredu-checked";
-                    else if (isToday) cls += " tredu-today";
-                    else if (isFuture || isNotCurrentMonth) cls += " tredu-dim";
-                    else if (isPast) cls += " tredu-missed";
-
-                    const canCheckIn = isToday && !todayChecked;
-
-                    return (
-                        <button
-                            key={day}
-                            className={cls + (canCheckIn ? " tredu-can-checkin" : "")}
-                            onClick={canCheckIn ? onCheckin : undefined}
-                            disabled={!canCheckIn}
-                        >
-                            {isChecked ? <span className="tredu-check-mark">✓</span> : <span className="tredu-day-num">{day}</span>}
-                        </button>
-                    );
-                })}
+            {/* value */}
+            <div className="flex items-center gap-1 mb-2">
+                {isStreak ? (
+                    <Flame size={12} style={{ color: iconColor }} fill={iconColor} strokeWidth={1.5} />
+                ) : (
+                    <Zap size={12} style={{ color: iconColor }} fill={iconColor} strokeWidth={1.5} />
+                )}
+                <span className="text-sm font-bold tabular-nums" style={{ color: valColor }}>
+                    {formatValue(entry.value, isStreak)}
+                </span>
+                <span className="text-[11px] text-gray-400">{unit}</span>
             </div>
 
-            <div className="tredu-cal-footer">
-                <div className="tredu-stat">
-                    <span className="tredu-stat-icon">🔥</span>
-                    <span className="tredu-stat-num">{streak}</span>
-                    <span className="tredu-stat-label">ngày liên tiếp</span>
-                </div>
-                <div className="tredu-stat-divider" />
-                <div className="tredu-stat">
-                    <span className="tredu-stat-icon">✅</span>
-                    <span className="tredu-stat-num">{checkedThisMonth}</span>
-                    <span className="tredu-stat-label">/ {daysInMonth} ngày</span>
-                </div>
+            {/* podium block */}
+            <div className={`w-full rounded-t-xl border ${blockH} ${blockBg} flex items-start justify-center pt-2.5`}>
+                <span className={`text-xl font-bold ${rankNumColor}`}>
+                    {rank === 1 ? "1" : ""}
+                </span>
             </div>
         </div>
     );
 }
 
-function MissionItem({ mission, onAction, loading }) {
-    // 🚀 FIX: Dùng biến fallback để bắt trúng biến dù BE có trả về cắt mất chữ "is" hay không
-    const isDone = mission.isCompleted || mission.completed;
-    const isClaimed = mission.isRewardClaimed || mission.rewardClaimed;
-    const { missionId, title, type, currentCount, targetCount, rewardXp } = mission;
+/* ─── LeaderboardSection ─────────────────────────────────────────────────────── */
+function LeaderboardSection() {
+    const [activeTab, setActiveTab] = useState("streak");
+    const [streakData, setStreakData] = useState({ entries: [], myRank: null });
+    const [xpData, setXpData] = useState({ entries: [], myRank: null });
+    const [loading, setLoading] = useState(true);
 
-    const pct = type === "CHECK_IN" ? (isDone ? 100 : 0) : Math.min((currentCount / targetCount) * 100, 100);
+    useEffect(() => {
+        const fetchAll = async () => {
+            try {
+                const [s, x] = await Promise.all([
+                    leaderboardAPI.getStreak(),
+                    leaderboardAPI.getTotalXp(),
+                ]);
 
-    let btnLabel = "", btnClass = "tredu-mission-btn";
-    let btnDisabled = loading;
+                // Bọc an toàn để lấy data chuẩn xác (phòng hờ unwrap interceptor)
+                const streakDataRaw = s?.data || s;
+                const xpDataRaw = x?.data || x;
 
-    if (type === "CHECK_IN") {
-        if (isDone) {
-            btnLabel = "Đã điểm danh ✓"; btnClass += " tredu-btn-claimed"; btnDisabled = true;
-        } else {
-            btnLabel = "Điểm danh"; btnClass += " tredu-btn-checkin";
-        }
-    } else if (isClaimed) {
-        btnLabel = "Đã nhận ✓"; btnClass += " tredu-btn-claimed"; btnDisabled = true;
-    } else if (isDone) {
-        btnLabel = `Nhận +${rewardXp} XP`; btnClass += " tredu-btn-claim";
-    } else {
-        btnLabel = `${currentCount}/${targetCount}`; btnClass += " tredu-btn-progress"; btnDisabled = true;
-    }
+                setStreakData({ entries: streakDataRaw?.entries || [], myRank: streakDataRaw?.myRank ?? null });
+                setXpData({ entries: xpDataRaw?.entries || [], myRank: xpDataRaw?.myRank ?? null });
+            } catch (e) {
+                console.error("Lỗi fetch leaderboard:", e);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchAll();
+    }, []);
+
+    const current = activeTab === "streak" ? streakData : xpData;
+    const isStreak = activeTab === "streak";
+
+    const top3    = current.entries.filter((e) => e.rank <= 3);
+    const restList = current.entries.filter((e) => e.rank > 3);
+
+    /* sắp xếp podium: top2 trái | top1 giữa | top3 phải */
+    const podiumOrder = [
+        top3.find((e) => e.rank === 2),
+        top3.find((e) => e.rank === 1),
+        top3.find((e) => e.rank === 3),
+    ].filter(Boolean);
+
+    /* animation delay: top2=60ms, top1=0ms, top3=120ms */
+    const podiumDelays = { 2: 60, 1: 0, 3: 120 };
 
     return (
-        <div className={`tredu-mission-item${isDone && !isClaimed ? " tredu-mission-ready" : ""}${isClaimed ? " tredu-mission-done" : ""}`}>
-            <div className="tredu-mission-body">
-                <div className="tredu-mission-top">
-                    <span className="tredu-mission-title">{title}</span>
-                    <span className="tredu-xp-badge">+{rewardXp} XP</span>
+        <section className="py-20 bg-white border-t border-gray-100">
+            <style>{KEYFRAMES}</style>
+            <div className="max-w-2xl mx-auto px-6">
+
+                {/* Heading */}
+                <div className="text-center mb-8" data-aos="fade-up">
+                    <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2 tracking-tight">
+                        Bảng xếp hạng
+                    </h2>
+                    <p className="text-sm text-gray-400">Cạnh tranh cùng học viên toàn hệ thống</p>
                 </div>
-                {type !== "CHECK_IN" && (
-                    <div className="tredu-progress-track">
-                        <div className="tredu-progress-fill" style={{ width: `${pct}%` }} />
+
+                {/* Tabs */}
+                <div
+                    className="flex gap-1 p-1 bg-gray-100 rounded-xl mb-6"
+                    data-aos="fade-up"
+                    data-aos-delay="60"
+                >
+                    {[
+                        { key: "streak", label: "Streak dài nhất", Icon: Flame,  activeColor: "text-orange-500" },
+                        { key: "xp",     label: "Tổng điểm XP",   Icon: Zap,    activeColor: "text-blue-500"   },
+                    ].map(({ key, label, Icon, activeColor }) => (
+                        <button
+                            key={key}
+                            onClick={() => setActiveTab(key)}
+                            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-[10px] text-[13px] font-semibold transition-all duration-200 ${
+                                activeTab === key
+                                    ? "bg-white text-gray-900 shadow-sm"
+                                    : "text-gray-400 hover:text-gray-600"
+                            }`}
+                        >
+                            <Icon
+                                size={13}
+                                strokeWidth={2}
+                                className={activeTab === key ? activeColor : "text-current"}
+                            />
+                            {label}
+                        </button>
+                    ))}
+                </div>
+
+                {/* My rank badge */}
+                {current.myRank && (
+                    <div className="flex justify-center mb-6">
+                        <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-gray-50 border border-gray-200 rounded-full text-[12px] text-gray-500 font-medium">
+                            <Trophy size={11} className="text-emerald-500" />
+                            Vị trí của bạn:{" "}
+                            <strong className="text-gray-800 ml-0.5">#{current.myRank}</strong>
+                        </span>
                     </div>
                 )}
-                <div className="tredu-mission-bottom">
-                    <span className="tredu-progress-label">
-                        {type === "CHECK_IN"
-                            ? (isDone ? "Đã điểm danh hôm nay ✓" : "Chưa điểm danh")
-                            : `${currentCount} / ${targetCount}`}
-                    </span>
-                </div>
+
+                {/* Loading skeleton */}
+                {loading ? (
+                    <div className="flex flex-col gap-3">
+                        {/* podium skeleton */}
+                        <div className="flex items-end justify-center gap-3 mb-4">
+                            <div className="flex flex-col items-center gap-2">
+                                <div className="w-[54px] h-[54px] rounded-full bg-gray-100 animate-pulse" />
+                                <div className="w-[140px] h-[64px] rounded-t-xl bg-gray-100 animate-pulse" />
+                            </div>
+                            <div className="flex flex-col items-center gap-2">
+                                <div className="w-[68px] h-[68px] rounded-full bg-gray-100 animate-pulse" />
+                                <div className="w-[160px] h-[90px] rounded-t-xl bg-gray-100 animate-pulse" />
+                            </div>
+                            <div className="flex flex-col items-center gap-2">
+                                <div className="w-[54px] h-[54px] rounded-full bg-gray-100 animate-pulse" />
+                                <div className="w-[140px] h-[46px] rounded-t-xl bg-gray-100 animate-pulse" />
+                            </div>
+                        </div>
+                        {[1, 2].map((n) => (
+                            <div key={n} className="h-[52px] rounded-2xl bg-gray-100 animate-pulse" />
+                        ))}
+                    </div>
+                ) : current.entries.length === 0 ? (
+                    <div className="flex flex-col items-center py-16 text-gray-300">
+                        <Trophy size={32} className="mb-3 opacity-30" />
+                        <p className="text-sm">Chưa có dữ liệu</p>
+                    </div>
+                ) : (
+                    <div key={activeTab}>
+                        {/* ── Podium top 3 ── */}
+                        {podiumOrder.length > 0 && (
+                            <div className="flex items-end justify-center gap-2 mb-6 pt-8">
+                                {podiumOrder.map((entry, i) => (
+                                    <PodiumCard
+                                        key={`${entry.userId}-${entry.rank}`}
+                                        entry={entry}
+                                        isStreak={isStreak}
+                                        animDelay={podiumDelays[entry.rank] ?? 0}
+                                    />
+                                ))}
+                            </div>
+                        )}
+
+                        {/* ── Rest rows (hạng 4+) ── */}
+                        {restList.length > 0 && (
+                            <div className="flex flex-col gap-1.5 mt-2">
+                                {restList.map((entry, i) => {
+                                    const [avatarBg, avatarText] = AVATAR_COLORS[hashUserId(entry.userId)];
+                                    const isMe = current.myRank === entry.rank;
+                                    const unit = isStreak ? "ngày" : "XP";
+
+                                    return (
+                                        <div
+                                            key={`${entry.userId}-${entry.rank}`}
+                                            className={`flex items-center gap-3 px-4 py-3 rounded-2xl bg-white transition-all duration-150 hover:-translate-y-[1px] hover:border-gray-200 ${
+                                                isMe ? "border-2 border-emerald-300" : "border border-gray-100"
+                                            }`}
+                                            style={{
+                                                animation: "lb-row-in 0.35s ease both",
+                                                animationDelay: `${i * 60}ms`,
+                                            }}
+                                        >
+                                            {/* rank */}
+                                            <div className="w-6 text-center shrink-0">
+                                                <span className="text-[13px] font-semibold text-gray-300 tabular-nums">
+                                                    {entry.rank}
+                                                </span>
+                                            </div>
+
+                                            {/* avatar */}
+                                            <div
+                                                className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold border border-black/5 shrink-0 select-none overflow-hidden"
+                                                style={{ background: avatarBg, color: avatarText }}
+                                            >
+                                                {entry.avatarUrl ? (
+                                                    <img src={entry.avatarUrl} alt={entry.displayName} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    getInitials(entry.displayName)
+                                                )}
+                                            </div>
+
+                                            {/* info */}
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="text-[13px] font-semibold text-gray-900 truncate">
+                                                        {entry.displayName || "Học viên ẩn danh"}
+                                                    </span>
+                                                    {isMe && (
+                                                        <span className="text-[10px] px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-semibold shrink-0 leading-none">
+                                                            Bạn
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <span className="text-[11px] text-gray-400">Cấp {entry.level || 1}</span>
+                                            </div>
+
+                                            {/* value */}
+                                            <div className="flex items-center gap-1 shrink-0">
+                                                {isStreak ? (
+                                                    <Flame size={13} className="text-gray-300" strokeWidth={1.5} />
+                                                ) : (
+                                                    <Zap size={13} className="text-gray-300" strokeWidth={1.5} />
+                                                )}
+                                                <span className="text-sm font-bold tabular-nums text-gray-600">
+                                                    {formatValue(entry.value, isStreak)}
+                                                </span>
+                                                <span className="text-[11px] text-gray-400">{unit}</span>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
-            <button
-                className={btnClass}
-                disabled={btnDisabled}
-                onClick={() => onAction(mission)}
-            >
-                {loading && !btnDisabled ? "..." : btnLabel}
-            </button>
-        </div>
+        </section>
     );
 }
 
-function MissionsPanel({ missions, onAction, loadingId, totalXp }) {
-    return (
-        <div className="tredu-panel">
-            <div className="tredu-panel-header">
-                <div className="tredu-panel-title">
-                    <span className="tredu-title-icon">🎯</span>
-                    Nhiệm vụ hôm nay
-                </div>
-                <span className="tredu-reset-badge">Reset lúc 00:00</span>
-            </div>
-
-            <div className="tredu-mission-list">
-                {missions.map(m => (
-                    <MissionItem
-                        key={m.missionId}
-                        mission={m}
-                        onAction={onAction}
-                        loading={loadingId === m.missionId}
-                    />
-                ))}
-            </div>
-
-            <div className="tredu-xp-footer">
-                <span className="tredu-xp-footer-label">XP đã nhận hôm nay</span>
-                <span className="tredu-xp-footer-value">{totalXp} XP</span>
-            </div>
-        </div>
-    );
-}
-
-// ─── Main Page ────────────────────────────────────────────────────────────────
-
+/* ─── HomePage ───────────────────────────────────────────────────────────────── */
 function HomePage() {
     const navigate = useNavigate();
 
-    const [missions, setMissions] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [loadingId, setLoadingId] = useState(null);
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const [error, setError] = useState(null);
-
-    const today = new Date();
-    const todayKey = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
-    const checkedDays = new Set();
-
-    // 🚀 FIX: Kiểm tra đồng thời cả 2 dạng tên biến
-    const checkInMission = missions.find(m => m.type === "CHECK_IN");
-    const isCheckInDone = checkInMission?.isCompleted || checkInMission?.completed;
-
-    if (isCheckInDone) checkedDays.add(todayKey);
-
-    const todayChecked = checkedDays.has(todayKey);
-    const totalXp = missions.filter(m => m.isRewardClaimed || m.rewardClaimed).reduce((sum, m) => sum + m.rewardXp, 0);
-
-    // ── Fetch ──
-    const fetchMissions = useCallback(async () => {
-        const userInfo = localStorage.getItem("token") || localStorage.getItem("accessToken");
-        if (!userInfo) { setIsLoggedIn(false); setLoading(false); return; }
-
-        try {
-            setLoading(true);
-            const res = await missionAPI.getDailyMissions();
-            // 🚀 FIX: Đọc sâu mảng phòng trường hợp BE bọc data qua lớp Generic Response
-            const fetchedMissions = res.data?.missions || res.data?.data?.missions || [];
-            setMissions(fetchedMissions);
-            setIsLoggedIn(true);
-        } catch (err) {
-            if (err.response?.status === 401) {
-                setIsLoggedIn(false);
-            } else {
-                setError("Không thể tải nhiệm vụ. Vui lòng thử lại.");
-            }
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => { fetchMissions(); }, [fetchMissions]);
-
-    // ── Actions ──
-    const handleAction = async (mission) => {
-        setLoadingId(mission.missionId);
-        try {
-            let res;
-            const isDone = mission.isCompleted || mission.completed;
-            const isClaimed = mission.isRewardClaimed || mission.rewardClaimed;
-
-            if (mission.type === "CHECK_IN" && !isDone) {
-                res = await missionAPI.checkIn();
-            } else if (isDone && !isClaimed) {
-                res = await missionAPI.claimReward(mission.missionId);
-            }
-
-            if (res) {
-                const updatedMissions = res.data?.missions || res.data?.data?.missions || [];
-                if (updatedMissions.length > 0) {
-                    setMissions(updatedMissions);
-                }
-            }
-        } catch (err) {
-            alert(err.response?.data?.message || "Có lỗi xảy ra, vui lòng thử lại!");
-        } finally {
-            setLoadingId(null);
-        }
-    };
-
-    const handleCheckin = () => {
-        const checkIn = missions.find(m => m.type === "CHECK_IN");
-        const isDone = checkIn?.isCompleted || checkIn?.completed;
-        if (checkIn && !isDone) handleAction(checkIn);
-    };
-
     return (
         <>
-            <style>{`
-                /* CSS giữ nguyên 100% của ông, không sửa gì cả */
-                .tredu-section { padding: 96px 24px 48px; background: #f7f8fa; }
-                .tredu-container { max-width: 960px; margin: 0 auto; }
-                .tredu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-                @media (max-width: 720px) { .tredu-grid { grid-template-columns: 1fr; } }
-                .tredu-panel { background: #fff; border-radius: 16px; border: 1px solid #e8eaf0; padding: 20px; display: flex; flex-direction: column; gap: 0; }
-                .tredu-panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-                .tredu-panel-title { font-size: 15px; font-weight: 600; color: #1a1d23; display: flex; align-items: center; gap: 7px; }
-                .tredu-title-icon { font-size: 16px; }
-                .tredu-month-nav { display: flex; align-items: center; gap: 8px; }
-                .tredu-month-label { font-size: 13px; font-weight: 500; color: #444; min-width: 90px; text-align: center; }
-                .tredu-nav-btn { width: 26px; height: 26px; border-radius: 6px; border: 1px solid #e0e2e8; background: #fff; cursor: pointer; font-size: 16px; color: #666; display: flex; align-items: center; justify-content: center; transition: background 0.15s; }
-                .tredu-nav-btn:hover:not(:disabled) { background: #f3f4f8; }
-                .tredu-nav-btn:disabled { opacity: 0.35; cursor: not-allowed; }
-                .tredu-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
-                .tredu-dow-label { text-align: center; font-size: 10px; font-weight: 600; color: #aab; padding: 0 0 6px; letter-spacing: 0.03em; }
-                .tredu-cal-cell { aspect-ratio: 1; border-radius: 7px; border: 1px solid #eceef3; background: #fafbfc; display: flex; align-items: center; justify-content: center; cursor: default; transition: all 0.15s; position: relative; outline: none; }
-                .tredu-day-num { font-size: 11px; color: #888; }
-                .tredu-cal-empty { border-color: transparent; background: transparent; }
-                .tredu-today { border-color: #3b82f6; background: #eff6ff; }
-                .tredu-today .tredu-day-num { color: #2563eb; font-weight: 700; }
-                .tredu-can-checkin { cursor: pointer; border-color: #3b82f6; background: #dbeafe; animation: tredu-pulse 2s infinite; }
-                .tredu-can-checkin:hover { background: #bfdbfe !important; }
-                @keyframes tredu-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(59,130,246,0.3); } 50% { box-shadow: 0 0 0 4px rgba(59,130,246,0.1); } }
-                .tredu-checked { background: #dcfce7; border-color: #86efac; cursor: default; }
-                .tredu-check-mark { font-size: 13px; color: #16a34a; font-weight: 700; }
-                .tredu-missed { opacity: 0.45; }
-                .tredu-dim { opacity: 0.3; }
-                .tredu-cal-footer { display: flex; align-items: center; gap: 12px; margin-top: 14px; padding-top: 14px; border-top: 1px solid #f0f1f5; }
-                .tredu-stat { display: flex; align-items: center; gap: 5px; }
-                .tredu-stat-icon { font-size: 15px; }
-                .tredu-stat-num { font-size: 18px; font-weight: 700; color: #1a1d23; }
-                .tredu-stat-label { font-size: 12px; color: #888; }
-                .tredu-stat-divider { width: 1px; height: 28px; background: #e8eaf0; margin: 0 4px; }
-                .tredu-reset-badge { font-size: 11px; font-weight: 500; color: #6b7280; background: #f3f4f6; border-radius: 20px; padding: 3px 10px; }
-                .tredu-mission-list { display: flex; flex-direction: column; gap: 8px; flex: 1; }
-                .tredu-mission-item { border: 1px solid #e8eaf0; border-radius: 10px; padding: 12px 12px 12px 14px; display: flex; align-items: center; gap: 12px; transition: border-color 0.15s, background 0.15s; }
-                .tredu-mission-ready { border-color: #fcd34d; background: #fffbeb; }
-                .tredu-mission-done { opacity: 0.6; }
-                .tredu-mission-body { flex: 1; min-width: 0; }
-                .tredu-mission-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
-                .tredu-mission-title { font-size: 13px; font-weight: 500; color: #1a1d23; line-height: 1.4; }
-                .tredu-xp-badge { font-size: 11px; font-weight: 600; color: #b45309; background: #fef3c7; border-radius: 4px; padding: 2px 7px; white-space: nowrap; flex-shrink: 0; }
-                .tredu-progress-track { height: 3px; background: #e8eaf0; border-radius: 2px; overflow: hidden; margin-bottom: 5px; }
-                .tredu-progress-fill { height: 100%; background: #22c55e; border-radius: 2px; transition: width 0.5s cubic-bezier(.4,0,.2,1); }
-                .tredu-progress-label { font-size: 11px; color: #9ca3af; }
-                .tredu-mission-btn { flex-shrink: 0; font-size: 12px; font-weight: 600; padding: 6px 14px; border-radius: 20px; border: none; cursor: pointer; transition: all 0.15s; white-space: nowrap; min-width: 90px; text-align: center; }
-                .tredu-btn-checkin { background: #2563eb; color: #fff; }
-                .tredu-btn-checkin:hover:not(:disabled) { background: #1d4ed8; }
-                .tredu-btn-claim { background: #f59e0b; color: #fff; animation: tredu-glow 1.5s ease-in-out infinite alternate; }
-                @keyframes tredu-glow { from { box-shadow: 0 0 4px rgba(245,158,11,0.3); } to { box-shadow: 0 0 10px rgba(245,158,11,0.6); } }
-                .tredu-btn-claim:hover:not(:disabled) { background: #d97706; }
-                .tredu-btn-progress { background: #f3f4f6; color: #9ca3af; cursor: not-allowed; }
-                .tredu-btn-claimed { background: #f3f4f6; color: #9ca3af; cursor: not-allowed; }
-                .tredu-mission-btn:disabled { cursor: not-allowed; }
-                .tredu-xp-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; padding-top: 14px; border-top: 1px solid #f0f1f5; }
-                .tredu-xp-footer-label { font-size: 12px; color: #9ca3af; }
-                .tredu-xp-footer-value { font-size: 16px; font-weight: 700; color: #1a1d23; }
-                .tredu-login-prompt { text-align: center; padding: 32px 16px; grid-column: 1 / -1; background: #fff; border-radius: 16px; border: 1px solid #e8eaf0; }
-                .tredu-login-prompt p { font-size: 14px; color: #6b7280; margin-bottom: 16px; }
-                .tredu-login-btn { background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff; border: none; border-radius: 24px; padding: 10px 28px; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.15s; }
-                .tredu-login-btn:hover { opacity: 0.9; }
-                .tredu-skeleton { background: linear-gradient(90deg, #f0f1f5 25%, #e8eaf0 50%, #f0f1f5 75%); background-size: 200% 100%; animation: tredu-shimmer 1.4s infinite; border-radius: 8px; }
-                @keyframes tredu-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-                .tredu-skeleton-panel { background: #fff; border-radius: 16px; border: 1px solid #e8eaf0; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
-                .tredu-error { grid-column: 1 / -1; background: #fff1f2; border: 1px solid #fecdd3; border-radius: 12px; padding: 16px 20px; color: #be123c; font-size: 13px; display: flex; align-items: center; justify-content: space-between; }
-                .tredu-retry-btn { font-size: 12px; font-weight: 600; color: #be123c; background: none; border: 1px solid #fecdd3; border-radius: 6px; padding: 5px 12px; cursor: pointer; }
-            `}</style>
-
             <Header />
 
-            <section className="tredu-section">
-                <div className="tredu-container">
-                    <div className="tredu-grid">
-                        {!isLoggedIn && !loading && (
-                            <div className="tredu-login-prompt">
-                                <p>Đăng nhập để điểm danh, nhận XP và hoàn thành nhiệm vụ hàng ngày!</p>
-                                <button className="tredu-login-btn" onClick={() => navigate("/login")}>Đăng nhập ngay →</button>
-                            </div>
-                        )}
+            <section className="py-20 bg-gray-50 mt-14">
+                <div className="max-w-7xl mx-auto px-6 text-center">
+                    <h2 data-aos="fade-up" className="text-4xl md:text-6xl font-bold text-gray-800 mb-6">
+                        Bạn sẽ học được gì trên TREEdu?
+                    </h2>
+                    <p data-aos="fade-up" data-aos-delay="200" className="text-xl text-gray-600 mb-16 max-w-3xl mx-auto">
+                        Luyện học Tiếng Việt chưa bao giờ dễ đến vậy
+                    </p>
 
-                        {error && isLoggedIn && (
-                            <div className="tredu-error">
-                                <span>{error}</span>
-                                <button className="tredu-retry-btn" onClick={fetchMissions}>Thử lại</button>
-                            </div>
-                        )}
-
-                        {loading && (
-                            <>
-                                <div className="tredu-skeleton-panel">
-                                    <div className="tredu-skeleton" style={{ height: 18, width: "50%" }} />
-                                    <div className="tredu-skeleton" style={{ height: 200 }} />
-                                    <div className="tredu-skeleton" style={{ height: 36 }} />
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                        {/* Quiz Card */}
+                        <div data-aos="zoom-in" data-aos-delay="100" className="bg-white rounded-2xl shadow-xl p-8 hover:shadow-2xl transform hover:-translate-y-4 transition-all duration-500 flex flex-col justify-between">
+                            <div>
+                                <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
+                                    <img src={iconQuiz} alt="Quiz" className="w-12 h-12 filter brightness-0 invert" />
                                 </div>
-                                <div className="tredu-skeleton-panel">
-                                    <div className="tredu-skeleton" style={{ height: 18, width: "50%" }} />
-                                    {[1,2,3,4].map(i => <div key={i} className="tredu-skeleton" style={{ height: 64 }} />)}
-                                </div>
-                            </>
-                        )}
+                                <h3 className="text-xl font-bold text-gray-800 mb-4">Các bài quiz đa dạng</h3>
+                                <p className="text-gray-600 text-sm mb-6">Ôn luyện Tiếng Việt hiệu quả: đề luyện phong phú, chấm tự động và lời giải rõ ràng.</p>
+                            </div>
+                            <button onClick={() => navigate("/quiz")} className="bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold py-3 px-6 rounded-full hover:shadow-lg transform hover:scale-105 transition mt-auto">Làm ngay →</button>
+                        </div>
 
-                        {!loading && isLoggedIn && !error && (
-                            <>
-                                <CalendarPanel checkedDays={checkedDays} onCheckin={handleCheckin} todayChecked={todayChecked} />
-                                <MissionsPanel missions={missions} onAction={handleAction} loadingId={loadingId} totalXp={totalXp} />
-                            </>
-                        )}
+                        {/* Flashcard Card */}
+                        <div data-aos="zoom-in" data-aos-delay="200" className="bg-white rounded-2xl shadow-xl p-8 hover:shadow-2xl transform hover:-translate-y-4 transition-all duration-500 flex flex-col justify-between">
+                            <div>
+                                <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
+                                    <img src={iconFlashcard} alt="Flashcard" className="w-12 h-12 filter brightness-0 invert" />
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-800 mb-4">Flashcard Thông Minh</h3>
+                                <p className="text-gray-600 text-sm mb-6">Ghi nhớ từ vựng nhanh hơn với flashcard thông minh – lặp lại theo chu kỳ và theo dõi tiến độ.</p>
+                            </div>
+                            <button onClick={() => navigate("/flashcard")} className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold py-3 px-6 rounded-full hover:shadow-lg transform hover:scale-105 transition mt-auto">Tạo bộ từ →</button>
+                        </div>
+
+                        {/* Pronunciation Card */}
+                        <div data-aos="zoom-in" data-aos-delay="300" className="bg-white rounded-2xl shadow-xl p-8 hover:shadow-2xl transform hover:-translate-y-4 transition-all duration-500 flex flex-col justify-between">
+                            <div>
+                                <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center">
+                                    <img src={iconRoom} alt="Phát âm" className="w-12 h-12 filter brightness-0 invert" />
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-800 mb-4">AI Chấm Phát Âm</h3>
+                                <p className="text-gray-600 text-sm mb-6">Luyện nói chuẩn như người bản xứ, nhận phản hồi chấm điểm và sửa lỗi phát âm tức thì.</p>
+                            </div>
+                            <button onClick={() => navigate("/pronunciation-practice")} className="bg-gradient-to-r from-purple-500 to-pink-600 text-white font-bold py-3 px-6 rounded-full hover:shadow-lg transform hover:scale-105 transition mt-auto">Luyện nói →</button>
+                        </div>
+
+                        {/* Dictation Card */}
+                        <div data-aos="zoom-in" data-aos-delay="400" className="bg-white rounded-2xl shadow-xl p-8 hover:shadow-2xl transform hover:-translate-y-4 transition-all duration-500 flex flex-col justify-between border-2 border-orange-100">
+                            <div>
+                                <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-orange-500 to-red-600 rounded-full flex items-center justify-center text-white shadow-md shadow-orange-200">
+                                    <Headphones size={40} strokeWidth={2} />
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-800 mb-4">Nghe Chính Tả</h3>
+                                <p className="text-gray-600 text-sm mb-6">Tăng phản xạ Nghe - Viết cực hạn. AI tự bóc băng tiếng Việt từng câu, so khớp và sửa lỗi chi tiết.</p>
+                            </div>
+                            <button onClick={() => navigate("/dictation")} className="bg-gradient-to-r from-orange-500 to-red-600 text-white font-bold py-3 px-6 rounded-full hover:shadow-lg transform hover:scale-105 transition mt-auto">Luyện nghe →</button>
+                        </div>
                     </div>
                 </div>
             </section>
 
-            {/* Các section cũ của ông */}
-            <section className="py-20 bg-gray-10">
+            <LeaderboardSection />
+
+            <section className="py-20 bg-gray-50">
                 <div className="max-w-7xl mx-auto px-6 text-center">
-                    <h2 data-aos="fade-up" className="text-4xl md:text-6xl font-bold text-gray-800 mb-6">Bạn sẽ học được gì trên TREEdu?</h2>
-                    <p data-aos="fade-up" data-aos-delay="200" className="text-xl text-gray-600 mb-16 max-w-3xl mx-auto">Luyện học Tiếng Việt chưa bao giờ dễ đến vậy</p>
+                    <h2 data-aos="fade-up" className="text-4xl md:text-5xl font-bold mb-16">Học viên nói gì về TREEdu?</h2>
                     <div className="grid md:grid-cols-3 gap-10">
-                        <div data-aos="zoom-in" data-aos-delay="100" className="bg-white rounded-2xl shadow-2xl p-10 hover:shadow-2xl transform hover:-translate-y-4 transition-all duration-500">
-                            <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
-                                <img src={iconQuiz} alt="Quiz" className="w-12 h-12 filter brightness-0 invert" />
+                        {[
+                            { img: avatar1, name: "Nguyễn Lan Anh", text: "Từ 5.5 lên 7.0 IELTS chỉ sau 2 tháng nhờ AI phát âm!", rating: "★★★★★" },
+                            { img: avatar2, name: "Trần Minh Quân", text: "Flashcard giúp mình nhớ 1000 từ trong 3 tuần. Quá ngon!", rating: "★★★★★" },
+                            { img: avatar3, name: "Phạm Thu Hà", text: "Đề thi giống đề thật đến 95%. Đạt 9.0 môn Anh THPT QG!", rating: "★★★★★" },
+                        ].map((item, i) => (
+                            <div key={i} data-aos="fade-up" data-aos-delay={i * 200} className="bg-white rounded-2xl p-8 shadow-lg">
+                                <img src={item.img} alt={item.name} className="w-20 h-20 rounded-full mx-auto mb-4 object-cover" />
+                                <p className="text-3xl text-yellow-500 mb-2">{item.rating}</p>
+                                <p className="text-gray-700 italic mb-4">"{item.text}"</p>
+                                <p className="font-bold text-gray-800">- {item.name}</p>
                             </div>
-                            <h3 className="text-2xl font-bold text-gray-800 mb-4">Các bài quiz đa dạng</h3>
-                            <p className="text-gray-600 mb-6">Ôn luyện Tiếng Việt hiệu quả: đề luyện phong phú, chấm tự động và lời giải rõ ràng.</p>
-                            <button onClick={() => navigate("/quiz")} className="bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold py-3 px-8 rounded-full hover:shadow-lg transform hover:scale-105 transition">Làm ngay →</button>
-                        </div>
-                        <div data-aos="zoom-in" data-aos-delay="300" className="bg-white rounded-2xl shadow-xl p-10 hover:shadow-2xl transform hover:-translate-y-4 transition-all duration-500">
-                            <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
-                                <img src={iconFlashcard} alt="Flashcard" className="w-12 h-12 filter brightness-0 invert" />
-                            </div>
-                            <h3 className="text-2xl font-bold text-gray-800 mb-4">Flashcard Thông Minh</h3>
-                            <p className="text-gray-600 mb-6">Ghi nhớ từ vựng nhanh hơn với flashcard thông minh – lặp lại theo chu kỳ và theo dõi tiến độ học.</p>
-                            <button onClick={() => navigate("/flashcard")} className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold py-3 px-8 rounded-full hover:shadow-lg transform hover:scale-105 transition">Tạo bộ từ →</button>
-                        </div>
-                        <div data-aos="zoom-in" data-aos-delay="500" className="bg-white rounded-2xl shadow-xl p-10 hover:shadow-2xl transform hover:-translate-y-4 transition-all duration-500">
-                            <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center">
-                                <img src={iconRoom} alt="Phòng phát âm" className="w-12 h-12 filter brightness-0 invert" />
-                            </div>
-                            <h3 className="text-2xl font-bold text-gray-800 mb-4">AI Chấm Phát Âm</h3>
-                            <p className="text-gray-600 mb-6">Luyện nói chuẩn như người bản xứ • nhận điểm & góp ý tức thì</p>
-                            <button onClick={() => navigate("/pronunciation-practice")} className="bg-gradient-to-r from-purple-500 to-pink-600 text-white font-bold py-3 px-8 rounded-full hover:shadow-lg transform hover:scale-105 transition">Luyện nói →</button>
-                        </div>
+                        ))}
                     </div>
                 </div>
             </section>

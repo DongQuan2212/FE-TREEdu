@@ -42,7 +42,11 @@ import ResetPasswordOtpPage from "../pages/ResetPasswordOtpPage";
 
 // 1. Thêm import của hai trang quản lý báo cáo/xét duyệt ở đây
 import FlashcardReportList from "../pages/supporter/FlashcardReportList";
-import AdminReviewList from "../pages/admin/AdminReviewList"; // <-- THÊM DÒNG NÀY
+import AdminReviewList from "../pages/admin/AdminReviewList";
+import DictationList from "../pages/supporter/DictationList";
+import DictationEdit from "../pages/supporter/DictationEdit";
+import DictationPage from "../pages/user/DictationPage";
+import DictationPractice from "../pages/user/DictationPractice"; // <-- THÊM DÒNG NÀY
 
 function AppRoutes() {
     return (
@@ -75,6 +79,8 @@ function AppRoutes() {
                 <Route path="/flashcard/history" element={<FlashcardHistoryPage/>} />
                 <Route path="/pronunciation-practice" element={<PronunciationPracticePage />} />
                 <Route path="/pronunciation-practice/:topic" element={<PronunciationPracticeDetailPage />} />
+                <Route path="/dictation/:id" element={<DictationPractice />} />
+                <Route path="/dictation" element={<DictationPage />} />
 
                 {/* Admin Role */}
                 <Route path="/admin/dashboard" element={<AdminDashboard />} />
@@ -99,6 +105,8 @@ function AppRoutes() {
                 <Route path="/supporter/flashcards/edit/:id" element={<FlashcardWordManager />} />
                 <Route path="/supporter/flashcards/:id/words" element={<FlashcardWordManager />} />
                 <Route path="/supporter/flashcard-reports" element={<FlashcardReportList />} />
+                <Route path="/supporter/dictations" element={<DictationList />} />
+                <Route path="/supporter/dictations/edit/:id" element={<DictationEdit />} />
             </Routes>
         </Router>
     );
