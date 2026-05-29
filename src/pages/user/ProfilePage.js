@@ -1,13 +1,13 @@
 import Header from "../../components/user/Header";
 import Footer from "../../components/Footer/Footer";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../config/axiosConfig";
 import { useAuth } from "../../hook/useAuth";
 
 import {
     User, Mail, Shield, Edit2, Lock, X, Check,
-    Phone, Calendar, MapPin, Flame, Zap, Award, BookOpen
+    Phone, Calendar, MapPin, Flame, Zap, Award, BookOpen, Upload
 } from "lucide-react";
 
 /* ─── Inline styles (Giữ nguyên kiến trúc CSS cô lập) ─── */
@@ -109,6 +109,35 @@ const css = `
 .pf-btn-ghost:hover { background: #f5f5f3; border-color: #bbb; }
 .pf-btn-ghost:disabled { opacity: 0.5; cursor: default; }
 
+.pf-btn-upload {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px; font-weight: 500;
+    color: #fff; background: #3d7a5c;
+    border: none; border-radius: 12px;
+    padding: 11px 20px; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 7px;
+    transition: background 0.15s;
+}
+.pf-btn-upload:hover { background: #2d6a4f; }
+.pf-btn-upload:disabled { opacity: 0.5; cursor: default; }
+
+.pf-file-input { display: none; }
+
+.pf-avatar-preview {
+    width: 100%; max-height: 200px; border-radius: 10px;
+    object-fit: contain; margin-bottom: 8px; border: 1px solid #ddd;
+}
+
+.pf-avatar-preview-container {
+    position: relative; margin-bottom: 12px;
+}
+
+.pf-file-info {
+    font-size: 12px; color: #666;
+    background: #f9f9f7; padding: 8px 10px;
+    border-radius: 8px; margin-top: 8px;
+}
+
 .pf-xp-bar {
     height: 4px; border-radius: 2px;
     background: #ebebeb; overflow: hidden;
@@ -169,6 +198,9 @@ const ProfilePage = () => {
     const [error, setError] = useState("");
     const [isEditing, setIsEditing] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [avatarFile, setAvatarFile] = useState(null);
+    const [avatarPreview, setAvatarPreview] = useState("");
+    const fileInputRef = React.useRef(null);
 
     // State form lưu giữ các giá trị chỉnh sửa
     const [formData, setFormData] = useState({
@@ -217,8 +249,44 @@ const ProfilePage = () => {
         });
     };
 
+    const handleAvatarFileChange = (e) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                alert('Vui lòng chọn file ảnh hợp lệ!');
+                return;
+            }
+            // Validate file size (max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Kích thước ảnh không được vượt quá 5MB!');
+                return;
+            }
+            setAvatarFile(file);
+            // Create preview
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                setAvatarPreview(event.target?.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleRemoveAvatar = () => {
+        setAvatarFile(null);
+        setAvatarPreview("");
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+        }
+    };
+
     const handleCancelEdit = () => {
         setIsEditing(false);
+        setAvatarFile(null);
+        setAvatarPreview("");
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+        }
         setFormData({
             fullname: user.fullName || "",
             phoneNumber: user.phoneNumber || "",
@@ -237,22 +305,32 @@ const ProfilePage = () => {
 
         setSaving(true);
         try {
-            // Khớp chuẩn payload DTO với Backend của bạn
-            const payload = {
-                fullname: formData.fullname.trim(),
-                phoneNumber: formData.phoneNumber ? formData.phoneNumber.trim() : null,
-                birthYear: formData.birthYear || null,
-                address: formData.address ? formData.address.trim() : null,
-                gender: formData.gender,
-                avatarUrl: formData.avatarUrl ? formData.avatarUrl.trim() : null
-            };
+            // Tạo FormData để gửi multipart/form-data
+            const formDataSubmit = new FormData();
+            formDataSubmit.append('fullname', formData.fullname.trim());
+            formDataSubmit.append('phoneNumber', formData.phoneNumber ? formData.phoneNumber.trim() : '');
+            formDataSubmit.append('birthYear', formData.birthYear || '');
+            formDataSubmit.append('address', formData.address ? formData.address.trim() : '');
+            formDataSubmit.append('gender', formData.gender);
+            
+            // Thêm file avatar nếu có
+            if (avatarFile) {
+                formDataSubmit.append('avatarFile', avatarFile);
+            }
 
-            const response = await axiosInstance.put(`/users/update-my-profile/${user.id}`, payload);
+            const response = await axiosInstance.put(`/users/update-my-profile/${user.id}`, formDataSubmit, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
             const updatedData = response.data.data;
 
-            // Cập nhật lại UI cục bộ dựa trên dữ liệu mới nhất từ DTO sạch của Backend trả về
+            // Cập nhật lại UI cục bộ dựa trên dữ liệu mới nhất từ Backend
             setUser({ ...user, ...updatedData });
             setIsEditing(false);
+            setAvatarFile(null);
+            setAvatarPreview("");
+            if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+            }
 
             // Làm mới Header để đồng bộ tức thì tên và avatar mới
             if (refetchUser) {
@@ -419,11 +497,51 @@ const ProfilePage = () => {
                                     }
                                 </div>
 
-                                {/* Trường Avatar URL - Chỉ xuất hiện khi mở chế độ Edit */}
+                                {/* Trường chọn file ảnh - Chỉ xuất hiện khi mở chế độ Edit */}
                                 {isEditing && (
                                     <div style={{ gridColumn: "1 / -1" }}>
-                                        <label className="pf-field-label">URL ảnh đại diện</label>
-                                        <input className="pf-input" type="text" name="avatarUrl" value={formData.avatarUrl} onChange={handleInputChange} placeholder="https://example.com/photo.jpg" />
+                                        <label className="pf-field-label">Ảnh đại diện</label>
+                                        <input
+                                            ref={fileInputRef}
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleAvatarFileChange}
+                                            className="pf-file-input"
+                                        />
+                                        {/* Preview: ưu tiên file mới, fallback về avatar hiện tại */}
+                                        {(avatarPreview || user.avatarUrl) && (
+                                            <div className="pf-avatar-preview-container">
+                                                <img 
+                                                    src={avatarPreview || user.avatarUrl} 
+                                                    alt="Avatar preview" 
+                                                    className="pf-avatar-preview" 
+                                                />
+                                            </div>
+                                        )}
+                                        <div style={{ display: "flex", gap: 8 }}>
+                                            <button
+                                                type="button"
+                                                className="pf-btn-upload"
+                                                onClick={() => fileInputRef.current?.click()}
+                                            >
+                                                <Upload size={14} /> {avatarPreview ? "Đổi ảnh" : "Chọn ảnh"}
+                                            </button>
+                                            {avatarFile && (
+                                                <button
+                                                    type="button"
+                                                    className="pf-btn-ghost"
+                                                    onClick={handleRemoveAvatar}
+                                                >
+                                                    <X size={14} /> Xóa
+                                                </button>
+                                            )}
+                                        </div>
+                                        {/* Tên file đã chọn */}
+                                        {avatarFile && (
+                                            <div className="pf-file-info">
+                                                📎 {avatarFile.name} ({(avatarFile.size / 1024).toFixed(0)} KB)
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
