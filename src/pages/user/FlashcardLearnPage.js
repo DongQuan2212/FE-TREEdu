@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import Header from "../../components/user/Header";
 import Footer from "../../components/Footer/Footer";
 import { flashcardAPI } from "../../config/api";
-import { X, RotateCcw, CheckCircle, ChevronRight, Volume2 } from "lucide-react"; // Cần cài lucide-react
+import { X, RotateCcw, CheckCircle, ChevronRight, Volume2, XCircle } from "lucide-react";
 
 // --- SUB-COMPONENT: TOAST NOTIFICATION ---
 const Toast = ({ message, type, onClose }) => {
@@ -29,7 +29,6 @@ const Toast = ({ message, type, onClose }) => {
 const CompletionScreen = ({ totalWords, xpGained, leveledUp, onReset, onExit, resetting }) => (
     <div className="flex flex-col items-center justify-center py-8 px-4 text-center animate-in zoom-in duration-500">
 
-        {/* Banner Thăng Cấp (Chỉ hiện khi levelUp = true) */}
         {leveledUp && (
             <div className="mb-6 animate-bounce bg-gradient-to-r from-amber-400 to-yellow-500 text-white px-6 py-2 rounded-full font-bold shadow-lg flex items-center gap-2 border-2 border-white">
                 <span className="text-xl">🎉</span>
@@ -38,7 +37,6 @@ const CompletionScreen = ({ totalWords, xpGained, leveledUp, onReset, onExit, re
             </div>
         )}
 
-        {/* Icon Cúp */}
         <div className="w-28 h-28 bg-emerald-100 rounded-full flex items-center justify-center mb-6 shadow-inner relative">
             <span className="text-6xl animate-pulse">🏆</span>
         </div>
@@ -48,7 +46,6 @@ const CompletionScreen = ({ totalWords, xpGained, leveledUp, onReset, onExit, re
             Bạn đã chinh phục thành công <span className="font-bold text-emerald-600">{totalWords}</span> từ vựng.
         </p>
 
-        {/* Khung hiển thị XP nhận được */}
         {(xpGained > 0 || xpGained != null) && (
             <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-8 w-full max-w-xs flex flex-col items-center justify-center shadow-sm hover:shadow-md transition-shadow cursor-default">
                 <span className="text-amber-600 font-semibold text-xs uppercase tracking-wider mb-1">
@@ -61,7 +58,6 @@ const CompletionScreen = ({ totalWords, xpGained, leveledUp, onReset, onExit, re
             </div>
         )}
 
-        {/* Nút điều hướng */}
         <div className="flex flex-col sm:flex-row gap-4 w-full max-w-sm">
             <button
                 onClick={onReset}
@@ -99,9 +95,13 @@ function FlashcardLearnPage() {
 
     // UI States
     const [isFlipped, setIsFlipped] = useState(false);
-    const [toast, setToast] = useState(null); // { message, type }
+    const [toast, setToast] = useState(null);
 
-    // Logic Helper
+    // Typing States
+    const [userAnswer, setUserAnswer] = useState("");
+    const [submitting, setSubmitting] = useState(false);
+    const [checkResult, setCheckResult] = useState(null); // { correct: bool, correctAnswer: string } | null
+
     const showToast = (message, type = 'success') => setToast({ message, type });
 
     useEffect(() => {
@@ -124,50 +124,65 @@ function FlashcardLearnPage() {
         }
     };
 
-    const handleNext = async () => {
-        const unviewedWords = flashcard.words.filter(
-            word => !flashcard.viewedWordIds.includes(word.id)
-        );
-        const currentWord = unviewedWords[0];
+    // Reset trạng thái nhập liệu khi chuyển từ mới
+    const resetTypingState = () => {
+        setUserAnswer("");
+        setCheckResult(null);
+    };
 
-        if (!currentWord) return;
+    const handleSubmitAnswer = async (currentWord) => {
+        if (!userAnswer.trim() || submitting) return;
 
         try {
-            // Gọi API đánh dấu đã học
-            const res = await flashcardAPI.markViewed(id, { wordId: currentWord.id });
+            setSubmitting(true);
+            const res = await flashcardAPI.submitAnswer(id, {
+                wordId: currentWord.id,
+                userAnswer: userAnswer.trim(),
+            });
 
-            // Xử lý UI: Lật thẻ lại mặt trước trước khi chuyển từ
-            setIsFlipped(false);
+            const data = res.data.data; // WordCheckResponse
+            setCheckResult({ correct: data.correct, correctAnswer: data.correctAnswer });
 
-            // Đợi animation lật thẻ (300ms) rồi mới cập nhật dữ liệu
-            setTimeout(() => {
-                if (!res.data.data) {
-                    // Trường hợp backend trả về null nghĩa là đã hết từ -> Reload để hiển thị màn hình hoàn thành
-                    // Hoặc cập nhật state thủ công để trigger màn hình hoàn thành
-                    setFlashcard(prev => ({
-                        ...prev,
-                        viewedWordIds: [...prev.viewedWordIds, currentWord.id],
-                        viewedWordCount: prev.viewedWordCount + 1,
-                        progressPercentage: 100
-                    }));
-                } else {
-                    setFlashcard(res.data.data);
-                }
-            }, 200);
+            if (data.correct) {
+                showToast("Chính xác!", "success");
 
+                // Đợi người dùng thấy phản hồi đúng rồi mới chuyển sang từ tiếp theo
+                setTimeout(() => {
+                    setIsFlipped(false);
+
+                    setTimeout(() => {
+                        if (data.progress) {
+                            setFlashcard(data.progress);
+                        } else {
+                            // Trường hợp backend không trả progress (hiếm) -> cập nhật thủ công
+                            setFlashcard(prev => ({
+                                ...prev,
+                                viewedWordIds: [...prev.viewedWordIds, currentWord.id],
+                                viewedWordCount: prev.viewedWordCount + 1,
+                            }));
+                        }
+                        resetTypingState();
+                    }, 300);
+                }, 900);
+            } else {
+                showToast("Sai rồi, thử lại nhé!", "error");
+            }
         } catch (err) {
-            console.error("Next error:", err);
+            console.error("Submit answer error:", err);
             showToast("Lỗi kết nối, vui lòng thử lại", "error");
+        } finally {
+            setSubmitting(false);
         }
     };
 
     const handleReset = async () => {
         try {
             setResetting(true);
-            await flashcardAPI.resetProgress(id); // Gọi API Reset bạn cung cấp
+            await flashcardAPI.resetProgress(id);
             showToast("Đã reset tiến độ học tập!", "success");
-            await fetchFlashcard(); // Tải lại dữ liệu mới
+            await fetchFlashcard();
             setIsFlipped(false);
+            resetTypingState();
         } catch (err) {
             console.error("Reset error:", err);
             showToast("Không thể reset bài học", "error");
@@ -195,7 +210,6 @@ function FlashcardLearnPage() {
 
     if (!flashcard) return null;
 
-    // Filter từ chưa học
     const unviewedWords = flashcard.words.filter(
         word => !flashcard.viewedWordIds.includes(word.id)
     );
@@ -227,7 +241,7 @@ function FlashcardLearnPage() {
                         </button>
                     </div>
 
-                    {/* Progress Bar (Chỉ hiện khi chưa hoàn thành) */}
+                    {/* Progress Bar */}
                     {!isCompleted && (
                         <div className="mb-8">
                             <div className="flex justify-between text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">
@@ -300,7 +314,7 @@ function FlashcardLearnPage() {
                                         Định Nghĩa
                                     </div>
 
-                                    <div className="text-center space-y-6">
+                                    <div className="text-center space-y-5 w-full max-w-sm">
                                         <div>
                                             <p className="text-sm text-emerald-600/70 font-semibold mb-2 uppercase">Ý nghĩa</p>
                                             <h3 className="text-2xl md:text-3xl font-bold text-gray-800">
@@ -309,36 +323,93 @@ function FlashcardLearnPage() {
                                         </div>
 
                                         {currentWord.example && (
-                                            <div className="bg-white p-5 rounded-xl shadow-sm border border-emerald-100/50 max-w-sm">
+                                            <div className="bg-white p-5 rounded-xl shadow-sm border border-emerald-100/50">
                                                 <p className="text-sm text-emerald-600/70 font-semibold mb-1 uppercase text-left">Ví dụ</p>
                                                 <p className="text-lg text-gray-600 italic leading-relaxed">
                                                     "{currentWord.example}"
                                                 </p>
                                             </div>
                                         )}
+
+                                        {/* TYPING AREA */}
+                                        <div
+                                            className="pt-2"
+                                            onClick={(e) => e.stopPropagation()} // Ngăn lật thẻ khi tương tác với input
+                                        >
+                                            <p className="text-sm text-emerald-600/70 font-semibold mb-2 uppercase text-left">
+                                                Gõ lại từ vựng
+                                            </p>
+                                            <input
+                                                type="text"
+                                                value={userAnswer}
+                                                onChange={(e) => setUserAnswer(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        handleSubmitAnswer(currentWord);
+                                                    }
+                                                }}
+                                                placeholder="Nhập từ vựng..."
+                                                disabled={submitting || checkResult?.correct}
+                                                className={`w-full px-4 py-3 rounded-xl border-2 text-lg font-semibold text-center outline-none transition-all
+                                                    ${checkResult?.correct
+                                                        ? 'border-emerald-400 bg-emerald-50 text-emerald-700'
+                                                        : checkResult?.correct === false
+                                                            ? 'border-red-300 bg-red-50 text-red-600 focus:border-red-400'
+                                                            : 'border-gray-200 bg-white focus:border-emerald-400'
+                                                    }`}
+                                            />
+
+                                            {/* Feedback */}
+                                            {checkResult && (
+                                                <div className={`mt-2 flex items-center justify-center gap-2 text-sm font-semibold
+                                                    ${checkResult.correct ? 'text-emerald-600' : 'text-red-500'}`}>
+                                                    {checkResult.correct ? (
+                                                        <>
+                                                            <CheckCircle size={16} />
+                                                            <span>Chính xác!</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <XCircle size={16} />
+                                                            <span>Chưa đúng, thử lại nhé</span>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            <button
+                                                onClick={() => handleSubmitAnswer(currentWord)}
+                                                disabled={submitting || !userAnswer.trim() || checkResult?.correct}
+                                                className="mt-4 w-full flex items-center justify-center gap-2 px-6 py-3 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 active:scale-95 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+                                            >
+                                                {submitting ? (
+                                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                ) : (
+                                                    <>
+                                                        <CheckCircle size={20} />
+                                                        <span>Kiểm tra</span>
+                                                    </>
+                                                )}
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* CONTROLS */}
-                            <div className="mt-8 flex justify-center">
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation(); // Ngăn sự kiện lật thẻ
-                                        handleNext();
-                                    }}
-                                    className="group flex items-center gap-3 px-8 py-4 bg-neutral-900 text-white rounded-2xl hover:bg-neutral-800 hover:scale-105 active:scale-95 transition-all shadow-xl hover:shadow-2xl"
-                                >
-                                    <span className="font-semibold text-lg">Tiếp theo</span>
-                                    <ChevronRight size={24} className="group-hover:translate-x-1 transition-transform" />
-                                </button>
-                            </div>
+                            {/* Hint khi chưa lật thẻ */}
+                            {!isFlipped && (
+                                <div className="mt-8 flex justify-center">
+                                    <p className="text-sm text-gray-400 italic">
+                                        Chạm vào thẻ để xem nghĩa và nhập từ vựng
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
             </main>
 
-            {/* Styles for Flip Effect (Nếu dự án chưa có CSS 3D) */}
             <style>{`
                 .perspective-1000 { perspective: 1000px; }
                 .transform-style-3d { transform-style: preserve-3d; }

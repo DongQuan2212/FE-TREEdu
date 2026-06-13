@@ -35,6 +35,11 @@ export const flashcardAPI = {
     addWordToFlashcard: (flashcardId, wordData) => {
         return axiosInstance.post(`/flashcards/${flashcardId}/words`, wordData);
     },
+
+    submitAnswer: (flashcardId, data) => {
+        return axiosInstance.post(`/flashcards/learn/${flashcardId}/submit-answer`, data);
+    },
+    
     updateWord: (flashcardId,wordId, wordData) => {
         return axiosInstance.put(
             `/flashcards/${flashcardId}/words/${wordId}`,
