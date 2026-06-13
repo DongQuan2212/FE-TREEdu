@@ -1,6 +1,6 @@
 import Header from "../components/Header/Header";
 import Footer from "../components/Footer/Footer";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
@@ -8,6 +8,7 @@ const API_BASE_URL = "http://localhost:3001";
 
 const RegisterPage = () => {
     const navigate = useNavigate();
+    const avatarInputRef = useRef(null);
 
     // Mở rộng formData chứa đầy đủ các trường cũ và mới
     const [formData, setFormData] = useState({
@@ -16,7 +17,6 @@ const RegisterPage = () => {
         password: "",
         rePassword: "",
         phoneNumber: "",
-        avatarUrl: "",
         birthYear: "",
         address: "",
         gender: "MALE" // Giá trị mặc định hợp lệ theo Enum của bạn
@@ -25,6 +25,7 @@ const RegisterPage = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
+    const [avatarFile, setAvatarFile] = useState(null);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -32,6 +33,26 @@ const RegisterPage = () => {
             ...formData,
             [name]: name === "birthYear" ? (value ? parseInt(value, 10) : "") : value
         });
+    };
+
+    const handleAvatarSelect = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            setError("Vui lòng chọn một file hình ảnh!");
+            return;
+        }
+
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            setError("Kích thước file không được vượt quá 5MB!");
+            return;
+        }
+
+        setError("");
+        setAvatarFile(file);
     };
 
     const handleRegister = async () => {
@@ -79,21 +100,27 @@ const RegisterPage = () => {
         }
 
         try {
-            // Chuẩn bị payload khớp chính xác 100% với Postman log thành công của bạn
-            const payload = {
-                fullName: formData.fullName.trim(),
-                email: formData.email.trim(),
-                password: formData.password,
-                rePassword: formData.rePassword,
-                phoneNumber: formData.phoneNumber.trim() || null,
-                avatarUrl: formData.avatarUrl.trim() || null,
-                birthYear: formData.birthYear || null,
-                address: formData.address.trim() || null,
-                gender: formData.gender
-            };
+            // Chuẩn bị FormData để gửi cả dữ liệu và file
+            const submitData = new FormData();
+            submitData.append('fullName', formData.fullName.trim());
+            submitData.append('email', formData.email.trim());
+            submitData.append('password', formData.password);
+            submitData.append('rePassword', formData.rePassword);
+            submitData.append('phone', formData.phoneNumber.trim() || null);
+            submitData.append('birthYear', formData.birthYear || null);
+            submitData.append('address', formData.address.trim() || null);
+            submitData.append('gender', formData.gender);
 
-            // Nếu endpoint backend của bạn không dùng tiền tố /api, hãy sửa lại thành `${API_BASE_URL}/users/newMember`
-            await axios.post(`${API_BASE_URL}/api/users/newMember`, payload);
+            // Thêm file avatar nếu người dùng chọn
+            if (avatarFile) {
+                submitData.append('avatarFile', avatarFile);
+            }
+
+            await axios.post(`${API_BASE_URL}/api/users/newMember`, submitData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
 
             setSuccess("Đăng ký thành công! Đang chuyển sang trang xác thực email...");
             setTimeout(() => {
@@ -231,11 +258,28 @@ const RegisterPage = () => {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Link ảnh đại diện (URL)</label>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Ảnh đại diện</label>
                                     <input
-                                        type="text" name="avatarUrl" value={formData.avatarUrl} onChange={handleChange} placeholder="https://example.com/avatar.jpg"
-                                        className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-lime-500 focus:outline-none transition-all text-sm" disabled={loading}
+                                        type="file"
+                                        ref={avatarInputRef}
+                                        onChange={handleAvatarSelect}
+                                        accept="image/*"
+                                        style={{ display: 'none' }}
                                     />
+                                    <button
+                                        type="button"
+                                        onClick={() => avatarInputRef.current?.click()}
+                                        disabled={loading}
+                                        className={`w-full px-4 py-2.5 rounded-xl border-2 transition-all text-sm font-medium ${
+                                            avatarFile
+                                                ? "border-green-500 bg-green-50 text-green-700 hover:bg-green-100"
+                                                : "border-gray-200 text-gray-700 hover:border-lime-500 hover:bg-lime-50"
+                                        }`}
+                                    >
+                                        {avatarFile
+                                            ? `✓ ${avatarFile.name}`
+                                            : "📷 Chọn ảnh đại diện"}
+                                    </button>
                                 </div>
                             </div>
                         </div>
