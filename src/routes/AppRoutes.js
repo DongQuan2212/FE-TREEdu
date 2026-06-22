@@ -46,7 +46,8 @@ import AdminReviewList from "../pages/admin/AdminReviewList";
 import DictationList from "../pages/supporter/DictationList";
 import DictationEdit from "../pages/supporter/DictationEdit";
 import DictationPage from "../pages/user/DictationPage";
-import DictationPractice from "../pages/user/DictationPractice"; // <-- THÊM DÒNG NÀY
+import DictationPractice from "../pages/user/DictationPractice";
+import ResendVerifyEmailPage from "../pages/ResendVerifyEmailPage"; // <-- THÊM DÒNG NÀY
 
 function AppRoutes() {
     return (
@@ -61,6 +62,7 @@ function AppRoutes() {
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/oauth2/redirect" element={<OAuth2RedirectHandler />} />
                 <Route path="/reset-password-otp" element={<ResetPasswordOtpPage />} />
+                <Route path="/resend-verify-email" element={<ResendVerifyEmailPage />} />
 
                 {/* User Routes */}
                 <Route path="/home" element={<Home/>} />

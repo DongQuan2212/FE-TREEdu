@@ -28,7 +28,10 @@ function QuizPage() {
     const fetchQuizzes = async () => {
         try {
             setLoading(true);
-            const response = await axiosInstance.get('/quiz');
+
+            // Sửa dòng này: Thêm tham số size=100 để Backend trả về tối đa 100 bài
+            const response = await axiosInstance.get('/quiz?size=100');
+
             if (response.data.success) {
                 setQuizzes(response.data.data.content || []);
             }
@@ -43,7 +46,6 @@ function QuizPage() {
             setLoading(false);
         }
     };
-
     // Lọc + Tìm kiếm
     const filteredQuizzes = quizzes.filter(quiz => {
         const matchesSearch = quiz.title.toLowerCase().includes(searchTerm.toLowerCase());
