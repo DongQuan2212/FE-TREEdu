@@ -3,9 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../../components/user/Header';
 import Footer from '../../components/Footer/Footer';
 import { dictationAPI } from '../../config/api';
-import { Headphones, Clock, BookOpen } from 'lucide-react';
+import { Headphones, Clock, BookOpen, Search } from 'lucide-react';
 
-// Hàm lấy thumbnail từ URL video Cloudinary
 const getCloudinaryThumbnail = (audioUrl) => {
     if (!audioUrl || !audioUrl.includes('cloudinary.com')) return null;
     return audioUrl
@@ -59,16 +58,24 @@ function DictationPage() {
         return matchSearch && matchLevel;
     });
 
+    // Stats tính động
+    const levels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+    const availableLevels = levels.filter(l => dictations.some(d => d.level === l));
+    const totalSegments = dictations.reduce((sum, d) => sum + (d.segments?.length || 0), 0);
+
     if (loading) {
         return (
             <>
                 <Header />
                 <main className="min-h-screen bg-zinc-50 pt-32 pb-12 px-6">
                     <div className="max-w-7xl mx-auto">
-                        <div className="h-10 bg-gray-200 rounded w-64 mb-12 animate-pulse" />
+                        <div className="h-52 bg-white border border-zinc-200 rounded-2xl mb-8 animate-pulse"></div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                            {[1, 2].map(n => <div key={n} className="h-10 bg-gray-100 rounded animate-pulse"></div>)}
+                        </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                            {[1,2,3,4,5,6].map(n => (
-                                <div key={n} className="h-64 bg-white border border-gray-200 rounded-xl animate-pulse" />
+                            {[1, 2, 3, 4, 5, 6].map(n => (
+                                <div key={n} className="h-64 bg-white border border-gray-200 rounded-xl animate-pulse"></div>
                             ))}
                         </div>
                     </div>
@@ -104,40 +111,90 @@ function DictationPage() {
             <main className="min-h-screen bg-zinc-50 pt-28 pb-20 px-6 sm:px-8">
                 <div className="max-w-7xl mx-auto mt-8">
 
-                    {/* Header Section */}
-                    <div className="mb-10">
-                        <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-neutral-900 mb-3">
-                            Nghe chép chính tả
-                        </h1>
-                        <p className="text-zinc-500 font-light">
-                            Luyện kỹ năng nghe với {filteredDictations.length} bài tập có sẵn.
-                        </p>
+                    {/* ── Hero Card ── */}
+                    <div className="bg-white border border-zinc-200 rounded-2xl px-7 pt-7 pb-6 mb-8">
+
+                        {/* Title row */}
+                        <div className="flex items-start justify-between gap-4 mb-5">
+                            <div>
+                                <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-neutral-900">
+                                    Nghe chép chính tả
+                                </h1>
+                                <p className="text-zinc-500 text-sm font-light mt-1.5">
+                                    Luyện kỹ năng nghe và ghi chép với các bài tập đa dạng cấp độ
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Stat pills */}
+                        <div className="flex flex-wrap gap-2 mb-5">
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-100 rounded-full text-xs text-zinc-600 font-medium">
+                                <Headphones className="w-3.5 h-3.5 text-zinc-400" />
+                                <span><strong className="text-zinc-800">{dictations.length}</strong> bài nghe</span>
+                            </div>
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-100 rounded-full text-xs text-zinc-600 font-medium">
+                                <BookOpen className="w-3.5 h-3.5 text-zinc-400" />
+                                <span><strong className="text-zinc-800">{totalSegments.toLocaleString()}</strong> đoạn luyện tập</span>
+                            </div>
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-100 rounded-full text-xs text-zinc-600 font-medium">
+                                <Clock className="w-3.5 h-3.5 text-zinc-400" />
+                                <span><strong className="text-zinc-800">{availableLevels.length}</strong> cấp độ</span>
+                            </div>
+                        </div>
+
+                        {/* Level chips */}
+                        <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-zinc-100">
+                            <span className="text-xs text-zinc-400 font-medium mr-1">Cấp độ:</span>
+                            <button
+                                onClick={() => setSelectedLevel('all')}
+                                className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${
+                                    selectedLevel === 'all'
+                                        ? 'bg-zinc-900 text-white border-zinc-900'
+                                        : 'bg-transparent text-zinc-500 border-zinc-200 hover:border-zinc-400'
+                                }`}
+                            >
+                                Tất cả
+                            </button>
+                            {levels.map(l => (
+                                <button
+                                    key={l}
+                                    onClick={() => setSelectedLevel(l)}
+                                    className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${
+                                        selectedLevel === l
+                                            ? 'bg-zinc-900 text-white border-zinc-900'
+                                            : 'bg-transparent text-zinc-500 border-zinc-200 hover:border-zinc-400'
+                                    }`}
+                                >
+                                    {l}
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
-                    {/* Filter Bar */}
-                    <div className="flex flex-col xl:flex-row gap-4 mb-10 pb-6 border-b border-zinc-200">
-                        <div className="flex-grow xl:max-w-md">
+                    {/* ── Filter Bar ── */}
+                    <div className="flex flex-col sm:flex-row gap-3 mb-6">
+                        {/* Search */}
+                        <div className="flex-grow sm:max-w-sm relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
                             <input
                                 type="text"
                                 placeholder="Tìm kiếm bài nghe..."
                                 value={searchTerm}
                                 onChange={e => setSearchTerm(e.target.value)}
-                                className="w-full pl-4 pr-4 py-2.5 bg-white border border-zinc-300 rounded-lg text-sm text-zinc-900 focus:outline-none focus:border-zinc-800 focus:ring-1 focus:ring-zinc-800 transition-colors"
+                                className="w-full pl-10 pr-4 py-2.5 bg-white border border-zinc-300 rounded-lg text-sm text-zinc-900 focus:outline-none focus:border-zinc-800 focus:ring-1 focus:ring-zinc-800 transition-colors"
                             />
                         </div>
-                        <select
-                            value={selectedLevel}
-                            onChange={e => setSelectedLevel(e.target.value)}
-                            className="px-4 py-2.5 bg-white border border-zinc-300 rounded-lg text-sm text-zinc-700 focus:outline-none focus:border-zinc-800 appearance-none cursor-pointer"
-                        >
-                            <option value="all">Tất cả cấp độ</option>
-                            {['A1','A2','B1','B2','C1','C2'].map(l => (
-                                <option key={l} value={l}>{l}</option>
-                            ))}
-                        </select>
                     </div>
 
-                    {/* Card Grid */}
+                    {/* ── Section label ── */}
+                    <p className="text-xs text-zinc-400 uppercase tracking-wider font-medium mb-4">
+                        {filteredDictations.length} kết quả
+                        {selectedLevel !== 'all' && (
+                            <span className="ml-1 normal-case">· Cấp độ {selectedLevel}</span>
+                        )}
+                    </p>
+
+                    {/* ── Card Grid ── */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {filteredDictations.length === 0 ? (
                             <div className="col-span-full py-20 flex flex-col items-center justify-center text-zinc-400">
@@ -151,7 +208,7 @@ function DictationPage() {
                                     <div
                                         key={item.id}
                                         onClick={() => navigate(`/dictation/${item.id}`)}
-                                        className="group bg-white rounded-xl border border-zinc-200 cursor-pointer hover:border-zinc-400 hover:shadow-md transition-all duration-300 flex flex-col overflow-hidden"
+                                        className="group bg-white rounded-xl border border-zinc-200 cursor-pointer hover:border-zinc-900 hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden"
                                     >
                                         {/* Thumbnail */}
                                         <div className="relative w-full h-36 bg-zinc-100 overflow-hidden">
@@ -160,19 +217,14 @@ function DictationPage() {
                                                     src={thumbnail}
                                                     alt={item.title}
                                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                                    onError={e => {
-                                                        // Nếu Cloudinary không gen được thumbnail thì fallback
-                                                        e.target.style.display = 'none';
-                                                    }}
+                                                    onError={e => { e.target.style.display = 'none'; }}
                                                 />
                                             ) : null}
-                                            {/* Overlay icon play */}
                                             <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors">
                                                 <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
                                                     <Headphones className="w-5 h-5 text-zinc-800" />
                                                 </div>
                                             </div>
-                                            {/* Level badge trên thumbnail */}
                                             <div className="absolute top-2 right-2">
                                                 <span className={getLevelBadge(item.level)}>
                                                     {item.level}
@@ -182,7 +234,7 @@ function DictationPage() {
 
                                         {/* Content */}
                                         <div className="p-5 flex flex-col flex-1 justify-between">
-                                            <h3 className="text-base font-bold text-zinc-900 mb-3 leading-tight line-clamp-2 group-hover:text-emerald-700 transition-colors">
+                                            <h3 className="text-base font-bold text-zinc-900 mb-3 leading-tight line-clamp-2 group-hover:text-zinc-800 transition-colors">
                                                 {item.title}
                                             </h3>
                                             <div className="flex items-center gap-4 text-xs text-zinc-500 font-medium">
@@ -202,16 +254,14 @@ function DictationPage() {
                                                 </div>
                                             </div>
 
-                                            {/* Bottom CTA */}
-                                            <div className="mt-4 pt-4 border-t border-zinc-50 flex items-center justify-between">
-                                                <span className="text-xs font-semibold text-zinc-400 group-hover:text-zinc-600 transition-colors">
+                                            {/* Footer CTA */}
+                                            <div className="mt-6 pt-4 border-t border-zinc-50 flex items-center justify-between">
+                                                <span className="text-xs font-medium text-zinc-400 group-hover:text-zinc-900 transition-colors flex items-center gap-1">
                                                     Luyện ngay
-                                                </span>
-                                                <button className="w-8 h-8 rounded-full bg-zinc-50 group-hover:bg-zinc-900 flex items-center justify-center transition-all duration-300">
-                                                    <svg className="w-4 h-4 text-zinc-400 group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                                                     </svg>
-                                                </button>
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
