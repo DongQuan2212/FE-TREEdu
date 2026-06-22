@@ -120,7 +120,8 @@ const LoginPage = () => {
 
             <main className="flex-1 flex items-center justify-center px-5 py-10">
                 <div className="w-full max-w-md mt-20">
-                    <div className="bg-white/95 backdrop-blur-xl rounded-3xl p-8 sm:p-10 shadow-2xl border border-white/30">
+                    <div
+                        className="bg-white/95 backdrop-blur-xl rounded-3xl p-8 sm:p-10 shadow-2xl border border-white/30">
                         <div className="text-center mb-8">
                             <h2 className="text-3xl font-bold text-gray-800">Chào mừng bạn trở lại!</h2>
                             <p className="text-gray-600 mt-2">Đăng nhập để tiếp tục hành trình học tập</p>
@@ -213,12 +214,23 @@ const LoginPage = () => {
 
                         </form>
 
-                        <div className="mt-8 pt-6 border-t border-gray-200 text-center">
+                        <div className="mt-8 pt-6 border-t border-gray-200 text-center space-y-2">
                             <p className="text-gray-600 text-sm">
                                 Chưa có tài khoản?{" "}
                                 <a href="/register" className="font-bold text-lime-600 hover:underline">
                                     Đăng ký ngay
                                 </a>
+                            </p>
+                            {/* ─── DÒNG TEXT ĐƯỢC THÊM MỚI Ở ĐÂY ─── */}
+                            <p className="text-gray-600 text-sm">
+                                Tài khoản chưa kích hoạt?{" "}
+                                <button
+                                    type="button"
+                                    onClick={() => navigate("/resend-verify-email")}
+                                    className="font-bold text-lime-600 hover:underline bg-transparent border-none cursor-pointer"
+                                >
+                                    Kích hoạt tài khoản tại đây
+                                </button>
                             </p>
                         </div>
                     </div>

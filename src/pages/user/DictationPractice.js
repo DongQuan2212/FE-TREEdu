@@ -9,13 +9,13 @@ import Footer from '../../components/Footer/Footer';
 import { dictationAPI } from '../../config/api';
 import { notify } from '../../utils/toastNotify';
 
-// ─── Hàm đếm số từ trong transcript ───────────────────────────────────────────
+
 const countWords = (text) => {
     if (!text) return [];
     return text.trim().split(/\s+/).filter(Boolean);
 };
 
-// ─── Màn hình kết quả cuối ─────────────────────────────────────────────────────
+
 const ResultScreen = ({ results, lesson, onRestart, onBack }) => {
     const totalSegments = results.length;
     const passedSegments = results.filter(r => r.passed).length;

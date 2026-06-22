@@ -12,7 +12,6 @@ import {
     showInfoDialog
 } from '../../utils/confirmation';
 
-// ⭐ THÊM: Import thêm Star, Award, Zap để làm icon cho phần XP và Level
 import {
     Clock, CheckCircle, XCircle, ChevronLeft,
     ChevronRight, Flag, CheckSquare, RotateCcw,
