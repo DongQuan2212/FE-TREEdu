@@ -3,17 +3,9 @@ import { useNavigate } from "react-router-dom";
 import Header from "../../components/user/Header";
 import Footer from "../../components/Footer/Footer";
 import { flashcardAPI } from '../../config/api';
-import {
-    Globe,
-    Lock,
-    Search,
-    Filter,
-    ArrowRight,
-    Flag
-} from 'lucide-react';
+import { Globe, Lock, Search, ArrowRight, Flag, Plus } from 'lucide-react';
 
 import iconbook from "../../asset/User/book.png";
-import iconadd from "../../asset/User/plus.png";
 import iconDictionary from "../../asset/User/dictionary.png";
 
 function MyFlashCardPage() {
@@ -25,13 +17,13 @@ function MyFlashCardPage() {
     const [selectedFlashcard, setSelectedFlashcard] = useState(null);
     const [reportReason, setReportReason] = useState('');
     const [reportLoading, setReportLoading] = useState(false);
-    // --- Filter States ---
+
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedLevel, setSelectedLevel] = useState('all');
     const [selectedTopic, setSelectedTopic] = useState('all');
     const [selectedType, setSelectedType] = useState('all');
-    const [selectedVisibility, setSelectedVisibility] = useState('all'); // Thêm state visibility
-    const [sortBy, setSortBy] = useState('newest'); // Mặc định mới nhất lên đầu
+    const [selectedVisibility, setSelectedVisibility] = useState('all');
+    const [sortBy, setSortBy] = useState('newest');
 
     useEffect(() => {
         fetchFlashcards();
@@ -52,20 +44,16 @@ function MyFlashCardPage() {
         }
     };
 
-    // --- Logic Lọc (Filter) ---
     const filteredFlashcards = flashcards.filter(card => {
         const matchesSearch = card.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (card.description && card.description.toLowerCase().includes(searchTerm.toLowerCase()));
         const matchesLevel = selectedLevel === 'all' || card.level === Number(selectedLevel);
         const matchesTopic = selectedTopic === 'all' || card.topic === selectedTopic;
         const matchesType = selectedType === 'all' || card.type === selectedType;
-        // Logic lọc visibility: Card System luôn là PUBLIC nên vẫn thoả mãn nếu chọn 'all' hoặc 'PUBLIC'
         const matchesVisibility = selectedVisibility === 'all' || card.visibility === selectedVisibility;
-
         return matchesSearch && matchesLevel && matchesTopic && matchesType && matchesVisibility;
     });
 
-    // --- Logic Sắp xếp (Sort) ---
     const sortedFlashcards = [...filteredFlashcards].sort((a, b) => {
         switch (sortBy) {
             case 'title': return a.title.localeCompare(b.title);
@@ -76,11 +64,17 @@ function MyFlashCardPage() {
         }
     });
 
+    // Stats tính động
+    const uniqueTopics = [...new Set(flashcards.map(f => f.topic).filter(Boolean))];
+    const totalWords = flashcards.reduce((sum, f) => sum + (f.wordCount || 0), 0);
+    const systemCount = flashcards.filter(f => f.type === 'SYSTEM').length;
+    const memberCount = flashcards.filter(f => f.type === 'BY_MEMBER').length;
+
     const handleDetail = (id) => navigate(`/flashcard/detail/${id}`);
     const handleCreate = () => navigate('/flashcard/create');
+
     const handleOpenReport = (e, flashcard) => {
         e.stopPropagation();
-
         setSelectedFlashcard(flashcard);
         setReportReason('');
         setReportModal(true);
@@ -91,34 +85,20 @@ function MyFlashCardPage() {
             alert("Vui lòng nhập lý do báo cáo");
             return;
         }
-
         try {
             setReportLoading(true);
-
-            await flashcardAPI.reportFlashcard(
-                selectedFlashcard.id,
-                {
-                    reason: reportReason
-                }
-            );
-
+            await flashcardAPI.reportFlashcard(selectedFlashcard.id, { reason: reportReason });
             alert("Báo cáo flashcard thành công");
-
             setReportModal(false);
             setSelectedFlashcard(null);
-
         } catch (error) {
             console.error(error);
-
-            alert(
-                error?.response?.data?.message ||
-                "Không thể báo cáo flashcard"
-            );
+            alert(error?.response?.data?.message || "Không thể báo cáo flashcard");
         } finally {
             setReportLoading(false);
         }
     };
-    // --- Helper Badge Styles ---
+
     const getLevelBadge = (level) => {
         const style = {
             1: 'border-green-200 bg-green-50 text-green-700',
@@ -130,77 +110,196 @@ function MyFlashCardPage() {
         return `px-2 py-0.5 border text-[10px] font-bold rounded ${style}`;
     };
 
-    // --- Loading & Error States (Giữ nguyên như cũ) ---
-    if (loading) return (/* Skeleton UI của bạn */ <div className="p-20 text-center">Đang tải...</div>);
-    if (error) return (<div className="p-20 text-center">{error}</div>);
+    // --- Loading State ---
+    if (loading) {
+        return (
+            <>
+                <Header />
+                <main className="min-h-screen bg-zinc-50 pt-32 pb-12 px-6">
+                    <div className="max-w-7xl mx-auto">
+                        <div className="h-52 bg-white border border-zinc-200 rounded-2xl mb-8 animate-pulse"></div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                            {[1, 2, 3].map(n => <div key={n} className="h-10 bg-gray-100 rounded animate-pulse"></div>)}
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                            {[1, 2, 3, 4, 5, 6].map(n => (
+                                <div key={n} className="h-64 bg-white border border-gray-200 rounded-2xl animate-pulse"></div>
+                            ))}
+                        </div>
+                    </div>
+                </main>
+                <Footer />
+            </>
+        );
+    }
+
+    // --- Error State ---
+    if (error) {
+        return (
+            <>
+                <Header />
+                <main className="min-h-screen bg-zinc-50 flex items-center justify-center px-4">
+                    <div className="text-center">
+                        <p className="text-zinc-800 font-medium mb-4">{error}</p>
+                        <button onClick={fetchFlashcards} className="px-6 py-2 bg-zinc-900 text-white rounded-lg hover:bg-zinc-700 transition text-sm font-medium">
+                            Thử lại
+                        </button>
+                    </div>
+                </main>
+                <Footer />
+            </>
+        );
+    }
 
     return (
         <>
             <Header />
+
             <main className="min-h-screen bg-zinc-50 pt-28 pb-20 px-6 sm:px-8">
                 <div className="max-w-7xl mx-auto mt-8">
 
-                    {/* Header Section */}
-                    <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
-                        <div>
-                            <h1 className="text-4xl font-bold tracking-tight text-neutral-900 mb-2">Thư viện Flashcard</h1>
-                            <p className="text-zinc-500 font-light">Khám phá và quản lý kiến thức của bạn qua {sortedFlashcards.length} bộ thẻ.</p>
-                        </div>
-                        <button
-                            onClick={handleCreate}
-                            className="flex items-center gap-2 bg-zinc-900 text-white px-5 py-2.5 rounded-lg hover:bg-black transition-all shadow-sm font-medium text-sm w-fit"
-                        >
-                            <img src={iconadd} alt="" className="w-4 h-4 invert" />
-                            Tạo bộ thẻ mới
-                        </button>
-                    </div>
+                    {/* ── Hero Card ── */}
+                    <div className="bg-white border border-zinc-200 rounded-2xl px-7 pt-7 pb-6 mb-8">
 
-                    {/* Filter Bar */}
-                    <div className="bg-white p-4 rounded-xl border border-zinc-200 shadow-sm mb-10 space-y-4">
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-                            {/* Search */}
-                            <div className="lg:col-span-4 relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-                                <input
-                                    type="text"
-                                    placeholder="Tìm tên bộ thẻ, mô tả..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-zinc-800 transition-all"
-                                />
+                        {/* Title row */}
+                        <div className="flex items-start justify-between gap-4 mb-5">
+                            <div>
+                                <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-neutral-900">
+                                    Thư viện Flashcard
+                                </h1>
+                                <p className="text-zinc-500 text-sm font-light mt-1.5">
+                                    Khám phá và học từ vựng qua các bộ thẻ đa dạng
+                                </p>
                             </div>
+                            <button
+                                onClick={handleCreate}
+                                className="shrink-0 flex items-center gap-2 bg-zinc-900 text-white px-4 py-2 rounded-lg hover:bg-black transition-all text-sm font-medium"
+                            >
+                                <Plus className="w-4 h-4" />
+                                Tạo bộ thẻ
+                            </button>
+                        </div>
 
-                            {/* Dropdowns */}
-                            <div className="lg:col-span-8 grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                <select value={selectedTopic} onChange={(e) => setSelectedTopic(e.target.value)} className="filter-select">
-                                    <option value="all">Mọi chủ đề</option>
-                                    {[...new Set(flashcards.map(f => f.topic).filter(Boolean))].map(topic => (
-                                        <option key={topic} value={topic}>{topic}</option>
-                                    ))}
-                                </select>
-
-                                <select value={selectedVisibility} onChange={(e) => setSelectedVisibility(e.target.value)} className="filter-select font-medium text-zinc-900">
-                                    <option value="all">Mọi chế độ</option>
-                                    <option value="PUBLIC">🌍 Công khai</option>
-                                    <option value="PRIVATE">🔒 Riêng tư</option>
-                                </select>
-
-                                <select value={selectedType} onChange={(e) => setSelectedType(e.target.value)} className="filter-select">
-                                    <option value="all">Mọi loại thẻ</option>
-                                    <option value="SYSTEM">Hệ thống</option>
-                                    <option value="BY_MEMBER">Thành viên</option>
-                                </select>
-
-                                <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="filter-select">
-                                    <option value="newest">Mới nhất</option>
-                                    <option value="title">Tên A-Z</option>
-                                    <option value="wordCount">Số từ</option>
-                                </select>
+                        {/* Stat pills */}
+                        <div className="flex flex-wrap gap-2 mb-5">
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-100 rounded-full text-xs text-zinc-600 font-medium">
+                                <svg className="w-3.5 h-3.5 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                </svg>
+                                <span><strong className="text-zinc-800">{flashcards.length}</strong> bộ thẻ</span>
+                            </div>
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-100 rounded-full text-xs text-zinc-600 font-medium">
+                                <svg className="w-3.5 h-3.5 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                </svg>
+                                <span><strong className="text-zinc-800">{uniqueTopics.length}</strong> chủ đề</span>
+                            </div>
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-100 rounded-full text-xs text-zinc-600 font-medium">
+                                <img src={iconDictionary} alt="" className="w-3.5 h-3.5 opacity-50" />
+                                <span><strong className="text-zinc-800">{totalWords.toLocaleString()}</strong> từ vựng</span>
+                            </div>
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 border border-blue-100 rounded-full text-xs text-blue-700 font-medium">
+                                <span>{systemCount} hệ thống</span>
+                            </div>
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 border border-purple-100 rounded-full text-xs text-purple-700 font-medium">
+                                <span>{memberCount} thành viên</span>
                             </div>
                         </div>
+
+                        {/* Topic chips */}
+                        <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-zinc-100">
+                            <span className="text-xs text-zinc-400 font-medium mr-1">Chủ đề:</span>
+                            <button
+                                onClick={() => setSelectedTopic('all')}
+                                className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${
+                                    selectedTopic === 'all'
+                                        ? 'bg-zinc-900 text-white border-zinc-900'
+                                        : 'bg-transparent text-zinc-500 border-zinc-200 hover:border-zinc-400'
+                                }`}
+                            >
+                                Tất cả
+                            </button>
+                            {uniqueTopics.map(topic => (
+                                <button
+                                    key={topic}
+                                    onClick={() => setSelectedTopic(topic)}
+                                    className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${
+                                        selectedTopic === topic
+                                            ? 'bg-zinc-900 text-white border-zinc-900'
+                                            : 'bg-transparent text-zinc-500 border-zinc-200 hover:border-zinc-400'
+                                    }`}
+                                >
+                                    {topic}
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
-                    {/* Grid Content */}
+                    {/* ── Filter Bar ── */}
+                    <div className="flex flex-col sm:flex-row gap-3 mb-6">
+                        {/* Search */}
+                        <div className="flex-grow sm:max-w-sm relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                            <input
+                                type="text"
+                                placeholder="Tìm tên bộ thẻ, mô tả..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2.5 bg-white border border-zinc-300 rounded-lg text-sm text-zinc-900 focus:outline-none focus:border-zinc-800 focus:ring-1 focus:ring-zinc-800 transition-colors"
+                            />
+                        </div>
+
+                        {/* Dropdowns */}
+                        <div className="flex flex-wrap gap-3">
+                            <select
+                                value={selectedVisibility}
+                                onChange={(e) => setSelectedVisibility(e.target.value)}
+                                className="px-4 py-2.5 bg-white border border-zinc-300 rounded-lg text-sm text-zinc-700 focus:outline-none focus:border-zinc-800 appearance-none cursor-pointer"
+                            >
+                                <option value="all">Mọi chế độ</option>
+                                <option value="PUBLIC">Công khai</option>
+                                <option value="PRIVATE">Riêng tư</option>
+                            </select>
+
+                            <select
+                                value={selectedType}
+                                onChange={(e) => setSelectedType(e.target.value)}
+                                className="px-4 py-2.5 bg-white border border-zinc-300 rounded-lg text-sm text-zinc-700 focus:outline-none focus:border-zinc-800 appearance-none cursor-pointer"
+                            >
+                                <option value="all">Mọi loại thẻ</option>
+                                <option value="SYSTEM">Hệ thống</option>
+                                <option value="BY_MEMBER">Thành viên</option>
+                            </select>
+
+                            <select
+                                value={sortBy}
+                                onChange={(e) => setSortBy(e.target.value)}
+                                className="px-4 py-2.5 bg-white border border-zinc-300 rounded-lg text-sm text-zinc-700 focus:outline-none focus:border-zinc-800 appearance-none cursor-pointer"
+                            >
+                                <option value="newest">Mới nhất</option>
+                                <option value="title">Tên A → Z</option>
+                                <option value="wordCount">Số từ nhiều nhất</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* ── Section label ── */}
+                    <p className="text-xs text-zinc-400 uppercase tracking-wider font-medium mb-4">
+                        {sortedFlashcards.length} kết quả
+                        {selectedTopic !== 'all' && <span className="ml-1 normal-case">trong "{selectedTopic}"</span>}
+                        {selectedVisibility !== 'all' && (
+                            <span className="ml-1 normal-case">
+                                · {selectedVisibility === 'PUBLIC' ? 'Công khai' : 'Riêng tư'}
+                            </span>
+                        )}
+                        {selectedType !== 'all' && (
+                            <span className="ml-1 normal-case">
+                                · {selectedType === 'SYSTEM' ? 'Hệ thống' : 'Thành viên'}
+                            </span>
+                        )}
+                    </p>
+
+                    {/* ── Grid Content ── */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {sortedFlashcards.length === 0 ? (
                             <div className="col-span-full py-20 flex flex-col items-center justify-center text-zinc-400">
@@ -217,12 +316,11 @@ function MyFlashCardPage() {
                                     {/* Badges Row */}
                                     <div className="flex justify-between items-start mb-4">
                                         <div className="flex flex-wrap gap-2">
-                                            <span
-                                                className={`px-2 py-0.5 text-[10px] font-bold rounded uppercase tracking-wider border ${
-                                                    flashcard.type === 'SYSTEM'
-                                                        ? 'bg-blue-50 text-blue-700 border-blue-100'
-                                                        : 'bg-purple-50 text-purple-700 border-purple-100'
-                                                }`}>
+                                            <span className={`px-2 py-0.5 text-[10px] font-bold rounded uppercase tracking-wider border ${
+                                                flashcard.type === 'SYSTEM'
+                                                    ? 'bg-blue-50 text-blue-700 border-blue-100'
+                                                    : 'bg-purple-50 text-purple-700 border-purple-100'
+                                            }`}>
                                                 {flashcard.type === 'SYSTEM' ? 'Hệ thống' : 'Thành viên'}
                                             </span>
                                             <span className={getLevelBadge(flashcard.level)}>
@@ -231,29 +329,22 @@ function MyFlashCardPage() {
                                         </div>
 
                                         <div className="flex items-center gap-2">
-
-                                            {/* REPORT */}
                                             {!flashcard.isOwner && (
                                                 <button
                                                     onClick={(e) => handleOpenReport(e, flashcard)}
                                                     className="transition-all"
                                                     title="Báo cáo flashcard"
                                                 >
-                                                    <Flag
-                                                        className="w-4 h-4 text-zinc-400 hover:text-red-500 transition-colors"/>
+                                                    <Flag className="w-4 h-4 text-zinc-400 hover:text-red-500 transition-colors" />
                                                 </button>
                                             )}
-
-                                            {/* VISIBILITY */}
                                             <div title={flashcard.visibility === 'PUBLIC' ? 'Công khai' : 'Riêng tư'}>
                                                 {flashcard.visibility === 'PUBLIC' ? (
-                                                    <Globe
-                                                        className="w-4 h-4 text-zinc-400 group-hover:text-blue-500 transition-colors"/>
+                                                    <Globe className="w-4 h-4 text-zinc-400 group-hover:text-blue-500 transition-colors" />
                                                 ) : (
-                                                    <Lock className="w-4 h-4 text-amber-500"/>
+                                                    <Lock className="w-4 h-4 text-amber-500" />
                                                 )}
                                             </div>
-
                                         </div>
                                     </div>
 
@@ -263,8 +354,9 @@ function MyFlashCardPage() {
                                             {flashcard.title}
                                         </h3>
                                         <div className="flex items-center gap-2 mb-3">
-                                            <span
-                                                className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{flashcard.topic || 'General'}</span>
+                                            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+                                                {flashcard.topic || 'General'}
+                                            </span>
                                         </div>
                                         <p className="text-sm text-zinc-500 line-clamp-2 italic">
                                             {flashcard.description || "Không có mô tả cho bộ thẻ này."}
@@ -277,13 +369,12 @@ function MyFlashCardPage() {
                                             <img src={iconDictionary} alt="" className="w-4 h-4 opacity-70" />
                                             <span className="text-xs font-bold">{flashcard.wordCount} thẻ</span>
                                         </div>
-
                                         <div className="flex items-center gap-1 text-xs font-medium text-zinc-400 group-hover:text-zinc-900 transition-colors">
                                             Chi tiết <ArrowRight className="w-3 h-3" />
                                         </div>
                                     </div>
 
-                                    {/* Chủ sở hữu (Nếu là của Member khác) */}
+                                    {/* Shared badge */}
                                     {!flashcard.isOwner && flashcard.type === 'BY_MEMBER' && (
                                         <div className="absolute -top-2 -right-2 bg-white shadow-sm border border-zinc-100 rounded-full px-2 py-1 flex items-center gap-1">
                                             <div className="w-2 h-2 rounded-full bg-green-500"></div>
@@ -296,73 +387,41 @@ function MyFlashCardPage() {
                     </div>
                 </div>
             </main>
-            {/* REPORT MODAL */}
+
+            {/* ── Report Modal ── */}
             {reportModal && (
                 <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
                     <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl">
-
-                        <h2 className="text-xl font-bold text-zinc-900 mb-2">
-                            Báo cáo flashcard
-                        </h2>
-
+                        <h2 className="text-xl font-bold text-zinc-900 mb-2">Báo cáo flashcard</h2>
                         <p className="text-sm text-zinc-500 mb-4">
-                            Flashcard:
-                            <span className="font-semibold ml-1">
-                    {selectedFlashcard?.title}
-                </span>
+                            Flashcard: <span className="font-semibold ml-1">{selectedFlashcard?.title}</span>
                         </p>
-
                         <textarea
                             value={reportReason}
                             onChange={(e) => setReportReason(e.target.value)}
                             placeholder="Nhập lý do báo cáo..."
                             className="w-full min-h-[120px] border border-zinc-200 rounded-xl p-4 text-sm outline-none focus:ring-2 focus:ring-zinc-900 resize-none"
                         />
-
                         <div className="flex justify-end gap-3 mt-5">
-
                             <button
                                 onClick={() => setReportModal(false)}
                                 className="px-4 py-2 rounded-lg border border-zinc-200 text-sm font-medium hover:bg-zinc-50"
                             >
                                 Hủy
                             </button>
-
                             <button
                                 onClick={handleSubmitReport}
                                 disabled={reportLoading}
                                 className="px-4 py-2 rounded-lg bg-red-500 text-white text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-50"
                             >
-                                {reportLoading
-                                    ? 'Đang gửi...'
-                                    : 'Gửi báo cáo'}
+                                {reportLoading ? 'Đang gửi...' : 'Gửi báo cáo'}
                             </button>
-
                         </div>
                     </div>
                 </div>
             )}
-            <Footer />
 
-            {/* CSS inline cho select để đồng bộ UI */}
-            <style jsx>{`
-                .filter-select {
-                    width: 100%;
-                    padding: 0.5rem 0.75rem;
-                    background-color: #f9f9fb;
-                    border: 1px solid #e4e4e7;
-                    border-radius: 0.5rem;
-                    font-size: 0.875rem;
-                    color: #3f3f46;
-                    outline: none;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                }
-                .filter-select:focus {
-                    border-color: #18181b;
-                    background-color: #fff;
-                }
-            `}</style>
+            <Footer />
         </>
     );
 }
