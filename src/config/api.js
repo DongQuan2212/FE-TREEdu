@@ -39,7 +39,7 @@ export const flashcardAPI = {
     submitAnswer: (flashcardId, data) => {
         return axiosInstance.post(`/flashcards/learn/${flashcardId}/submit-answer`, data);
     },
-    
+
     updateWord: (flashcardId,wordId, wordData) => {
         return axiosInstance.put(
             `/flashcards/${flashcardId}/words/${wordId}`,
@@ -172,3 +172,26 @@ export const leaderboardAPI = {
         return axiosInstance.get('/leaderboard/total-xp');
     }
 };
+// Thêm vào cuối file api.js để quản lý hệ thống Thông báo
+export const notificationAPI = {
+    // Lấy danh sách thông báo của user hiện tại
+    getMyNotifications: () => {
+        return axiosInstance.get('/notifications');
+    },
+
+    // Đếm số lượng thông báo chưa đọc để hiển thị badge quả chuông
+    getUnreadCount: () => {
+        return axiosInstance.get('/notifications/unread-count');
+    },
+
+    // Đánh dấu một thông báo cụ thể đã đọc
+    markAsRead: (notificationId) => {
+        return axiosInstance.put(`/notifications/${notificationId}/read`);
+    },
+
+    // Đánh dấu tất cả thông báo là đã đọc
+    markAllAsRead: () => {
+        return axiosInstance.put('/api/notifications/read-all');
+    }
+};
+

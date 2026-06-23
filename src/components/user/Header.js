@@ -2,7 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Logo from '../../asset/logo1.png';
 import { useAuth } from '../../hook/useAuth';
-import { userAPI } from '../../config/api';
+import { userAPI, notificationAPI } from '../../config/api';
+// 🌟 Nhập file modal riêng (ông nhớ lưu file kia là NotificationDetailModal.js nha)
+import NotificationDetailModal from './NotificationDetailModal';
 import {
     User,
     Clock,
@@ -14,7 +16,10 @@ import {
     LogIn,
     UserPlus,
     Flame,
-    Award
+    Award,
+    Bell,
+    CheckCheck,
+    MessageSquare
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -47,6 +52,12 @@ const ROLE_CONFIG = {
     }
 };
 
+const formatNotificationTime = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' - ' + date.toLocaleDateString('vi-VN');
+};
+
 const RoleBadge = ({ role }) => {
     const config = ROLE_CONFIG[role] || ROLE_CONFIG.ROLE_MEMBER;
     return (
@@ -58,7 +69,7 @@ const RoleBadge = ({ role }) => {
 };
 
 const UserAvatar = ({ user, profile, loading, onClick }) => {
-    const finalAvatar = profile?.avatarUrl || user?.avatarUrl || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+    const finalAvatar = profile?.avatarUrl || user?.avatarUrl || "https://cdn-icons-png.flatic.com/512/149/149071.png";
     return (
         <button
             onClick={onClick}
@@ -101,6 +112,73 @@ const DropdownMenuItem = ({ icon: Icon, label, onClick, variant = 'default' }) =
     );
 };
 
+const NotificationDropdown = ({ notifications, onClose, onNotificationClick, onMarkAllAsRead, loading }) => {
+    const dropdownRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) onClose();
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [onClose]);
+
+    return (
+        <div ref={dropdownRef} className="absolute right-0 mt-3 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-neutral-200 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="px-4 py-2.5 border-b border-neutral-100 flex items-center justify-between">
+                <span className="font-bold text-neutral-900 text-base">Thông báo</span>
+                {notifications.length > 0 && (
+                    <button
+                        onClick={onMarkAllAsRead}
+                        className="text-xs text-emerald-600 hover:text-emerald-700 font-semibold flex items-center gap-1 hover:underline transition-colors"
+                    >
+                        <CheckCheck size={14} /> Đọc tất cả
+                    </button>
+                )}
+            </div>
+
+            <div className="max-h-[400px] overflow-y-auto chunk-scrollbar">
+                {loading ? (
+                    <div className="p-8 text-center text-neutral-400 text-sm animate-pulse">Đang tải thông báo...</div>
+                ) : notifications.length === 0 ? (
+                    <div className="p-8 text-center text-neutral-400 text-sm flex flex-col items-center gap-2">
+                        <Bell size={28} className="text-neutral-300" />
+                        <span>Bạn chưa có thông báo nào</span>
+                    </div>
+                ) : (
+                    notifications.map((notif) => (
+                        <div
+                            key={notif.id}
+                            onClick={() => onNotificationClick(notif)}
+                            className={`px-4 py-3 border-b border-neutral-50 flex gap-3 transition-colors text-left cursor-pointer ${!notif.isSeen ? 'bg-emerald-50/40 hover:bg-emerald-50' : 'hover:bg-neutral-50'}`}
+                        >
+                            <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${!notif.isSeen ? 'bg-emerald-100 text-emerald-600' : 'bg-neutral-100 text-neutral-500'}`}>
+                                <MessageSquare size={16} />
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                                <div className="flex justify-between items-start gap-2">
+                                    <p className={`text-sm truncate ${!notif.isSeen ? 'font-bold text-neutral-900' : 'font-medium text-neutral-700'}`}>
+                                        {notif.title}
+                                    </p>
+                                    {!notif.isSeen && (
+                                        <span className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0 mt-1.5" />
+                                    )}
+                                </div>
+                                <p className="text-xs text-neutral-500 line-clamp-2 mt-0.5">{notif.content}</p>
+                                <span className="text-[10px] text-neutral-400 mt-1 block">
+                                    {formatNotificationTime(notif.createdAt)}
+                                </span>
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
+        </div>
+    );
+};
+
+// 🌟 ĐÃ BỔ SUNG LẠI: Component UserDropdown bị mất tích đây rồi!
 const UserDropdown = ({ user, profile, onClose }) => {
     const navigate = useNavigate();
     const { logout } = useAuth();
@@ -124,7 +202,7 @@ const UserDropdown = ({ user, profile, onClose }) => {
     const displayAvatar = profile?.avatarUrl || user?.avatarUrl;
 
     return (
-        <div ref={dropdownRef} className="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-2xl border border-neutral-200 py-2 z-50">
+        <div ref={dropdownRef} className="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-2xl border border-neutral-200 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
             <div className="px-4 py-3 border-b border-neutral-100">
                 <div className="flex items-start gap-3 mb-3">
                     {displayAvatar ? (
@@ -142,7 +220,6 @@ const UserDropdown = ({ user, profile, onClose }) => {
                 <div className="flex items-center justify-between mt-2">
                     <RoleBadge role={user?.role} />
 
-                    {/* Hiển thị ngọn lửa Streak học tập */}
                     {profile && (
                         <div className="flex items-center gap-1 text-orange-500 text-xs font-bold bg-orange-50 px-2 py-1 rounded-lg border border-orange-100 animate-pulse">
                             <Flame size={14} className="fill-current"/>
@@ -151,7 +228,6 @@ const UserDropdown = ({ user, profile, onClose }) => {
                     )}
                 </div>
 
-                {/* Thanh hiển thị Level & XP */}
                 {profile && (
                     <div className="mt-4 bg-neutral-50 p-2.5 rounded-xl border border-neutral-100">
                         <div className="flex justify-between items-center text-xs mb-1">
@@ -264,7 +340,13 @@ const Header = () => {
     const [profile, setProfile] = useState(null);
     const [profileLoading, setProfileLoading] = useState(false);
 
-    // 🌟 ĐÃ CẬP NHẬT: Gọi API thông qua userAPI xịn vừa cấu hình
+    const [isNotifOpen, setIsNotifOpen] = useState(false);
+    const [notifications, setNotifications] = useState([]);
+    const [unreadCount, setUnreadCount] = useState(0);
+    const [notifLoading, setNotifLoading] = useState(false);
+
+    const [activeNotification, setActiveNotification] = useState(null);
+
     useEffect(() => {
         const fetchUserProfile = async () => {
             if (!user) {
@@ -273,7 +355,6 @@ const Header = () => {
             }
             setProfileLoading(true);
             try {
-                // Sử dụng hàm getProfile() từ config/api.js
                 const res = await userAPI.getProfile();
                 if (res && res.data) {
                     setProfile(res.data);
@@ -287,6 +368,69 @@ const Header = () => {
 
         fetchUserProfile();
     }, [user]);
+
+    useEffect(() => {
+        const fetchUnreadCount = async () => {
+            if (!user) return;
+            try {
+                const res = await notificationAPI.getUnreadCount();
+                if (res && res.data) setUnreadCount(res.data.data || 0);
+            } catch (error) {
+                console.error("❌ Lỗi đếm thông báo chưa đọc:", error);
+            }
+        };
+        fetchUnreadCount();
+
+        const interval = setInterval(fetchUnreadCount, 30000);
+        return () => clearInterval(interval);
+    }, [user]);
+
+    const handleToggleNotification = async () => {
+        const nextState = !isNotifOpen;
+        setIsNotifOpen(nextState);
+        if (isMenuOpen) setIsMenuOpen(false);
+
+        if (nextState && user) {
+            setNotifLoading(true);
+            try {
+                const res = await notificationAPI.getMyNotifications();
+                if (res && res.data) {
+                    setNotifications(res.data.data || []);
+                }
+            } catch (error) {
+                console.error("❌ Lỗi tải danh sách thông báo:", error);
+            } finally {
+                setNotifLoading(false);
+            }
+        }
+    };
+
+    const handleNotificationClick = async (notif) => {
+        setActiveNotification(notif);
+        setIsNotifOpen(false);
+
+        if (!notif.isSeen) {
+            try {
+                await notificationAPI.markAsRead(notif.id);
+                setNotifications(prev =>
+                    prev.map(n => n.id === notif.id ? { ...n, isSeen: true } : n)
+                );
+                setUnreadCount(prev => Math.max(0, prev - 1));
+            } catch (error) {
+                console.error("❌ Lỗi đồng bộ trạng thái đọc lên server:", error);
+            }
+        }
+    };
+
+    const handleMarkAllAsRead = async () => {
+        try {
+            await notificationAPI.markAllAsRead();
+            setNotifications(prev => prev.map(n => ({ ...n, isSeen: true })));
+            setUnreadCount(0);
+        } catch (error) {
+            console.error("❌ Lỗi khi đánh dấu đọc tất cả:", error);
+        }
+    };
 
     const handleLogoClick = () => navigate('/home');
     const handleNavigate = (path) => navigate(path);
@@ -333,20 +477,52 @@ const Header = () => {
                         {isTotalLoading ? (
                             <div className="w-10 h-10 rounded-full bg-neutral-200 animate-pulse" />
                         ) : user ? (
-                            <div className="relative">
-                                <UserAvatar
-                                    user={user}
-                                    profile={profile}
-                                    loading={isTotalLoading}
-                                    onClick={() => setIsMenuOpen(!isMenuOpen)}
-                                />
-                                {isMenuOpen && (
-                                    <UserDropdown
+                            <div className="flex items-center gap-4">
+
+                                {/* NÚT CHUÔNG THÔNG BÁO VÀ DROPDOWN */}
+                                <div className="relative">
+                                    <button
+                                        onClick={handleToggleNotification}
+                                        className={`p-2.5 rounded-full border transition-all duration-200 focus:outline-none relative ${isNotifOpen ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'text-neutral-600 hover:text-emerald-600 border-neutral-200 hover:bg-neutral-50 hover:scale-105'}`}
+                                    >
+                                        <Bell size={20} />
+                                        {unreadCount > 0 && (
+                                            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-white animate-bounce">
+                                                {unreadCount > 99 ? '99+' : unreadCount}
+                                            </span>
+                                        )}
+                                    </button>
+
+                                    {isNotifOpen && (
+                                        <NotificationDropdown
+                                            notifications={notifications}
+                                            loading={notifLoading}
+                                            onClose={() => setIsNotifOpen(false)}
+                                            onNotificationClick={handleNotificationClick}
+                                            onMarkAllAsRead={handleMarkAllAsRead}
+                                        />
+                                    )}
+                                </div>
+
+                                {/* Avatar Dropdown */}
+                                <div className="relative">
+                                    <UserAvatar
                                         user={user}
                                         profile={profile}
-                                        onClose={() => setIsMenuOpen(false)}
+                                        loading={isTotalLoading}
+                                        onClick={() => {
+                                            setIsMenuOpen(!isMenuOpen);
+                                            if (isNotifOpen) setIsNotifOpen(false);
+                                        }}
                                     />
-                                )}
+                                    {isMenuOpen && (
+                                        <UserDropdown
+                                            user={user}
+                                            profile={profile}
+                                            onClose={() => setIsMenuOpen(false)}
+                                        />
+                                    )}
+                                </div>
                             </div>
                         ) : (
                             <div className="hidden lg:flex items-center gap-3">
@@ -376,6 +552,14 @@ const Header = () => {
                 onNavigate={handleNavigate}
                 user={user}
             />
+
+            {/* Render khối Modal chi tiết thông báo */}
+            {activeNotification && (
+                <NotificationDetailModal
+                    notification={activeNotification}
+                    onClose={() => setActiveNotification(null)}
+                />
+            )}
         </header>
     );
 };
