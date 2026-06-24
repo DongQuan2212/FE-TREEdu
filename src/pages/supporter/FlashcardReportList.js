@@ -1,3 +1,4 @@
+// src/pages/supporter/FlashcardReportList.js
 import React, { useState, useEffect } from 'react';
 import {
     Search, AlertTriangle, Check, X, Clock, Calendar, MessageSquare, Eye,
@@ -7,6 +8,50 @@ import SupporterSidebar from '../../components/Supporter/SupporterSidebar';
 import { flashcardReportAPI, flashcardAPI } from '../../config/api';
 import { notify } from '../../utils/toastNotify';
 
+// ─── Component: Hộp thoại xác nhận hành động báo cáo Custom Xịn Sò ────────────
+
+const ConfirmActionModal = ({ isOpen, title, message, onConfirm, onCancel, loading, variant }) => {
+    if (!isOpen) return null;
+    const isDanger = variant === 'danger';
+
+    return (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4 animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 text-center transform animate-in zoom-in-95 duration-200 border border-gray-100">
+                <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 ${
+                    isDanger ? 'bg-red-50 text-red-500' : 'bg-emerald-50 text-emerald-500'
+                }`}>
+                    <AlertTriangle className="w-8 h-8" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">{title || 'Xác nhận hành động'}</h3>
+                <p className="text-sm text-gray-500 mb-6 leading-relaxed px-2">{message}</p>
+                <div className="flex items-center justify-center gap-3">
+                    <button
+                        onClick={onCancel}
+                        disabled={loading}
+                        className="flex-1 sm:flex-none px-5 py-2.5 border border-gray-300 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 transition disabled:opacity-50"
+                    >
+                        Hủy bỏ
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        disabled={loading}
+                        className={`flex-1 sm:flex-none px-5 py-2.5 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition shadow-lg min-w-[140px] disabled:opacity-60 ${
+                            isDanger
+                                ? 'bg-red-600 hover:bg-red-700 shadow-red-600/20'
+                                : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
+                        }`}
+                    >
+                        {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                        {loading ? 'Đang xử lý...' : 'Xác nhận'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ─── Main Page Component ──────────────────────────────────────────────────────
+
 const FlashcardReportList = () => {
     const [reports, setReports] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -14,10 +59,21 @@ const FlashcardReportList = () => {
     const [filterReason, setFilterReason] = useState('all');
     const [processingId, setProcessingId] = useState(null);
 
-    // ====== STATE MỚI: QUẢN LÝ MODAL XEM CHI TIẾT FLASHCARD CHO SUPPORTER ======
+    // ====== STATE QUẢN LÝ MODAL XEM CHI TIẾT FLASHCARD TẠI CHỖ ======
     const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
     const [previewLoading, setPreviewLoading] = useState(false);
     const [previewData, setPreviewData] = useState(null);
+
+    // ====== STATE MỚI: QUẢN LÝ BẢNG THÔNG BÁO XÁC NHẬN XÓA/XỬ LÝ CUSTOM ======
+    const [confirmModal, setConfirmModal] = useState({
+        isOpen: false,
+        reportId: null,
+        newStatus: null,
+        title: '',
+        message: '',
+        variant: 'emerald' // 'emerald' hoặc 'danger'
+    });
+    const [isActionLoading, setIsActionLoading] = useState(false);
 
     // 1. Tải dữ liệu báo cáo chưa xử lý (REPORT_PENDING) từ Backend
     const fetchPendingReports = async () => {
@@ -30,7 +86,7 @@ const FlashcardReportList = () => {
         } catch (err) {
             console.error('Lỗi tải danh sách báo cáo:', err);
             notify.error('Không thể tải danh sách báo cáo hoặc bạn không có quyền!');
-        } finally {
+        } finally { // ĐÃ SỬA LỖI CHÍNH TẢ Ở ĐÂY
             setLoading(false);
         }
     };
@@ -39,7 +95,7 @@ const FlashcardReportList = () => {
         fetchPendingReports();
     }, []);
 
-    // ====== HÀM MỚI: GỌI API LẤY CHI TIẾT BỘ THẺ PHỤC VỤ MODAL XEM NHANH ======
+    // Gợi mở Modal xem thông tin chi tiết Flashcard gốc
     const handleOpenPreviewModal = async (flashcardId) => {
         setIsPreviewModalOpen(true);
         setPreviewLoading(true);
@@ -54,19 +110,17 @@ const FlashcardReportList = () => {
         } catch (err) {
             console.error('Lỗi lấy chi tiết flashcard:', err);
             notify.error('Không thể kết nối máy chủ để lấy danh sách từ vựng.');
-        } finally {
+        } finally { // ĐÃ SỬA LỖI CHÍNH TẢ Ở ĐÂY
             setPreviewLoading(false);
         }
     };
 
-    // 2. Cập nhật trạng thái báo cáo (Xác nhận vi phạm để tự động đẩy lên Admin)
-    const handleUpdateStatus = async (reportId, newStatus) => {
-        const confirmMsg = newStatus === 'REPORT_RESOLVED'
-            ? 'Xác nhận xử lý vi phạm? Hệ thống sẽ tự động gửi yêu cầu phê duyệt lên Admin.'
-            : 'Từ chối báo cáo vi phạm này?';
+    // 2. Kích hoạt gọi API thực tế khi Supporter nhấn nút đồng ý trên Modal Custom mới
+    const executeStatusUpdate = async () => {
+        const { reportId, newStatus } = confirmModal;
+        if (!reportId || !newStatus) return;
 
-        if (!window.confirm(confirmMsg)) return;
-
+        setIsActionLoading(true);
         setProcessingId(reportId);
         try {
             const response = await flashcardReportAPI.updateReportStatus(reportId, newStatus);
@@ -75,9 +129,10 @@ const FlashcardReportList = () => {
                 notify.success(
                     newStatus === 'REPORT_RESOLVED'
                         ? 'Đã xác nhận vi phạm và gửi yêu cầu xét duyệt tới Admin!'
-                        : 'Đã từ chối báo cáo!'
+                        : 'Đã từ chối báo cáo vi phạm thành công!'
                 );
                 fetchPendingReports();
+                setConfirmModal(prev => ({ ...prev, isOpen: false })); // Đóng modal khi hoàn thành
             } else {
                 notify.error(response.data?.message || 'Cập nhật thất bại!');
             }
@@ -85,7 +140,8 @@ const FlashcardReportList = () => {
             console.error('Lỗi cập nhật báo cáo:', err);
             const msg = err.response?.data?.message || 'Lỗi kết nối máy chủ!';
             notify.error(msg);
-        } finally {
+        } finally { // ĐÃ SỬA LỖI CHÍNH TẢ Ở ĐÂY
+            setIsActionLoading(false);
             setProcessingId(null);
         }
     };
@@ -179,7 +235,6 @@ const FlashcardReportList = () => {
                                             <td className="px-5 py-4 font-medium text-gray-900">
                                                 <div className="flex items-center gap-2">
                                                     <span className="font-mono text-xs text-zinc-600 bg-gray-100 px-2 py-1 rounded">{report.flashcardId}</span>
-                                                    {/* ĐÃ SỬA: Thay thế logic điều hướng bằng Modal Xem nhanh */}
                                                     <button
                                                         onClick={() => handleOpenPreviewModal(report.flashcardId)}
                                                         className="p-1 hover:bg-gray-200 rounded text-blue-600 transition"
@@ -209,17 +264,34 @@ const FlashcardReportList = () => {
                                             </td>
                                             <td className="px-5 py-4">
                                                 <div className="flex items-center justify-center gap-2">
+                                                    {/* NÚT: XÁC NHẬN VI PHẠM (HIỂN THỊ MODAL MÀU XANH EMERALD AN TOÀN) */}
                                                     <button
-                                                        onClick={() => handleUpdateStatus(report.id, 'REPORT_RESOLVED')}
-                                                        disabled={processingId === report.id}
+                                                        onClick={() => setConfirmModal({
+                                                            isOpen: true,
+                                                            reportId: report.id,
+                                                            newStatus: 'REPORT_RESOLVED',
+                                                            title: 'Xác nhận xử lý vi phạm',
+                                                            message: 'Bạn có chắc chắn muốn xác nhận bộ Flashcard này vi phạm không? Hệ thống sẽ gửi yêu cầu phê duyệt khóa/ẩn lên tài khoản Admin.',
+                                                            variant: 'emerald'
+                                                        })}
+                                                        disabled={processingId !== null}
                                                         className="p-2 bg-emerald-50 hover:bg-emerald-100 rounded-lg text-emerald-600 transition disabled:opacity-50"
                                                         title="Xác nhận vi phạm"
                                                     >
                                                         <Check className="w-4 h-4" />
                                                     </button>
+
+                                                    {/* NÚT: TỪ CHỐI BÁO CÁO (HIỂN THỊ MODAL MÀU ĐỎ CẢNH BÁO) */}
                                                     <button
-                                                        onClick={() => handleUpdateStatus(report.id, 'REPORT_REJECTED')}
-                                                        disabled={processingId === report.id}
+                                                        onClick={() => setConfirmModal({
+                                                            isOpen: true,
+                                                            reportId: report.id,
+                                                            newStatus: 'REPORT_REJECTED',
+                                                            title: 'Từ chối báo cáo vi phạm',
+                                                            message: 'Hành động này sẽ hủy bỏ báo cáo từ người dùng, bộ Flashcard này vẫn sẽ hiển thị bình thường trên hệ thống.',
+                                                            variant: 'danger'
+                                                        })}
+                                                        disabled={processingId !== null}
                                                         className="p-2 bg-red-50 hover:bg-red-100 rounded-lg text-red-600 transition disabled:opacity-50"
                                                         title="Từ chối báo cáo"
                                                     >
@@ -236,13 +308,10 @@ const FlashcardReportList = () => {
                     </div>
                 </main>
 
-                {/* ======================================================= */}
                 {/* MODAL: XEM CHI TIẾT NỘI DUNG FLASHCARD TẠI CHỖ (PREVIEW) */}
-                {/* ======================================================= */}
                 {isPreviewModalOpen && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                         <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[85vh] flex flex-col overflow-hidden">
-
                             {/* Modal Header */}
                             <div className="p-6 border-b border-gray-150 flex items-center justify-between bg-gray-50">
                                 <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
@@ -366,6 +435,17 @@ const FlashcardReportList = () => {
                         </div>
                     </div>
                 )}
+
+                {/* HỘP THOẠI XÁC NHẬN CUSTOM ĐÃ THAY THẾ CHO WINDOW.CONFIRM */}
+                <ConfirmActionModal
+                    isOpen={confirmModal.isOpen}
+                    title={confirmModal.title}
+                    message={confirmModal.message}
+                    variant={confirmModal.variant}
+                    onConfirm={executeStatusUpdate}
+                    onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                    loading={isActionLoading}
+                />
             </div>
         </div>
     );

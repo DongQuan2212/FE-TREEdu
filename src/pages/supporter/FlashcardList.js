@@ -1,20 +1,72 @@
 // src/pages/supporter/FlashcardList.js
 import React, { useState, useEffect } from 'react';
-import { Search, Eye, Edit2, Trash2, Plus, BookOpen, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
+import {
+    Search, Eye, Edit2, Trash2, Plus, BookOpen, ChevronLeft, ChevronRight,
+    Filter, AlertTriangle, Loader2
+} from 'lucide-react';
 import SupporterSidebar from '../../components/Supporter/SupporterSidebar';
 import { Link, useNavigate } from 'react-router-dom';
 import CreateFlashcardModal from '../../components/Supporter/CreateFlashcardModal';
-import {flashcardAPI} from "../../config/api";
+import { flashcardAPI } from "../../config/api";
+import { notify } from '../../utils/toastNotify'; // Đã tích hợp hệ thống thông báo Toast chuyên nghiệp
+
+// ─── Component: Hộp thoại xác nhận xóa Custom đẳng cấp ────────────────────────
+
+const ConfirmActionModal = ({ isOpen, title, message, onConfirm, onCancel, loading }) => {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4 animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 text-center transform animate-in zoom-in-95 duration-200 border border-gray-100">
+                <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 bg-red-50 text-red-500">
+                    <AlertTriangle className="w-8 h-8" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">{title || 'Xác nhận hành động'}</h3>
+                <p className="text-sm text-gray-500 mb-6 leading-relaxed px-2">{message}</p>
+                <div className="flex items-center justify-center gap-3">
+                    <button
+                        onClick={onCancel}
+                        disabled={loading}
+                        className="flex-1 sm:flex-none px-5 py-2.5 border border-gray-300 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 transition disabled:opacity-50"
+                    >
+                        Hủy bỏ
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        disabled={loading}
+                        className="flex-1 sm:flex-none px-5 py-2.5 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition shadow-lg min-w-[140px] disabled:opacity-60 bg-red-600 hover:bg-red-700 shadow-red-600/20"
+                    >
+                        {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                        {loading ? 'Đang xóa...' : 'Xác nhận xóa'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ─── Main Page Component ──────────────────────────────────────────────────────
+
 const FlashcardList = () => {
     const [flashcards, setFlashcards] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterLevel, setFilterLevel] = useState('all');
     const [showCreateModal, setShowCreateModal] = useState(false);
+
     // Phân trang
     const [currentPage, setCurrentPage] = useState(0);
     const [totalPages, setTotalPages] = useState(1);
     const [totalElements, setTotalElements] = useState(0);
+
+    // Trạng thái điều khiển Modal xóa Custom mới
+    const [confirmModal, setConfirmModal] = useState({
+        isOpen: false,
+        flashcardId: null,
+        title: '',
+        message: ''
+    });
+    const [isActionLoading, setIsActionLoading] = useState(false);
 
     const navigate = useNavigate();
 
@@ -32,13 +84,11 @@ const FlashcardList = () => {
 
             if (result.success && result.data) {
                 if (result.data.content) {
-                    // Có phân trang (Spring Data)
                     setFlashcards(result.data.content);
                     setCurrentPage(result.data.pageable.pageNumber);
                     setTotalPages(result.data.totalPages);
                     setTotalElements(result.data.totalElements);
                 } else {
-                    // Không phân trang
                     setFlashcards(result.data);
                     setTotalPages(Math.ceil(result.data.length / 10));
                     setTotalElements(result.data.length);
@@ -46,42 +96,54 @@ const FlashcardList = () => {
             }
         } catch (err) {
             console.error('Lỗi tải flashcard:', err);
-
             if (err.response?.status === 403) {
-                alert('Bạn không có quyền truy cập!');
+                notify.error('Bạn không có quyền truy cập dữ liệu này!');
             } else {
-                alert('Không thể tải danh sách flashcard!');
+                notify.error('Không thể tải danh sách bộ flashcard từ máy chủ!');
             }
         } finally {
             setLoading(false);
         }
     };
 
-
     useEffect(() => {
         fetchFlashcards(currentPage);
     }, [currentPage]);
 
-    const handleDelete = async (id) => {
-        if (!window.confirm('Xóa bộ flashcard này?')) return;
+    // Gọi kích hoạt mở Modal Custom thay vì dùng window.confirm
+    const handleDeleteClick = (id) => {
+        setConfirmModal({
+            isOpen: true,
+            flashcardId: id,
+            title: 'Xóa bộ thẻ Flashcard',
+            message: 'Bạn có chắc chắn muốn xóa bộ Flashcard này? Toàn bộ danh sách từ vựng đi kèm bên trong cũng sẽ bị loại bỏ vĩnh viễn khỏi hệ thống.'
+        });
+    };
 
+    // Thực thi lệnh xóa qua API khi được đồng ý trên Modal Custom
+    const executeDelete = async () => {
+        const { flashcardId } = confirmModal;
+        if (!flashcardId) return;
+
+        setIsActionLoading(true);
         try {
-            await flashcardAPI.deleteFlashcard(id);
-            alert('Xóa thành công!');
+            await flashcardAPI.deleteFlashcard(flashcardId);
+            notify.success('Xóa bộ flashcard thành công!');
+            setConfirmModal(prev => ({ ...prev, isOpen: false })); // Đóng modal
             fetchFlashcards(currentPage);
         } catch (err) {
-            console.error(err);
-
+            console.error('Lỗi xóa flashcard:', err);
             if (err.response?.status === 403) {
-                alert('Bạn không có quyền xóa flashcard!');
+                notify.error('Bạn không có quyền xóa bộ flashcard này!');
             } else {
-                alert('Xóa thất bại!');
+                notify.error('Quá trình xóa thất bại, vui lòng thử lại sau!');
             }
+        } finally {
+            setIsActionLoading(false);
         }
     };
 
-
-    // Lọc dữ liệu
+    // Lọc dữ liệu tại local client
     const filteredFlashcards = flashcards.filter(fc => {
         const matchSearch = (fc.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
             (fc.topic || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -127,8 +189,8 @@ const FlashcardList = () => {
                 <main className="p-6">
                     {/* Bộ lọc + Tìm kiếm */}
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="relative">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="relative md:col-span-2">
                                 <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                                 <input
                                     type="text"
@@ -142,7 +204,7 @@ const FlashcardList = () => {
                             <select
                                 value={filterLevel}
                                 onChange={e => setFilterLevel(e.target.value)}
-                                className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-900 outline-none"
+                                className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-900 outline-none bg-white"
                             >
                                 <option value="all">Tất cả cấp độ</option>
                                 {[1,2,3,4,5,6].map(l => (
@@ -188,31 +250,30 @@ const FlashcardList = () => {
                                                     )}
                                                 </td>
                                                 <td className="px-5 py-4">
-                            <span className="inline-block px-2.5 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
-                              {fc.topic || '—'}
-                            </span>
+                                                    <span className="inline-block px-2.5 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+                                                      {fc.topic || '—'}
+                                                    </span>
                                                 </td>
                                                 <td className="px-5 py-4 text-center font-medium">
-                            <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">
-                              Level {fc.level}
-                            </span>
+                                                    <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">
+                                                      Level {fc.level}
+                                                    </span>
                                                 </td>
                                                 <td className="px-5 py-4 text-center font-bold text-gray-700">
                                                     {fc.wordCount}
                                                 </td>
                                                 <td className="px-5 py-4">
                                                     <div className="flex items-center justify-center gap-2">
-
                                                         <button
                                                             onClick={() => navigate(`/supporter/flashcards/edit/${fc.id}`)}
-                                                            className="p-2 hover:bg-yellow-50 rounded text-yellow-600"
+                                                            className="p-2 hover:bg-yellow-50 rounded text-yellow-600 transition"
                                                             title="Sửa"
                                                         >
                                                             <Edit2 className="w-4 h-4" />
                                                         </button>
                                                         <button
-                                                            onClick={() => handleDelete(fc.id)}
-                                                            className="p-2 hover:bg-red-50 rounded text-red-600"
+                                                            onClick={() => handleDeleteClick(fc.id)}
+                                                            className="p-2 hover:bg-red-50 rounded text-red-600 transition"
                                                             title="Xóa"
                                                         >
                                                             <Trash2 className="w-4 h-4" />
@@ -235,17 +296,17 @@ const FlashcardList = () => {
                                             <button
                                                 onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
                                                 disabled={currentPage === 0}
-                                                className="p-2 hover:bg-gray-100 rounded disabled:opacity-50"
+                                                className="p-2 hover:bg-gray-100 rounded disabled:opacity-50 transition"
                                             >
                                                 <ChevronLeft className="w-4 h-4" />
                                             </button>
                                             <span className="px-3 py-1 bg-gray-900 text-white rounded text-xs font-medium">
-                        {currentPage + 1} / {totalPages}
-                      </span>
+                                                {currentPage + 1} / {totalPages}
+                                            </span>
                                             <button
                                                 onClick={() => setCurrentPage(p => Math.min(totalPages - 1, p + 1))}
                                                 disabled={currentPage === totalPages - 1}
-                                                className="p-2 hover:bg-gray-100 rounded disabled:opacity-50"
+                                                className="p-2 hover:bg-gray-100 rounded disabled:opacity-50 transition"
                                             >
                                                 <ChevronRight className="w-4 h-4" />
                                             </button>
@@ -256,6 +317,16 @@ const FlashcardList = () => {
                         )}
                     </div>
                 </main>
+
+                {/* MODAL THÔNG BÁO XÁC NHẬN XÓA CUSTOM XỊN SÒ */}
+                <ConfirmActionModal
+                    isOpen={confirmModal.isOpen}
+                    title={confirmModal.title}
+                    message={confirmModal.message}
+                    onConfirm={executeDelete}
+                    onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                    loading={isActionLoading}
+                />
             </div>
         </div>
     );

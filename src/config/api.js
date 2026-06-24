@@ -199,3 +199,67 @@ export const notificationAPI = {
     }
 };
 
+// ============================================================
+// THÊM VÀO CUỐI FILE config/api.js (hoặc axiosConfig)
+// ============================================================
+
+export const pronunciationAPI = {
+    // ── Topics ────────────────────────────────────────────────
+    // GET /api/topics  →  danh sách tất cả topics (summary)
+    getAllTopics: () =>
+        axiosInstance.get('/topics'),
+
+    // GET /api/topics/:id  →  chi tiết topic kèm sentences
+    getTopicById: (id) =>
+        axiosInstance.get(`/topics/${id}`),
+
+    // POST /api/topics  →  tạo topic mới
+    createTopic: (data) =>
+        axiosInstance.post('/topics', data),
+    // data: { name, description, level, sentences?: [] }
+
+    // PUT /api/topics/:id  →  cập nhật topic
+    updateTopic: (id, data) =>
+        axiosInstance.put(`/topics/${id}`, data),
+
+    // DELETE /api/topics/:id  →  xóa topic
+    deleteTopic: (id) =>
+        axiosInstance.delete(`/topics/${id}`),
+
+    // ── Sentences ─────────────────────────────────────────────
+    // POST /api/topics/:id/sentences  →  thêm câu vào topic
+    addSentences: (topicId, sentences) =>
+        axiosInstance.post(`/topics/${topicId}/sentences`, { sentences }),
+    // sentences: string[]
+
+    // DELETE /api/topics/:id/sentences/:index  →  xóa câu theo index
+    removeSentence: (topicId, index) =>
+        axiosInstance.delete(`/topics/${topicId}/sentences/${index}`),
+
+    // ── Pronunciation Check History ───────────────────────────
+    // GET /api/pronunciation-check/history
+    getAllHistory: () =>
+        axiosInstance.get('/pronunciation-check/history'),
+
+    // GET /api/pronunciation-check/history/:id
+    getHistoryById: (id) =>
+        axiosInstance.get(`/pronunciation-check/history/${id}`),
+
+    // DELETE /api/pronunciation-check/history/:id
+    deleteHistory: (id) =>
+        axiosInstance.delete(`/pronunciation-check/history/${id}`),
+
+    // ── Pronunciation Check ───────────────────────────────────
+    // POST /api/pronunciation-check  →  check phát âm
+    checkPronunciation: (formData) =>
+        axiosInstance.post('/pronunciation-check', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            timeout: 120000, // 2 phút, Gemini cần thời gian
+        }),
+
+    // GET /api/pronunciation-check/random-sentence?topic=...
+    getRandomSentence: (topicName) =>
+        axiosInstance.get('/pronunciation-check/random-sentence', {
+            params: { topic: topicName },
+        }),
+};
