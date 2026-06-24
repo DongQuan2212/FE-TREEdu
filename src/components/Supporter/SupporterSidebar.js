@@ -1,8 +1,10 @@
 // src/components/Supporter/SupporterSidebar.js
 import React, { useEffect } from 'react';
-// Thêm Headphones vào đây
 import { Home, BookOpen, CreditCard, LogOut, User, AlertTriangle, Headphones } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
+import Lottie from "lottie-react";
+import treeAnimation from "../../asset/tree.json"; // Import animation cái cây
+import Logo from "../../asset/logo1.png"; // Import logo hệ thống
 import { useAuth } from '../../hook/useAuth';
 
 const SupporterSidebar = () => {
@@ -26,25 +28,25 @@ const SupporterSidebar = () => {
         }
 
         if (!isSupporter()) {
-            navigate('/403'); // hoặc '/'
+            navigate('/403'); 
         }
     }, [loading, isAuthenticated, isSupporter, navigate]);
 
     // Đang load user
-    if (loading) return null;
+    if (loading || !user) return null;
 
     return (
         <div className="w-72 bg-white border-r border-gray-200 min-h-screen fixed left-0 top-0 z-50 flex flex-col">
-            {/* Header */}
-            <div className="px-8 py-7 border-b border-gray-100">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Supporter</h1>
-                    <p className="text-xs text-gray-500 mt-1">Content Management</p>
-                </div>
+            {/* Header chứa Logo (Thay thế text Supporter cũ bằng Logo của bạn) */}
+            <div className="p-6 border-b border-gray-100 flex flex-col items-center">
+                <img src={Logo} alt="Logo" className="h-24 mx-auto object-contain" />
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mt-2">
+                    Supporter
+                </span>
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 px-6 py-6 space-y-3">
+            <nav className="flex-1 px-6 py-6 space-y-3 overflow-y-auto chunk-scrollbar">
                 <NavLink
                     to="/supporter"
                     end
@@ -87,6 +89,7 @@ const SupporterSidebar = () => {
                     <CreditCard className="w-5 h-5" />
                     Quản lý Flashcard
                 </NavLink>
+                
                 <NavLink
                     to="/supporter/flashcard-reports"
                     className={({ isActive }) =>
@@ -100,6 +103,7 @@ const SupporterSidebar = () => {
                     <AlertTriangle className="w-5 h-5" />
                     Báo cáo Flashcard
                 </NavLink>
+                
                 <NavLink
                     to="/supporter/dictations"
                     className={({ isActive }) =>
@@ -113,31 +117,25 @@ const SupporterSidebar = () => {
                     <Headphones className="w-5 h-5" />
                     Nghe chép chính tả
                 </NavLink>
-            </nav>
 
-            {/* Footer - User info */}
-            <div className="px-6 py-6 border-t border-gray-100">
-                <div className="flex items-center gap-3 mb-4">
-                    <div className="w-11 h-11 bg-gray-200 rounded-full flex items-center justify-center">
-                        <User className="w-6 h-6 text-gray-500" />
-                    </div>
-                    <div className="truncate">
-                        <p className="font-semibold text-gray-900 truncate">
-                            {user?.name || 'Supporter'}
-                        </p>
-                        <p className="text-sm text-gray-500 truncate">
-                            {user?.email}
-                        </p>
-                    </div>
-                </div>
-
+                {/* Phần Đăng xuất được lồng trực tiếp bên dưới Menu theo cấu trúc mới */}
                 <button
                     onClick={logout}
-                    className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl bg-gray-50 hover:bg-gray-100 text-gray-700 font-medium transition"
+                    className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-base font-medium text-red-600 hover:bg-red-50 mt-6 transition-colors"
                 >
                     <LogOut className="w-5 h-5" />
                     Đăng xuất
                 </button>
+            </nav>
+
+            {/* Footer chứa Lottie Animation cái cây dưới đáy Sidebar */}
+            <div className="p-6 border-t border-gray-100 bg-white">
+                <div className="w-full max-w-[130px] mx-auto">
+                    <Lottie animationData={treeAnimation} loop />
+                </div>
+                <p className="text-xs text-center text-gray-500 mt-2">
+                    GreenLife Supporter
+                </p>
             </div>
         </div>
     );
