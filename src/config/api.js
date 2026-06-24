@@ -31,6 +31,10 @@ export const flashcardAPI = {
         return axiosInstance.delete(`/flashcards/${flashcardId}`);
     },
 
+    searchFlashcards: (title) => {
+    return axiosInstance.get(`/flashcards/search/${title}`);
+    },
+
     // Thêm từ vào flashcard
     addWordToFlashcard: (flashcardId, wordData) => {
         return axiosInstance.post(`/flashcards/${flashcardId}/words`, wordData);
@@ -132,7 +136,7 @@ export const dictationAPI = {
             headers: {
                 'Content-Type': 'multipart/form-data'
             },
-            // 🌟 THÊM DÒNG NÀY: Cho phép API này đợi tối đa 5 phút (300,000 ms)
+            //Cho phép API này đợi tối đa 5 phút (300,000 ms)
             // vì AI bóc băng cần thời gian xử lý deep learning.
             timeout: 300000
         });

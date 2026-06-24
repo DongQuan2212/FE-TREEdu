@@ -179,11 +179,11 @@ const FlashcardReportList = () => {
                                             <td className="px-5 py-4 font-medium text-gray-900">
                                                 <div className="flex items-center gap-2">
                                                     <span className="font-mono text-xs text-zinc-600 bg-gray-100 px-2 py-1 rounded">{report.flashcardId}</span>
-                                                    {/* ĐÃ SỬA: Thay thế logic điều hướng bằng Modal Xem nhanh tại chỗ */}
+                                                    {/* ĐÃ SỬA: Thay thế logic điều hướng bằng Modal Xem nhanh */}
                                                     <button
                                                         onClick={() => handleOpenPreviewModal(report.flashcardId)}
                                                         className="p-1 hover:bg-gray-200 rounded text-blue-600 transition"
-                                                        title="Xem chi tiết nội dung bộ Flashcard tại chỗ"
+                                                        title="Xem chi tiết nội dung bộ Flashcard"
                                                     >
                                                         <Eye className="w-4 h-4" />
                                                     </button>
@@ -290,7 +290,7 @@ const FlashcardReportList = () => {
                                                     <p className="font-semibold text-gray-800 text-sm">{previewData.topic}</p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-[10px] font-bold text-gray-400 uppercase">Trình độ</p>
+                                                    <p className="text-[10px] font-bold text-gray-400 uppercase">Mức độ</p>
                                                     <p className="font-semibold text-gray-800 text-sm">Level {previewData.level}</p>
                                                 </div>
                                                 <div>
