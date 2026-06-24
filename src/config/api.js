@@ -195,7 +195,7 @@ export const notificationAPI = {
 
     // Đánh dấu tất cả thông báo là đã đọc
     markAllAsRead: () => {
-        return axiosInstance.put('/api/notifications/read-all');
+        return axiosInstance.put('/notifications/read-all');
     }
 };
 

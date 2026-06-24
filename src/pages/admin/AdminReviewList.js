@@ -132,7 +132,7 @@ const AdminReviewList = () => {
                         <div>
                             <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
                                 <ShieldAlert className="w-7 h-7 text-gray-900" />
-                                Admin – Thẩm định Flashcard
+                                Admin – Xem xét Flashcard vi phạm
                             </h1>
                             <p className="text-sm text-gray-600 mt-1">
                                 Có {reviews.length} yêu cầu từ Supporter cần bạn duyệt
@@ -176,8 +176,8 @@ const AdminReviewList = () => {
                                         <th className="px-5 py-3 text-left text-xs font-medium text-gray-600 uppercase">Lý do từ Supporter</th>
                                         <th className="px-5 py-3 text-left text-xs font-medium text-gray-600 uppercase">Supporter Gửi</th>
                                         <th className="px-5 py-3 text-center text-xs font-medium text-gray-600 uppercase">Thời gian gửi</th>
-                                        <th className="px-5 py-3 text-center text-xs font-medium text-gray-600 uppercase">Tổng đơn liên đới</th>
-                                        <th className="px-5 py-3 text-center text-xs font-medium text-gray-600 uppercase">Quyết định tối cao</th>
+                                        <th className="px-5 py-3 text-center text-xs font-medium text-gray-600 uppercase">Tổng yêu cầu liên quan</th>
+                                        <th className="px-5 py-3 text-center text-xs font-medium text-gray-600 uppercase">Hành động</th>
                                     </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-200 text-sm">
@@ -232,7 +232,7 @@ const AdminReviewList = () => {
                                                     <button
                                                         onClick={() => openDecisionModal(review.id, 'REVIEW_APPROVED')}
                                                         className="p-2 hover:bg-emerald-50 text-emerald-600 rounded-lg transition"
-                                                        title="Xác nhận thông tin chính xác (Duyệt thông qua)"
+                                                        title="Xác nhận thông tin chính xác (Flashcard không vi phạm)"
                                                     >
                                                         <CheckCircle className="w-4 h-4" />
                                                     </button>
@@ -301,7 +301,7 @@ const AdminReviewList = () => {
                                                     <p className="font-semibold text-gray-800 text-sm">{previewData.topic}</p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-[10px] font-bold text-gray-400 uppercase">Trình độ</p>
+                                                    <p className="text-[10px] font-bold text-gray-400 uppercase">Mức độ</p>
                                                     <p className="font-semibold text-gray-800 text-sm">Level {previewData.level}</p>
                                                 </div>
                                                 <div>
@@ -403,7 +403,7 @@ const AdminReviewList = () => {
 
                             <div className="mb-6">
                                 <label className="block text-xs font-medium text-gray-600 mb-2 uppercase tracking-wider">
-                                    Lời nhắn / Lý do từ Admin (Bắt buộc)
+                                    Lý do từ Admin (Bắt buộc)
                                 </label>
                                 <textarea
                                     value={adminComment}
@@ -435,7 +435,7 @@ const AdminReviewList = () => {
                                             Đang xử lý...
                                         </>
                                     ) : (
-                                        'Xác nhận Phán Quyết'
+                                        'Flashcard vi phạm'
                                     )}
                                 </button>
                             </div>
