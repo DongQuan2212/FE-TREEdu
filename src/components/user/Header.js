@@ -3,7 +3,6 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import Logo from '../../asset/logo1.png';
 import { useAuth } from '../../hook/useAuth';
 import { userAPI, notificationAPI } from '../../config/api';
-// 🌟 Nhập file modal riêng (ông nhớ lưu file kia là NotificationDetailModal.js nha)
 import NotificationDetailModal from './NotificationDetailModal';
 import {
     User,
@@ -178,7 +177,6 @@ const NotificationDropdown = ({ notifications, onClose, onNotificationClick, onM
     );
 };
 
-// 🌟 ĐÃ BỔ SUNG LẠI: Component UserDropdown bị mất tích đây rồi!
 const UserDropdown = ({ user, profile, onClose }) => {
     const navigate = useNavigate();
     const { logout } = useAuth();

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from "react-router-dom";
 import Header from "../../components/user/Header";
 import Footer from "../../components/Footer/Footer";
@@ -9,8 +9,10 @@ import iconbook from "../../asset/User/book.png";
 import iconDictionary from "../../asset/User/dictionary.png";
 
 function MyFlashCardPage() {
-    const navigate = useNavigate();
+const navigate = useNavigate();
     const [flashcards, setFlashcards] = useState([]);
+    const [searchResults, setSearchResults] = useState(null); // null = chưa search, [] = không có kết quả
+    const [searchLoading, setSearchLoading] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [reportModal, setReportModal] = useState(false);
@@ -19,6 +21,7 @@ function MyFlashCardPage() {
     const [reportLoading, setReportLoading] = useState(false);
 
     const [searchTerm, setSearchTerm] = useState('');
+    const debounceRef = useRef(null);
     const [selectedLevel, setSelectedLevel] = useState('all');
     const [selectedTopic, setSelectedTopic] = useState('all');
     const [selectedType, setSelectedType] = useState('all');
@@ -44,14 +47,56 @@ function MyFlashCardPage() {
         }
     };
 
-    const filteredFlashcards = flashcards.filter(card => {
-        const matchesSearch = card.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (card.description && card.description.toLowerCase().includes(searchTerm.toLowerCase()));
+    // const filteredFlashcards = flashcards.filter(card => {
+    //     const matchesSearch = card.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    //         (card.description && card.description.toLowerCase().includes(searchTerm.toLowerCase()));
+    //     const matchesLevel = selectedLevel === 'all' || card.level === Number(selectedLevel);
+    //     const matchesTopic = selectedTopic === 'all' || card.topic === selectedTopic;
+    //     const matchesType = selectedType === 'all' || card.type === selectedType;
+    //     const matchesVisibility = selectedVisibility === 'all' || card.visibility === selectedVisibility;
+    //     return matchesSearch && matchesLevel && matchesTopic && matchesType && matchesVisibility;
+    // });
+
+    // ── Debounce search gọi API ──
+    const handleSearchChange = (e) => {
+        const value = e.target.value;
+        setSearchTerm(value);
+
+        // Xóa timer cũ
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+
+        if (!value.trim()) {
+            // Xóa hết → quay về danh sách gốc
+            setSearchResults(null);
+            return;
+        }
+
+        debounceRef.current = setTimeout(async () => {
+            try {
+                setSearchLoading(true);
+                const response = await flashcardAPI.searchFlashcards(value.trim());
+                if (response.data.status === 200) {
+                    setSearchResults(response.data.data);
+                }
+            } catch (err) {
+                console.error('Lỗi tìm kiếm:', err);
+                setSearchResults([]);
+            } finally {
+                setSearchLoading(false);
+            }
+        }, 400); // debounce 400ms
+    };
+
+    // ── Nguồn dữ liệu: nếu đang search thì dùng searchResults, không thì dùng flashcards ──
+    const baseList = searchResults !== null ? searchResults : flashcards;
+
+    const filteredFlashcards = baseList.filter(card => {
         const matchesLevel = selectedLevel === 'all' || card.level === Number(selectedLevel);
         const matchesTopic = selectedTopic === 'all' || card.topic === selectedTopic;
         const matchesType = selectedType === 'all' || card.type === selectedType;
         const matchesVisibility = selectedVisibility === 'all' || card.visibility === selectedVisibility;
-        return matchesSearch && matchesLevel && matchesTopic && matchesType && matchesVisibility;
+        return matchesLevel && matchesTopic && matchesType && matchesVisibility;
+        // Bỏ matchesSearch vì đã để BE xử lý
     });
 
     const sortedFlashcards = [...filteredFlashcards].sort((a, b) => {
@@ -244,9 +289,13 @@ function MyFlashCardPage() {
                                 type="text"
                                 placeholder="Tìm tên bộ thẻ, mô tả..."
                                 value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2.5 bg-white border border-zinc-300 rounded-lg text-sm text-zinc-900 focus:outline-none focus:border-zinc-800 focus:ring-1 focus:ring-zinc-800 transition-colors"
+                                onChange={handleSearchChange}  
+                                className="w-full pl-10 pr-10 py-2.5 bg-white border border-zinc-300 rounded-lg text-sm text-zinc-900 focus:outline-none focus:border-zinc-800 focus:ring-1 focus:ring-zinc-800 transition-colors"
                             />
+                            {/* Loading spinner khi đang gọi API search */}
+                            {searchLoading && (
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-zinc-300 border-t-zinc-700 rounded-full animate-spin" />
+                            )}
                         </div>
 
                         {/* Dropdowns */}
@@ -324,7 +373,7 @@ function MyFlashCardPage() {
                                                 {flashcard.type === 'SYSTEM' ? 'Hệ thống' : 'Thành viên'}
                                             </span>
                                             <span className={getLevelBadge(flashcard.level)}>
-                                                LVL {flashcard.level}
+                                                LV {flashcard.level}
                                             </span>
                                         </div>
 
