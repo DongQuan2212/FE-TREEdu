@@ -1,3 +1,4 @@
+// src/routes/AppRoutes.js  (chỉ thêm 2 dòng, phần còn lại giữ nguyên)
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import HomePage from "../pages/HomePage";
@@ -11,11 +12,9 @@ import IntroPage from "../pages/user/IntroPage";
 import QuizTakingPage from "../pages/user/QuizTakingPage";
 import DiscoverFlashCardPage from "../pages/user/DiscoverFlashCardPage";
 import MyFlashCardPage from "../pages/user/MyFlashCardPage";
-
 import AdminManagerEmployee from "../pages/admin/AdminManagerEmployee";
 import CreateFlashcardPage from "../pages/user/CreateFlashcardPage";
 import FlashcardDetailPage from "../pages/user/FlashcardDetailPage";
-
 import QuizCreator from "../pages/supporter/QuizCreator";
 import QuizList from "../pages/supporter/QuizList";
 import QuizEdit from "../pages/supporter/QuizEdit";
@@ -39,15 +38,17 @@ import FlashcardWordManagerAdmin from "../pages/admin/FlashcardWordManagerAdmin"
 import OAuth2RedirectHandler from "../pages/OAuth2RedirectHandler";
 import AdminQuizCreate from "../pages/admin/AdminQuizCreate";
 import ResetPasswordOtpPage from "../pages/ResetPasswordOtpPage";
-
-// 1. Thêm import của hai trang quản lý báo cáo/xét duyệt ở đây
 import FlashcardReportList from "../pages/supporter/FlashcardReportList";
 import AdminReviewList from "../pages/admin/AdminReviewList";
 import DictationList from "../pages/supporter/DictationList";
 import DictationEdit from "../pages/supporter/DictationEdit";
 import DictationPage from "../pages/user/DictationPage";
 import DictationPractice from "../pages/user/DictationPractice";
-import ResendVerifyEmailPage from "../pages/ResendVerifyEmailPage"; // <-- THÊM DÒNG NÀY
+import ResendVerifyEmailPage from "../pages/ResendVerifyEmailPage";
+
+// ── THÊM IMPORT NÀY ──────────────────────────────────────────────────────────
+import PronunciationTopicList from "../pages/supporter/PronunciationTopicList";
+// ─────────────────────────────────────────────────────────────────────────────
 
 function AppRoutes() {
     return (
@@ -93,7 +94,6 @@ function AppRoutes() {
                 <Route path="/admin/quiz/edit/:id" element={<AdminQuizEdit />} />
                 <Route path="/admin/flashcard" element={<AdminFlashcardList />} />
                 <Route path="/admin/flashcard/edit/:id" element={<FlashcardWordManagerAdmin/>} />
-                {/* 2. THÊM ROUTE XÉT DUYỆT CỦA ADMIN VÀO ĐÂY */}
                 <Route path="/admin/flashcard-reviews" element={<AdminReviewList />} />
 
                 {/* Supporter Role */}
@@ -109,6 +109,10 @@ function AppRoutes() {
                 <Route path="/supporter/flashcard-reports" element={<FlashcardReportList />} />
                 <Route path="/supporter/dictations" element={<DictationList />} />
                 <Route path="/supporter/dictations/edit/:id" element={<DictationEdit />} />
+
+                {/* ── THÊM ROUTE NÀY ──────────────────────────────────────── */}
+                <Route path="/supporter/pronunciation" element={<PronunciationTopicList />} />
+                {/* ──────────────────────────────────────────────────────────── */}
             </Routes>
         </Router>
     );

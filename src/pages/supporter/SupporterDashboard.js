@@ -1,27 +1,30 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-    BookOpen, 
-    CreditCard, 
-    Plus, 
-    Loader2, 
-    Bell, 
-    CheckCheck, 
-    MessageSquare 
+import {
+    BookOpen,
+    CreditCard,
+    Plus,
+    Loader2,
+    Bell,
+    CheckCheck,
+    MessageSquare,
+    AlertCircle,
+    Activity,
+    Clock,
+    ChevronRight,
+    CheckCircle
 } from 'lucide-react';
 import SupporterSidebar from '../../components/Supporter/SupporterSidebar';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hook/useAuth';
 import { notificationAPI } from '../../config/api';
-import NotificationDetailModal from '../../components/user/NotificationDetailModal'; 
+import NotificationDetailModal from '../../components/user/NotificationDetailModal';
 
-// Hàm định dạng thời gian hiển thị thông báo
 const formatNotificationTime = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
     return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' - ' + date.toLocaleDateString('vi-VN');
 };
 
-// Component con: Menu thả xuống của thông báo (đã đổi hướng sang phải 'right-0' để hợp với header)
 const NotificationDropdown = ({ notifications, onClose, onNotificationClick, onMarkAllAsRead, loading }) => {
     const dropdownRef = useRef(null);
 
@@ -90,22 +93,29 @@ const NotificationDropdown = ({ notifications, onClose, onNotificationClick, onM
 
 const SupporterDashboard = () => {
     const navigate = useNavigate();
-    const { user } = useAuth(); // Lấy user phục vụ logic thông báo
+    const { user } = useAuth();
 
     const [stats, setStats] = useState({
         totalQuizzes: 0,
         totalFlashcards: 0,
+        pendingReports: 4, // Mock data phục vụ quản lý báo cáo lỗi
+        contributionsThisMonth: 12
     });
     const [loading, setLoading] = useState(true);
 
-    // --- Khởi tạo State Thông báo ---
     const [isNotifOpen, setIsNotifOpen] = useState(false);
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [notifLoading, setNotifLoading] = useState(false);
     const [activeNotification, setActiveNotification] = useState(null);
 
-    // Effect lấy số liệu thống kê
+    // Giả lập danh sách hoạt động gần đây để lấp đầy khoảng trống đơn điệu
+    const [recentActivities] = useState([
+        { id: 1, type: 'quiz', name: 'Trắc nghiệm Ngữ pháp nâng cao B2', time: '2 giờ trước', status: 'published' },
+        { id: 2, type: 'flashcard', name: 'Bộ từ vựng Chủ đề Công nghệ IELTS', time: 'Hôm qua', status: 'published' },
+        { id: 3, type: 'quiz', name: 'Luyện nghe chính tả - Bài số 5', time: '3 ngày trước', status: 'draft' },
+    ]);
+
     useEffect(() => {
         const fetchStats = async () => {
             try {
@@ -126,13 +136,13 @@ const SupporterDashboard = () => {
                     ? flashcardData.data.length
                     : 0;
 
-                setStats({
+                setStats(prev => ({
+                    ...prev,
                     totalQuizzes: totalQuizzesAccurate,
                     totalFlashcards,
-                });
+                }));
             } catch (err) {
                 console.error('Lỗi tải thống kê:', err);
-                setStats({ totalQuizzes: 0, totalFlashcards: 0 });
             } finally {
                 setLoading(false);
             }
@@ -141,10 +151,9 @@ const SupporterDashboard = () => {
         fetchStats();
     }, []);
 
-    // Effect: Polling tự động đếm số lượng tin nhắn chưa đọc (Mỗi 30 giây)
     useEffect(() => {
         if (!user) return;
-        
+
         const fetchUnreadCount = async () => {
             try {
                 const res = await notificationAPI.getUnreadCount();
@@ -159,7 +168,6 @@ const SupporterDashboard = () => {
         return () => clearInterval(interval);
     }, [user]);
 
-    // Khối hàm xử lý sự kiện thông báo
     const handleToggleNotification = async () => {
         const nextState = !isNotifOpen;
         setIsNotifOpen(nextState);
@@ -208,12 +216,12 @@ const SupporterDashboard = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex">
+            <div className="min-h-screen bg-[#fafaf8] flex">
                 <SupporterSidebar />
                 <div className="flex-1 ml-72 flex items-center justify-center">
                     <div className="text-center">
-                        <Loader2 className="w-12 h-12 text-gray-600 animate-spin mx-auto mb-4" />
-                        <p className="text-gray-600">Đang tải dữ liệu...</p>
+                        <Loader2 className="w-10 h-10 text-emerald-600 animate-spin mx-auto mb-4" />
+                        <p className="text-neutral-500 text-sm">Đang tải dữ liệu hệ thống...</p>
                     </div>
                 </div>
             </div>
@@ -221,124 +229,221 @@ const SupporterDashboard = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 flex">
+        <div className="min-h-screen bg-[#fafaf8] flex font-sans antialiased text-neutral-800">
             <SupporterSidebar />
 
-            <div className="flex-1 ml-72">
-                {/* Header */}
-                <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
-                    <div className="px-8 py-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h1 className="text-3xl font-bold text-gray-900">Chào mừng trở lại!</h1>
-                                <p className="text-gray-600 mt-2">
-                                    Bạn đã tạo <strong>{stats.totalQuizzes} Quiz</strong> và <strong>{stats.totalFlashcards} Flashcard</strong>
-                                </p>
-                            </div>
-                            
-                            {/* Khu vực bên phải Header: Nút chuông thông báo đứng cạnh Avatar */}
-                            <div className="flex items-center gap-5">
-                                <div className="relative">
-                                    <button
-                                        onClick={handleToggleNotification}
-                                        className={`p-2.5 rounded-full border transition-all duration-200 focus:outline-none relative ${
-                                            isNotifOpen 
-                                                ? 'bg-emerald-50 text-emerald-600 border-emerald-200' 
-                                                : 'text-gray-600 hover:text-emerald-600 border-gray-200 hover:bg-gray-50 hover:scale-105'
-                                        }`}
-                                    >
-                                        <Bell className="w-5 h-5" />
-                                        {unreadCount > 0 && (
-                                            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-white animate-bounce">
-                                                {unreadCount > 99 ? '99+' : unreadCount}
-                                            </span>
-                                        )}
-                                    </button>
+            <div className="flex-1 ml-72 flex flex-col min-w-0">
+                {/* Header hiện đại */}
+                <header className="bg-white border-b border-neutral-100 sticky top-0 z-40 px-8 py-5">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h1 className="text-2xl font-bold text-neutral-900">Tổng quan làm việc</h1>
+                            <p className="text-sm text-neutral-500 mt-0.5">Chào mừng trở lại! Hôm nay bạn có một vài nhiệm vụ mới.</p>
+                        </div>
 
-                                    {/* Dropdown list thông báo */}
-                                    {isNotifOpen && (
-                                        <NotificationDropdown
-                                            notifications={notifications}
-                                            loading={notifLoading}
-                                            onClose={() => setIsNotifOpen(false)}
-                                            onNotificationClick={handleNotificationClick}
-                                            onMarkAllAsRead={handleMarkAllAsRead}
-                                        />
+                        <div className="flex items-center gap-4">
+                            <div className="relative">
+                                <button
+                                    onClick={handleToggleNotification}
+                                    className={`p-2.5 rounded-full border transition-all relative ${
+                                        isNotifOpen
+                                            ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
+                                            : 'text-neutral-600 hover:text-emerald-600 border-neutral-200 hover:bg-neutral-50'
+                                    }`}
+                                >
+                                    <Bell className="w-5 h-5" />
+                                    {unreadCount > 0 && (
+                                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-white animate-bounce">
+                                            {unreadCount > 99 ? '99+' : unreadCount}
+                                        </span>
                                     )}
-                                </div>
+                                </button>
 
-                                {/* Khối Avatar chữ S nguyên bản */}
-                                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-lg flex-shrink-0">
-                                    S
-                                </div>
+                                {isNotifOpen && (
+                                    <NotificationDropdown
+                                        notifications={notifications}
+                                        loading={notifLoading}
+                                        onClose={() => setIsNotifOpen(false)}
+                                        onNotificationClick={handleNotificationClick}
+                                        onMarkAllAsRead={handleMarkAllAsRead}
+                                    />
+                                )}
                             </div>
 
+                            <div className="w-10 h-10 bg-gradient-to-tr from-emerald-600 to-teal-500 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-sm">
+                                S
+                            </div>
                         </div>
                     </div>
                 </header>
 
-                <main className="p-8 max-w-7xl mx-auto">
-                    {/* 2 Cards siêu tối giản */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-                        <div className="bg-white rounded-2xl border border-gray-200 p-8 hover:shadow-lg transition-shadow">
-                            <div className="flex items-center justify-between mb-6">
-                                <div className="p-4 bg-blue-100 rounded-2xl">
-                                    <BookOpen className="w-10 h-10 text-blue-600" />
-                                </div>
+                <main className="p-8 max-w-[1400px] w-full mx-auto flex-1 flex flex-col gap-8">
+
+                    {/* Hàng 4 thẻ KPIs thu nhỏ gọn gàng, tăng mật độ thông tin */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                        <div className="bg-white p-5 rounded-2xl border border-neutral-200/80 shadow-sm flex items-center gap-4">
+                            <div className="p-3 bg-blue-50 text-blue-600 rounded-xl"><BookOpen className="w-6 h-6" /></div>
+                            <div>
+                                <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Quiz đã tạo</p>
+                                <p className="text-2xl font-bold text-neutral-900 mt-0.5">{stats.totalQuizzes}</p>
                             </div>
-                            <p className="text-5xl font-bold text-gray-900">{stats.totalQuizzes}</p>
-                            <p className="text-lg text-gray-600 mt-3">Quiz đã tạo</p>
                         </div>
 
-                        <div className="bg-white rounded-2xl border border-gray-200 p-8 hover:shadow-lg transition-shadow">
-                            <div className="flex items-center justify-between mb-6">
-                                <div className="p-4 bg-purple-100 rounded-2xl">
-                                    <CreditCard className="w-10 h-10 text-purple-600" />
-                                </div>
+                        <div className="bg-white p-5 rounded-2xl border border-neutral-200/80 shadow-sm flex items-center gap-4">
+                            <div className="p-3 bg-purple-50 text-purple-600 rounded-xl"><CreditCard className="w-6 h-6" /></div>
+                            <div>
+                                <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Flashcard đã tạo</p>
+                                <p className="text-2xl font-bold text-neutral-900 mt-0.5">{stats.totalFlashcards}</p>
                             </div>
-                            <p className="text-5xl font-bold text-gray-900">{stats.totalFlashcards}</p>
-                            <p className="text-lg text-gray-600 mt-3">Flashcard đã tạo</p>
+                        </div>
+
+                        <div className="bg-white p-5 rounded-2xl border border-neutral-200/80 shadow-sm flex items-center gap-4">
+                            <div className="p-3 bg-red-50 text-red-600 rounded-xl"><AlertCircle className="w-6 h-6" /></div>
+                            <div>
+                                <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Báo cáo chưa xử lý</p>
+                                <p className="text-2xl font-bold text-red-600 mt-0.5">{stats.pendingReports}</p>
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-5 rounded-2xl border border-neutral-200/80 shadow-sm flex items-center gap-4">
+                            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl"><Activity className="w-6 h-6" /></div>
+                            <div>
+                                <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Tạo mới tháng này</p>
+                                <p className="text-2xl font-bold text-neutral-900 mt-0.5">{stats.contributionsThisMonth}</p>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Nút hành động nhanh */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-                        <button
-                            onClick={() => navigate('/supporter/quizzes/create')}
-                            className="group bg-white rounded-2xl border border-gray-200 p-10 text-left hover:border-blue-500 hover:shadow-xl transition-all duration-300"
-                        >
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mb-5 group-hover:bg-blue-200 transition">
-                                        <BookOpen className="w-9 h-9 text-blue-600" />
-                                    </div>
-                                    <h3 className="text-2xl font-bold text-gray-900 mb-2">Tạo Quiz mới</h3>
-                                    <p className="text-gray-600">Trắc nghiệm, điền từ, nghe hiểu...</p>
-                                </div>
-                                <Plus className="w-8 h-8 text-gray-400 group-hover:text-blue-600 transition" />
-                            </div>
-                        </button>
+                    {/* Bố cục 2 Cột Chuyên nghiệp (Trái: Nội dung & Hoạt động, Phải: Hành động & Việc cần làm) */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-                        <button
-                            onClick={() => navigate('/supporter/flashcards')}
-                            className="group bg-white rounded-2xl border border-gray-200 p-10 text-left hover:border-purple-500 hover:shadow-xl transition-all duration-300"
-                        >
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <div className="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center mb-5 group-hover:bg-purple-200 transition">
-                                        <CreditCard className="w-9 h-9 text-purple-600" />
-                                    </div>
-                                    <h3 className="text-2xl font-bold text-gray-900 mb-2">Tạo Flashcard mới</h3>
-                                    <p className="text-gray-600">Thẻ từ vựng, hình ảnh, âm thanh...</p>
+                        {/* CỘT TRÁI (Chiếm 2 phần) */}
+                        <div className="lg:col-span-2 flex flex-col gap-8">
+
+                            {/* Bảng hoạt động gần đây */}
+                            <div className="bg-white rounded-2xl border border-neutral-200/80 shadow-sm overflow-hidden">
+                                <div className="px-6 py-4 border-b border-neutral-100 flex justify-between items-center">
+                                    <h3 className="font-bold text-neutral-900 text-lg flex items-center gap-2">
+                                        <Clock size={18} className="text-neutral-400" />
+                                        Nội dung vừa xử lý gần đây
+                                    </h3>
                                 </div>
-                                <Plus className="w-8 h-8 text-gray-400 group-hover:text-purple-600 transition" />
+                                <div className="divide-y divide-neutral-100">
+                                    {recentActivities.map((act) => (
+                                        <div key={act.id} className="p-4 px-6 flex items-center justify-between hover:bg-neutral-50/50 transition-colors">
+                                            <div className="flex items-center gap-4 min-w-0">
+                                                <div className={`p-2 rounded-lg ${act.type === 'quiz' ? 'bg-blue-50 text-blue-600' : 'bg-purple-50 text-purple-600'}`}>
+                                                    {act.type === 'quiz' ? <BookOpen size={16} /> : <CreditCard size={16} />}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="text-sm font-semibold text-neutral-800 truncate">{act.name}</p>
+                                                    <p className="text-xs text-neutral-400 mt-0.5">{act.time}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-3 shrink-0">
+                                                <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
+                                                    act.status === 'published' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+                                                }`}>
+                                                    {act.status === 'published' ? 'Đã xuất bản' : 'Bản nháp'}
+                                                </span>
+                                                <ChevronRight size={16} className="text-neutral-300" />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
-                        </button>
+
+                            {/* Khu vực Lối tắt hành động nhanh */}
+                            <div>
+                                <h3 className="font-bold text-neutral-900 text-lg mb-4">Thao tác nhanh công việc</h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <button
+                                        onClick={() => navigate('/supporter/quizzes/create')}
+                                        className="group bg-white p-5 rounded-xl border border-neutral-200 hover:border-blue-500 hover:shadow-md transition-all text-left flex items-center justify-between"
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className="p-3 bg-blue-50 text-blue-600 rounded-xl group-hover:bg-blue-100 transition"><BookOpen size={20} /></div>
+                                            <div>
+                                                <h4 className="font-bold text-neutral-800 text-sm">Tạo Quiz trắc nghiệm</h4>
+                                                <p className="text-xs text-neutral-400 mt-0.5">Điền từ, nghe hiểu, phát âm...</p>
+                                            </div>
+                                        </div>
+                                        <Plus size={18} className="text-neutral-400 group-hover:text-blue-600 transition" />
+                                    </button>
+
+                                    <button
+                                        onClick={() => navigate('/supporter/flashcards')}
+                                        className="group bg-white p-5 rounded-xl border border-neutral-200 hover:border-purple-500 hover:shadow-md transition-all text-left flex items-center justify-between"
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className="p-3 bg-purple-50 text-purple-600 rounded-xl group-hover:bg-purple-100 transition"><CreditCard size={20} /></div>
+                                            <div>
+                                                <h4 className="font-bold text-neutral-800 text-sm">Thêm bộ Flashcard</h4>
+                                                <p className="text-xs text-neutral-400 mt-0.5">Thẻ từ vựng, hình ảnh, âm thanh...</p>
+                                            </div>
+                                        </div>
+                                        <Plus size={18} className="text-neutral-400 group-hover:text-purple-600 transition" />
+                                    </button>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        {/* CỘT PHẢI (Chiếm 1 phần) */}
+                        <div className="flex flex-col gap-6">
+                            {/* Tiện ích Nhắc việc: Báo cáo khẩn cấp từ học viên */}
+                            <div className="bg-white p-6 rounded-2xl border border-neutral-200/80 shadow-sm">
+                                <h3 className="font-bold text-neutral-900 text-base mb-4 flex items-center gap-2">
+                                    <AlertCircle size={18} className="text-red-500" />
+                                    Báo cáo lỗi cần xử lý ngay
+                                </h3>
+
+                                <div className="space-y-3.5">
+                                    <div className="p-3 bg-red-50/50 rounded-xl border border-red-100 text-left">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-xs font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded-md">Lỗi âm thanh</span>
+                                            <span className="text-[11px] text-neutral-400">10 phút trước</span>
+                                        </div>
+                                        <p className="text-xs font-semibold text-neutral-800 mt-1.5 truncate">Flashcard "Incorporate" không nghe được phát âm</p>
+                                        <p className="text-[11px] text-neutral-500 mt-0.5">Người gửi: Nguyễn Văn A</p>
+                                    </div>
+
+                                    <div className="p-3 bg-amber-50/40 rounded-xl border border-amber-100 text-left">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-xs font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-md">Sai đáp án</span>
+                                            <span className="text-[11px] text-neutral-400">1 giờ trước</span>
+                                        </div>
+                                        <p className="text-xs font-semibold text-neutral-800 mt-1.5 truncate">Câu hỏi 4 - Quiz Ngữ pháp Hiện tại hoàn thành</p>
+                                        <p className="text-[11px] text-neutral-500 mt-0.5">Người gửi: Trần Thị B</p>
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={() => navigate('/supporter/flashcards')} // Điều hướng đến trang báo cáo tương ứng
+                                    className="w-full text-center text-xs font-bold text-neutral-600 hover:text-emerald-600 mt-4 pt-3 border-t border-neutral-100 block transition-colors"
+                                >
+                                    Xem toàn bộ báo cáo lỗi ({stats.pendingReports})
+                                </button>
+                            </div>
+
+                            {/* Thẻ trạng thái hệ thống / Tips nhỏ cho Supporter */}
+                            <div className="bg-gradient-to-br from-neutral-900 to-neutral-800 text-white p-6 rounded-2xl shadow-sm text-left relative overflow-hidden">
+                                <div className="absolute right-[-20px] bottom-[-20px] opacity-10 text-white">
+                                    <CheckCircle size={140} />
+                                </div>
+                                <h4 className="font-bold text-sm text-emerald-400 flex items-center gap-1.5 mb-2">
+                                    <CheckCircle size={14} /> Mẹo làm việc hiệu quả
+                                </h4>
+                                <p className="text-xs leading-relaxed text-neutral-300">
+                                    Kiểm tra kỹ phần giải thích nghĩa (Definition) và âm thanh phiên âm trước khi xuất bản bộ Flashcard mới để giúp học viên tránh nhầm lẫn nhé!
+                                </p>
+                            </div>
+                        </div>
+
                     </div>
                 </main>
             </div>
 
-            {/* Khối Modal hiển thị thông báo chi tiết độc lập */}
             {activeNotification && (
                 <NotificationDetailModal
                     notification={activeNotification}
