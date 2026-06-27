@@ -75,6 +75,7 @@ const navigate = useNavigate();
             try {
                 setSearchLoading(true);
                 const response = await flashcardAPI.searchFlashcards(value.trim());
+                console.log('Search response:', response.data);
                 if (response.data.status === 200) {
                     setSearchResults(response.data.data);
                 }
