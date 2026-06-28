@@ -1,12 +1,76 @@
 // src/pages/admin/AdminQuizEdit.js
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Save, ArrowLeft, AlertCircle, CheckCircle2 } from 'lucide-react';
+import {
+    Plus, Trash2, Save, ArrowLeft, AlertCircle, CheckCircle2,
+    AlertTriangle, Loader2
+} from 'lucide-react';
 import Sidebar from "../../components/Admin/Sidebar";
 import { useNavigate, useParams } from 'react-router-dom';
 import axiosInstance from "../../config/axiosConfig";
 
 // 1. Import Notify
 import { notify } from '../../utils/toastNotify';
+
+// Component ConfirmActionModal dùng chung cho các hành động cần cảnh báo
+const ConfirmActionModal = ({
+                                isOpen,
+                                onClose,
+                                onConfirm,
+                                title,
+                                message,
+                                confirmLabel,
+                                confirmColor = 'red',
+                                loading
+                            }) => {
+    if (!isOpen) return null;
+
+    const colorStyles = {
+        red: {
+            iconBg: 'bg-red-100',
+            iconText: 'text-red-600',
+            btn: 'bg-red-600 hover:bg-red-700'
+        },
+        green: {
+            iconBg: 'bg-green-100',
+            iconText: 'text-green-600',
+            btn: 'bg-green-600 hover:bg-green-700'
+        }
+    };
+
+    const currentStyle = colorStyles[confirmColor] || colorStyles.red;
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 transform transition-all">
+                <div className="flex items-center gap-4 mb-4">
+                    <div className={`p-3 rounded-full ${currentStyle.iconBg} ${currentStyle.iconText}`}>
+                        <AlertTriangle className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-900">{title}</h3>
+                </div>
+                <p className="text-gray-600 mb-6 text-sm leading-relaxed">{message}</p>
+
+                <div className="flex justify-end gap-3">
+                    <button
+                        onClick={onClose}
+                        disabled={loading}
+                        className="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium text-sm transition disabled:opacity-50"
+                    >
+                        Hủy
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        disabled={loading}
+                        className={`px-4 py-2 text-white rounded-lg font-medium text-sm transition flex items-center gap-2 disabled:opacity-50 ${currentStyle.btn}`}
+                    >
+                        {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                        <span>{confirmLabel}</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const AdminQuizEdit = () => {
     const { id } = useParams();
@@ -23,6 +87,14 @@ const AdminQuizEdit = () => {
     const [selectedIdx, setSelectedIdx] = useState(0);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+
+    // State điều khiển Modal xác nhận hành động nguy hiểm
+    const [confirmModal, setConfirmModal] = useState({
+        isOpen: false,
+        type: '', // 'delete_question'
+        targetId: null, // Lưu index câu hỏi cần xóa
+        loading: false
+    });
 
     useEffect(() => {
         const fetchQuiz = async () => {
@@ -117,18 +189,39 @@ const AdminQuizEdit = () => {
         setSelectedIdx(quiz.questions.length);
     };
 
+    // Thay đổi deleteQuestion — không thực hiện xóa ngay, chỉ mở modal cấu hình
     const deleteQuestion = (idx) => {
         if (quiz.questions.length <= 1) {
             notify.warning('Phải giữ ít nhất 1 câu hỏi!');
             return;
         }
-        setQuiz(prev => ({
-            ...prev,
-            questions: prev.questions.filter((_, i) => i !== idx)
-        }));
-        if (selectedIdx >= quiz.questions.length - 1) {
-            setSelectedIdx(Math.max(0, quiz.questions.length - 2));
+        setConfirmModal({
+            isOpen: true,
+            type: 'delete_question',
+            targetId: idx,
+            loading: false
+        });
+    };
+
+    // Handler thực hiện xử lý nghiệp vụ sau khi bấm nút Đồng ý trên Modal
+    const executeConfirmAction = () => {
+        const { type, targetId } = confirmModal;
+
+        if (type === 'delete_question') {
+            setQuiz(prev => ({
+                ...prev,
+                questions: prev.questions.filter((_, i) => i !== targetId)
+            }));
+
+            // Bảo lưu nguyên bản logic tính toán dịch chuyển vị trí trang câu hỏi hiện tại
+            if (selectedIdx >= quiz.questions.length - 1) {
+                setSelectedIdx(Math.max(0, quiz.questions.length - 2));
+            }
+            notify.success('Đã gỡ câu hỏi khỏi danh sách tạm thời!');
         }
+
+        // Đóng modal gọn gàng
+        setConfirmModal({ isOpen: false, type: '', targetId: null, loading: false });
     };
 
     const saveQuiz = async () => {
@@ -192,7 +285,7 @@ const AdminQuizEdit = () => {
 
             <div className="flex-1 ml-0 lg:ml-64 transition-all duration-300 flex flex-col">
 
-                {/* 2. HEADER ĐỒNG BỘ */}
+                {/* HEADER ĐỒNG BỘ */}
                 <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
                     <div className="px-6 py-4 flex items-center justify-between">
                         <div className="flex items-center gap-4">
@@ -211,7 +304,6 @@ const AdminQuizEdit = () => {
                             </div>
                         </div>
 
-                        {/* Button Save đồng bộ màu xanh lá */}
                         <button
                             onClick={saveQuiz}
                             disabled={saving}
@@ -302,7 +394,6 @@ const AdminQuizEdit = () => {
                                     </span>
                                 </div>
 
-                                {/* Textarea Question */}
                                 <textarea
                                     placeholder="Nhập nội dung câu hỏi tại đây..."
                                     value={currentQ.content}
@@ -311,7 +402,6 @@ const AdminQuizEdit = () => {
                                     className="w-full text-base mb-6 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 outline-none resize-none"
                                 />
 
-                                {/* Options */}
                                 <div className="space-y-3 flex-1">
                                     {currentQ.options.map((opt, i) => (
                                         <div
@@ -323,7 +413,6 @@ const AdminQuizEdit = () => {
                                                 : 'border-gray-200 hover:border-gray-400 hover:bg-gray-50'
                                             }`}
                                         >
-                                            {/* Radio Icon mimic */}
                                             <div className={`mt-1 w-5 h-5 rounded-full border flex items-center justify-center shrink-0
                                                 ${opt.isCorrect ? 'border-lime-600 bg-lime-600 text-white' : 'border-gray-400 bg-white'}`}>
                                                 {opt.isCorrect && <CheckCircle2 size={12} />}
@@ -336,6 +425,7 @@ const AdminQuizEdit = () => {
                                                     value={opt.content}
                                                     onChange={e => updateOption(i, e.target.value)}
                                                     className={`w-full bg-transparent outline-none text-sm font-medium ${opt.isCorrect ? 'text-gray-900' : 'text-gray-700'}`}
+                                                    onClick={(e) => e.stopPropagation()} // Tránh kích hoạt vòng click bọc ngoài vô ý
                                                 />
                                             </div>
 
@@ -346,7 +436,6 @@ const AdminQuizEdit = () => {
                                     ))}
                                 </div>
 
-                                {/* Explanation */}
                                 <div className="mt-6 pt-4 border-t border-gray-100">
                                     <label className="text-xs font-semibold text-gray-500 uppercase mb-2 block">Giải thích (Optional)</label>
                                     <textarea
@@ -415,6 +504,18 @@ const AdminQuizEdit = () => {
                     </div>
                 </main>
             </div>
+
+            {/* Khối gọi ConfirmActionModal cấu hình xử lý xóa câu hỏi */}
+            <ConfirmActionModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal({ isOpen: false, type: '', targetId: null, loading: false })}
+                onConfirm={executeConfirmAction}
+                title="Xác nhận xóa câu hỏi"
+                message={`Bạn có chắc chắn muốn loại bỏ Câu hỏi số ${Number(confirmModal.targetId) + 1} ra khỏi bài kiểm tra này? Mọi dữ liệu nội dung câu hỏi vừa nhập sẽ không được bảo lưu.`}
+                confirmLabel="Xóa câu hỏi"
+                confirmColor="red"
+                loading={confirmModal.loading}
+            />
         </div>
     );
 };

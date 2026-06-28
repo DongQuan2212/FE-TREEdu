@@ -1,10 +1,74 @@
 // src/pages/admin/AdminQuizCreator.js
 import React, { useState } from 'react';
-import { Plus, Trash2, Save, ArrowLeft, AlertCircle, CheckCircle2, Layers } from 'lucide-react';
+import {
+    Plus, Trash2, Save, ArrowLeft, AlertCircle, CheckCircle2, Layers,
+    AlertTriangle, Loader2
+} from 'lucide-react';
 import Sidebar from "../../components/Admin/Sidebar";
 import { useNavigate } from 'react-router-dom';
 import axiosInstance from "../../config/axiosConfig";
 import { notify } from '../../utils/toastNotify';
+
+// Component ConfirmActionModal dùng chung cho các hành động cần cảnh báo xác nhận
+const ConfirmActionModal = ({
+                                isOpen,
+                                onClose,
+                                onConfirm,
+                                title,
+                                message,
+                                confirmLabel,
+                                confirmColor = 'red',
+                                loading
+                            }) => {
+    if (!isOpen) return null;
+
+    const colorStyles = {
+        red: {
+            iconBg: 'bg-red-100',
+            iconText: 'text-red-600',
+            btn: 'bg-red-600 hover:bg-red-700'
+        },
+        green: {
+            iconBg: 'bg-green-100',
+            iconText: 'text-green-600',
+            btn: 'bg-green-600 hover:bg-green-700'
+        }
+    };
+
+    const currentStyle = colorStyles[confirmColor] || colorStyles.red;
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 transform transition-all">
+                <div className="flex items-center gap-4 mb-4">
+                    <div className={`p-3 rounded-full ${currentStyle.iconBg} ${currentStyle.iconText}`}>
+                        <AlertTriangle className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-900">{title}</h3>
+                </div>
+                <p className="text-gray-600 mb-6 text-sm leading-relaxed">{message}</p>
+
+                <div className="flex justify-end gap-3">
+                    <button
+                        onClick={onClose}
+                        disabled={loading}
+                        className="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium text-sm transition disabled:opacity-50"
+                    >
+                        Hủy
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        disabled={loading}
+                        className={`px-4 py-2 text-white rounded-lg font-medium text-sm transition flex items-center gap-2 disabled:opacity-50 ${currentStyle.btn}`}
+                    >
+                        {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                        <span>{confirmLabel}</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const AdminQuizCreator = () => {
     const navigate = useNavigate();
@@ -29,6 +93,14 @@ const AdminQuizCreator = () => {
 
     const [selectedIdx, setSelectedIdx] = useState(0);
     const [creating, setCreating] = useState(false);
+
+    // State quản lý hành động Modal xác nhận
+    const [confirmModal, setConfirmModal] = useState({
+        isOpen: false,
+        type: '', // 'delete_question'
+        targetId: null, // Lưu index câu hỏi cần xóa tạm thời
+        loading: false
+    });
 
     const updateQuizInfo = (field, value) => {
         setQuiz(prev => ({ ...prev, [field]: value }));
@@ -79,38 +151,54 @@ const AdminQuizCreator = () => {
         setSelectedIdx(quiz.questions.length);
     };
 
+    // Thay đổi deleteQuestion — chỉ kiểm tra điều kiện và mở Modal xác nhận
     const deleteQuestion = (idx) => {
         if (quiz.questions.length <= 1) {
             notify.warning('Phải giữ ít nhất 1 câu hỏi!');
             return;
         }
-        setQuiz(prev => ({
-            ...prev,
-            questions: prev.questions.filter((_, i) => i !== idx)
-        }));
-
-        if (selectedIdx >= quiz.questions.length - 1) {
-            setSelectedIdx(Math.max(0, quiz.questions.length - 2));
-        } else if (selectedIdx > idx) {
-            setSelectedIdx(selectedIdx - 1);
-        }
+        setConfirmModal({
+            isOpen: true,
+            type: 'delete_question',
+            targetId: idx,
+            loading: false
+        });
     };
 
-    // --- LOGIC LƯU (CREATE) ---
+    // Khối xử lý cắt mảng dữ liệu sau khi bấm Đồng ý trên Modal
+    const executeConfirmAction = () => {
+        const { type, targetId } = confirmModal;
+
+        if (type === 'delete_question') {
+            setQuiz(prev => ({
+                ...prev,
+                questions: prev.questions.filter((_, i) => i !== targetId)
+            }));
+
+            // Đồng bộ lại logic tính toán dịch chuyển vị trí trang câu hỏi hiện tại
+            if (selectedIdx >= quiz.questions.length - 1) {
+                setSelectedIdx(Math.max(0, quiz.questions.length - 2));
+            } else if (selectedIdx > targetId) {
+                setSelectedIdx(selectedIdx - 1);
+            }
+            notify.success('Đã gỡ câu hỏi khỏi danh sách tạm thời!');
+        }
+
+        // Đóng modal gọn gàng
+        setConfirmModal({ isOpen: false, type: '', targetId: null, loading: false });
+    };
 
     const createQuiz = async () => {
-        // 1. Validate thông tin chung
         if (!quiz.title.trim() || !quiz.topic.trim()) {
             notify.warning('Vui lòng nhập đầy đủ tiêu đề và chủ đề!');
             return;
         }
 
-        // 2. Validate từng câu hỏi
         for (let i = 0; i < quiz.questions.length; i++) {
             const q = quiz.questions[i];
             if (!q.content.trim()) {
                 notify.warning(`Câu hỏi số ${i + 1} chưa có nội dung!`);
-                setSelectedIdx(i); // Nhảy tới câu lỗi
+                setSelectedIdx(i);
                 return;
             }
             if (q.options.some(o => !o.content.trim())) {
@@ -127,7 +215,6 @@ const AdminQuizCreator = () => {
 
         setCreating(true);
         try {
-            // POST request để tạo mới
             await axiosInstance.post('/quiz', quiz);
             notify.success('Tạo bài Quiz thành công! 🎉');
             navigate('/admin/quiz');
@@ -140,7 +227,6 @@ const AdminQuizCreator = () => {
         }
     };
 
-    // Helper variables
     const currentQ = quiz.questions[selectedIdx] || { content: '', options: [], explanation: '' };
     const filledCount = quiz.questions.filter(q =>
         q.content.trim() && q.options.every(o => o.content.trim())
@@ -152,7 +238,7 @@ const AdminQuizCreator = () => {
 
             <div className="flex-1 ml-0 lg:ml-64 transition-all duration-300 flex flex-col">
 
-                {/* 1. HEADER */}
+                {/* HEADER */}
                 <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
                     <div className="px-6 py-4 flex items-center justify-between">
                         <div className="flex items-center gap-4">
@@ -171,7 +257,6 @@ const AdminQuizCreator = () => {
                             </div>
                         </div>
 
-                        {/* Button Create */}
                         <button
                             onClick={createQuiz}
                             disabled={creating}
@@ -194,7 +279,7 @@ const AdminQuizCreator = () => {
 
                 <main className="p-6 max-w-7xl mx-auto w-full">
 
-                    {/* 2. SECTION: THÔNG TIN CHUNG */}
+                    {/* SECTION: THÔNG TIN CHUNG */}
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
                         <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                             <AlertCircle className="w-5 h-5 text-gray-700" />
@@ -245,7 +330,7 @@ const AdminQuizCreator = () => {
                         </div>
                     </div>
 
-                    {/* 3. SECTION: EDITOR (SPLIT VIEW) */}
+                    {/* SECTION: EDITOR (SPLIT VIEW) */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
                         {/* Cột Trái: Soạn thảo câu hỏi */}
@@ -264,7 +349,6 @@ const AdminQuizCreator = () => {
                                     </span>
                                 </div>
 
-                                {/* Textarea Question */}
                                 <textarea
                                     placeholder="Nhập nội dung câu hỏi tại đây..."
                                     value={currentQ.content}
@@ -273,7 +357,6 @@ const AdminQuizCreator = () => {
                                     className="w-full text-base mb-6 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 outline-none resize-none transition"
                                 />
 
-                                {/* Options List */}
                                 <div className="space-y-3 flex-1">
                                     {currentQ.options.map((opt, i) => (
                                         <div
@@ -285,7 +368,6 @@ const AdminQuizCreator = () => {
                                                 : 'border-gray-200 hover:border-gray-400 hover:bg-gray-50'
                                             }`}
                                         >
-                                            {/* Radio Custom */}
                                             <div className={`mt-1 w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-colors
                                                 ${opt.isCorrect ? 'border-lime-600 bg-lime-600 text-white' : 'border-gray-400 bg-white'}`}>
                                                 {opt.isCorrect && <CheckCircle2 size={12} />}
@@ -298,6 +380,7 @@ const AdminQuizCreator = () => {
                                                     value={opt.content}
                                                     onChange={e => updateOption(i, e.target.value)}
                                                     className={`w-full bg-transparent outline-none text-sm font-medium placeholder-gray-400 ${opt.isCorrect ? 'text-gray-900' : 'text-gray-700'}`}
+                                                    onClick={(e) => e.stopPropagation()}
                                                 />
                                             </div>
 
@@ -308,7 +391,6 @@ const AdminQuizCreator = () => {
                                     ))}
                                 </div>
 
-                                {/* Explanation */}
                                 <div className="mt-6 pt-4 border-t border-gray-100">
                                     <label className="text-xs font-semibold text-gray-500 uppercase mb-2 block">Giải thích đáp án (Optional)</label>
                                     <textarea
@@ -335,7 +417,6 @@ const AdminQuizCreator = () => {
                                     </button>
                                 </div>
 
-                                {/* Grid Navigator */}
                                 <div className="grid grid-cols-5 gap-2 mb-6 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
                                     {quiz.questions.map((q, i) => {
                                         const isFilled = q.content.trim() && q.options.every(o => o.content.trim());
@@ -358,7 +439,6 @@ const AdminQuizCreator = () => {
                                     })}
                                 </div>
 
-                                {/* Action Footer */}
                                 <div className="pt-4 border-t border-gray-100">
                                     <button
                                         onClick={() => deleteQuestion(selectedIdx)}
@@ -380,6 +460,18 @@ const AdminQuizCreator = () => {
                     </div>
                 </main>
             </div>
+
+            {/* Modal cảnh báo xác nhận xóa câu hỏi */}
+            <ConfirmActionModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal({ isOpen: false, type: '', targetId: null, loading: false })}
+                onConfirm={executeConfirmAction}
+                title="Xác nhận gỡ câu hỏi"
+                message={`Bạn có thực sự muốn loại bỏ Câu hỏi số ${Number(confirmModal.targetId) + 1} ra khỏi tiến trình tạo mới này? Toàn bộ nội dung vừa soạn thảo của câu hỏi này sẽ bị xóa.`}
+                confirmLabel="Xóa câu hỏi"
+                confirmColor="red"
+                loading={confirmModal.loading}
+            />
         </div>
     );
 };

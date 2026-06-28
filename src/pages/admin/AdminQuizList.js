@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import {
     Search, Plus, Edit2, Trash2, Upload, Clock, ChevronLeft, ChevronRight,
-    X, FileText, Loader2, FileQuestion
+    X, FileText, Loader2, FileQuestion, AlertTriangle
 } from 'lucide-react';
 import Sidebar from "../../components/Admin/Sidebar";
 import axiosInstance from "../../config/axiosConfig";
@@ -10,6 +10,67 @@ import { useNavigate } from "react-router-dom";
 
 // 1. Import Notify
 import { notify } from '../../utils/toastNotify';
+
+// Component ConfirmActionModal dùng chung cho Xóa và Kích hoạt
+const ConfirmActionModal = ({
+                                isOpen,
+                                onClose,
+                                onConfirm,
+                                title,
+                                message,
+                                confirmLabel,
+                                confirmColor = 'red',
+                                loading
+                            }) => {
+    if (!isOpen) return null;
+
+    const colorStyles = {
+        red: {
+            iconBg: 'bg-red-100',
+            iconText: 'text-red-600',
+            btn: 'bg-red-600 hover:bg-red-700'
+        },
+        green: {
+            iconBg: 'bg-green-100',
+            iconText: 'text-green-600',
+            btn: 'bg-green-600 hover:bg-green-700'
+        }
+    };
+
+    const currentStyle = colorStyles[confirmColor] || colorStyles.red;
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 transform transition-all">
+                <div className="flex items-center gap-4 mb-4">
+                    <div className={`p-3 rounded-full ${currentStyle.iconBg} ${currentStyle.iconText}`}>
+                        <AlertTriangle className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-900">{title}</h3>
+                </div>
+                <p className="text-gray-600 mb-6 text-sm leading-relaxed">{message}</p>
+
+                <div className="flex justify-end gap-3">
+                    <button
+                        onClick={onClose}
+                        disabled={loading}
+                        className="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium text-sm transition disabled:opacity-50"
+                    >
+                        Hủy
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        disabled={loading}
+                        className={`px-4 py-2 text-white rounded-lg font-medium text-sm transition flex items-center gap-2 disabled:opacity-50 ${currentStyle.btn}`}
+                    >
+                        {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                        <span>{confirmLabel}</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const AdminQuizList = () => {
     const [quizzes, setQuizzes] = useState([]);
@@ -33,7 +94,13 @@ const AdminQuizList = () => {
     const [uploadQuestionCount, setUploadQuestionCount] = useState(10);
     const [uploading, setUploading] = useState(false);
 
-    // Đã xóa state uploadMessage vì dùng notify toàn cục
+    // State quản lý Modal xác nhận hành động
+    const [confirmModal, setConfirmModal] = useState({
+        isOpen: false,
+        type: '', // 'delete' hoặc 'activate'
+        targetId: null,
+        loading: false
+    });
 
     const navigate = useNavigate();
 
@@ -60,7 +127,6 @@ const AdminQuizList = () => {
             }
         } catch (err) {
             console.error('Lỗi tải quiz:', err);
-            // 2. Notify error
             notify.error('Không thể tải danh sách quiz!');
         } finally {
             setLoading(false);
@@ -75,18 +141,48 @@ const AdminQuizList = () => {
         setCurrentPage(0);
     }, [searchTerm, filterTopic, filterLevel]);
 
-    const handleDelete = async (id) => {
-        if (!window.confirm('Xác nhận xóa bài quiz này?')) return;
+    // Thay đổi handleDelete — không còn async, chỉ set state mở modal
+    const handleDelete = (id) => {
+        setConfirmModal({
+            isOpen: true,
+            type: 'delete',
+            targetId: id,
+            loading: false
+        });
+    };
+
+    // Thay đổi handleActivate — tương tự, chỉ set state mở modal (sẵn sàng tái sử dụng)
+    const handleActivate = (id) => {
+        setConfirmModal({
+            isOpen: true,
+            type: 'activate',
+            targetId: id,
+            loading: false
+        });
+    };
+
+    // Handler duy nhất xử lý gọi API dựa vào confirmModal.type
+    const executeConfirmAction = async () => {
+        const { type, targetId } = confirmModal;
+        setConfirmModal(prev => ({ ...prev, loading: true }));
 
         try {
-            await axiosInstance.delete(`/quiz/${id}`);
-            // 2. Notify success
-            notify.success('Xóa bài quiz thành công!');
+            if (type === 'delete') {
+                await axiosInstance.delete(`/quiz/${targetId}`);
+                notify.success('Xóa bài quiz thành công!');
+            } else if (type === 'activate') {
+                // Hỗ trợ trường hợp cần kích hoạt bài quiz trong tương lai
+                // await axiosInstance.post(`/quiz/activate/${targetId}`);
+                // notify.success('Kích hoạt bài quiz thành công!');
+            }
+
             fetchQuizzes(currentPage);
+            setConfirmModal({ isOpen: false, type: '', targetId: null, loading: false });
         } catch (err) {
-            const msg = err.response?.data?.message || 'Xóa thất bại!';
-            // 2. Notify error
+            console.error(err);
+            const msg = err.response?.data?.message || (type === 'delete' ? 'Xóa thất bại!' : 'Kích hoạt thất bại!');
             notify.error(msg);
+            setConfirmModal(prev => ({ ...prev, loading: false }));
         }
     };
 
@@ -116,11 +212,10 @@ const AdminQuizList = () => {
             const result = await res.json();
 
             if (res.ok && result.success) {
-                // 2. Notify success & Close Modal
                 notify.success('Tạo quiz thành công từ file!');
-                setIsUploadModalOpen(false); // Đóng modal
-                setUploadFile(null); // Reset file
-                fetchQuizzes(0); // Load lại trang đầu
+                setIsUploadModalOpen(false);
+                setUploadFile(null);
+                fetchQuizzes(0);
             } else {
                 notify.error(result.message || 'Tạo quiz thất bại!');
             }
@@ -131,7 +226,6 @@ const AdminQuizList = () => {
             setUploading(false);
         }
     };
-
 
     const handleDrop = (e) => {
         e.preventDefault();
@@ -162,7 +256,6 @@ const AdminQuizList = () => {
         }
     };
 
-    // Lọc client-side (giữ nguyên logic)
     const displayedQuizzes = quizzes.filter(quiz => {
         const matchSearch = searchTerm === '' ||
             (quiz.title?.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -178,12 +271,12 @@ const AdminQuizList = () => {
 
             <div className="flex-1 ml-0 lg:ml-64 transition-all duration-300">
 
-                {/* 3. HEADER ĐỒNG BỘ (Giống FlashcardList) */}
+                {/* HEADER ĐỒNG BỘ */}
                 <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
                     <div className="px-6 py-4 flex items-center justify-between">
                         <div>
                             <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                                <FileQuestion className="w-7 h-7 text-gray-900" /> {/* Icon màu đen hoặc xám đậm cho đồng bộ */}
+                                <FileQuestion className="w-7 h-7 text-gray-900" />
                                 Admin – Quản lý Quiz
                             </h1>
                             <p className="text-sm text-gray-600 mt-1">
@@ -191,7 +284,6 @@ const AdminQuizList = () => {
                             </p>
                         </div>
 
-                        {/* Buttons Actions */}
                         <div className="flex gap-3">
                             <button
                                 onClick={() => setIsUploadModalOpen(true)}
@@ -363,7 +455,6 @@ const AdminQuizList = () => {
                                 </button>
                             </div>
 
-                            {/* Drag & Drop Area */}
                             <div
                                 onDrop={handleDrop}
                                 onDragOver={(e) => e.preventDefault()}
@@ -399,7 +490,6 @@ const AdminQuizList = () => {
                                 )}
                             </div>
 
-                            {/* Tùy chọn */}
                             <div className="grid grid-cols-2 gap-4 mb-4">
                                 <input
                                     type="text"
@@ -434,7 +524,6 @@ const AdminQuizList = () => {
                                 />
                             </div>
 
-                            {/* Buttons */}
                             <div className="flex justify-end gap-3 pt-2 border-t">
                                 <button
                                     onClick={() => setIsUploadModalOpen(false)}
@@ -465,6 +554,22 @@ const AdminQuizList = () => {
                     </div>
                 )}
             </div>
+
+            {/* <ConfirmActionModal /> thêm vào JSX — Title/Message linh hoạt thay đổi theo Type */}
+            <ConfirmActionModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal({ isOpen: false, type: '', targetId: null, loading: false })}
+                onConfirm={executeConfirmAction}
+                title={confirmModal.type === 'delete' ? 'Xác nhận xóa' : 'Xác nhận kích hoạt'}
+                message={
+                    confirmModal.type === 'delete'
+                        ? 'Cảnh báo: Hành động này không thể hoàn tác. Bạn chắc chắn muốn xóa bài quiz này khỏi hệ thống?'
+                        : 'Bạn có chắc chắn muốn kích hoạt lại bài kiểm tra này không?'
+                }
+                confirmLabel={confirmModal.type === 'delete' ? 'Xóa bài quiz' : 'Kích hoạt ngay'}
+                confirmColor={confirmModal.type === 'delete' ? 'red' : 'green'}
+                loading={confirmModal.loading}
+            />
         </div>
     );
 };
