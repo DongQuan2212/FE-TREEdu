@@ -1,3 +1,5 @@
+// src/routes/AppRoutes.js  (chỉ thêm 2 dòng, phần còn lại giữ nguyên)
+import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import HomePage from "../pages/HomePage";
 import LoginPage from "../pages/LoginPage";
@@ -10,6 +12,45 @@ import IntroPage from "../pages/user/IntroPage";
 import QuizTakingPage from "../pages/user/QuizTakingPage";
 import DiscoverFlashCardPage from "../pages/user/DiscoverFlashCardPage";
 import MyFlashCardPage from "../pages/user/MyFlashCardPage";
+import AdminManagerEmployee from "../pages/admin/AdminManagerEmployee";
+import CreateFlashcardPage from "../pages/user/CreateFlashcardPage";
+import FlashcardDetailPage from "../pages/user/FlashcardDetailPage";
+import QuizCreator from "../pages/supporter/QuizCreator";
+import QuizList from "../pages/supporter/QuizList";
+import QuizEdit from "../pages/supporter/QuizEdit";
+import FlashcardList from "../pages/supporter/FlashcardList";
+import FlashcardCreate from "../pages/supporter/FlashcardCreate";
+import FlashcardWordManager from "../pages/supporter/FlashcardWordManager";
+import PronunciationPracticePage from "../pages/user/PronunciationPracticePage";
+import PronunciationPracticeDetailPage from "../pages/user/PronunciationPracticeDetailPage";
+import VerifyEmailPage from "../pages/verify-result";
+import VerifyOtpPage from "../pages/VerifyOtpPage";
+import ForgotPasswordPage from "../pages/ForgotPasswordPage";
+import ProfilePage from "../pages/user/ProfilePage";
+import ChangePasswordPage from "../pages/user/ChangePasswordPage";
+import QuizHistoryPage from "../pages/user/QuizHistoryPage";
+import FlashcardLearnPage from "../pages/user/FlashcardLearnPage";
+import FlashcardHistoryPage from "../pages/user/FlashcardHistoryPage";
+import AdminQuizList from "../pages/admin/AdminQuizList";
+import AdminQuizEdit from "../pages/admin/AdminQuizEdit";
+import AdminFlashcardList from "../pages/admin/AdminFlashcardList";
+import FlashcardWordManagerAdmin from "../pages/admin/FlashcardWordManagerAdmin";
+import OAuth2RedirectHandler from "../pages/OAuth2RedirectHandler";
+import AdminQuizCreate from "../pages/admin/AdminQuizCreate";
+import ResetPasswordOtpPage from "../pages/ResetPasswordOtpPage";
+import FlashcardReportList from "../pages/supporter/FlashcardReportList";
+import AdminReviewList from "../pages/admin/AdminReviewList";
+import DictationList from "../pages/supporter/DictationList";
+import DictationEdit from "../pages/supporter/DictationEdit";
+import DictationPage from "../pages/user/DictationPage";
+import DictationPractice from "../pages/user/DictationPractice";
+import ResendVerifyEmailPage from "../pages/ResendVerifyEmailPage";
+import CommunityGuidelinesPage from "../pages/user/CommunityGuidelinesPage";
+
+// ── THÊM IMPORT NÀY ──────────────────────────────────────────────────────────
+import PronunciationTopicList from "../pages/supporter/PronunciationTopicList";
+// ─────────────────────────────────────────────────────────────────────────────
+
 function AppRoutes() {
     return (
         <Router>
@@ -18,23 +59,61 @@ function AppRoutes() {
                 <Route path="/" element={<HomePage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage/>} />
+                <Route path="/verify-otp" element={<VerifyOtpPage />} />
+                <Route path="/verify-result" element={<VerifyEmailPage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/oauth2/redirect" element={<OAuth2RedirectHandler />} />
+                <Route path="/reset-password-otp" element={<ResetPasswordOtpPage />} />
+                <Route path="/resend-verify-email" element={<ResendVerifyEmailPage />} />
 
                 {/* User Routes */}
                 <Route path="/home" element={<Home/>} />
+                <Route path="/profile" element={<ProfilePage/>} />
+                <Route path="/history" element={<QuizHistoryPage/>} />
+                <Route path="/change-password" element={<ChangePasswordPage />} />
                 <Route path="/quiz" element={<QuizPage/>} />
                 <Route path="/quiz/:quizId" element={<QuizTakingPage />} />
                 <Route path="/intro" element={<IntroPage/>} />
                 <Route path="flashcard/discover" element={<DiscoverFlashCardPage/>} />
                 <Route path="/flashcard/me" element={<MyFlashCardPage/>} />
                 <Route path="/flashcard" element={<MyFlashCardPage/>} />
-
-
+                <Route path="/flashcard/create" element={<CreateFlashcardPage />} />
+                <Route path="/flashcard/detail/:id" element={<FlashcardDetailPage />} />
+                <Route path="/flashcard/:id/learn" element={<FlashcardLearnPage />} />
+                <Route path="/flashcard/history" element={<FlashcardHistoryPage/>} />
+                <Route path="/pronunciation-practice" element={<PronunciationPracticePage />} />
+                <Route path="/pronunciation-practice/:topic" element={<PronunciationPracticeDetailPage />} />
+                <Route path="/dictation/:id" element={<DictationPractice />} />
+                <Route path="/dictation" element={<DictationPage />} />
 
                 {/* Admin Role */}
                 <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                <Route path="/admin" element={<AdminDashboard />} />
+                <Route path="/admin/quiz" element={<AdminQuizList />} />
+                <Route path="/admin/quiz/create" element={<AdminQuizCreate />} />
+                <Route path="/admin/employee" element={<AdminManagerEmployee/>} />
+                <Route path="/admin/quiz/edit/:id" element={<AdminQuizEdit />} />
+                <Route path="/admin/flashcard" element={<AdminFlashcardList />} />
+                <Route path="/admin/flashcard/edit/:id" element={<FlashcardWordManagerAdmin/>} />
+                <Route path="/admin/flashcard-reviews" element={<AdminReviewList />} />
 
                 {/* Supporter Role */}
                 <Route path="/supporter/dashboard" element={<SupporterDashboard />} />
+                <Route path="/supporter" element={<SupporterDashboard />} />
+                <Route path="/supporter/quizzes" element={<QuizList />} />
+                <Route path="/supporter/quizzes/create" element={<QuizCreator />} />
+                <Route path="/supporter/quizzes/edit/:id" element={<QuizEdit />} />
+                <Route path="/supporter/flashcards" element={<FlashcardList />} />
+                <Route path="/supporter/flashcards/create" element={<FlashcardCreate />} />
+                <Route path="/supporter/flashcards/edit/:id" element={<FlashcardWordManager />} />
+                <Route path="/supporter/flashcards/:id/words" element={<FlashcardWordManager />} />
+                <Route path="/supporter/flashcard-reports" element={<FlashcardReportList />} />
+                <Route path="/supporter/dictations" element={<DictationList />} />
+                <Route path="/supporter/dictations/edit/:id" element={<DictationEdit />} />
+
+                <Route path="/supporter/pronunciation" element={<PronunciationTopicList />} />
+                <Route path="/community-guidelines" element={<CommunityGuidelinesPage />} />
+                
             </Routes>
         </Router>
     );
