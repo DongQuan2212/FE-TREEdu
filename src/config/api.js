@@ -262,3 +262,44 @@ export const pronunciationAPI = {
             params: { topic: topicName },
         }),
 };
+// Thêm vào config/api.js
+export const quizAPI = {
+    getAll: (page = 0, size = 6) =>
+        axiosInstance.get(`/quiz?page=${page}&size=${size}`),
+
+    getById: (id) =>
+        axiosInstance.get(`/quiz/${id}`),
+
+    create: (data) =>
+        axiosInstance.post('/quiz', data),
+
+    update: (id, data) =>
+        axiosInstance.put(`/quiz/${id}`, data),
+
+    delete: (id) =>
+        axiosInstance.delete(`/quiz/${id}`),
+
+    generateFromFile: (formData) =>
+        axiosInstance.post('/quiz/generate-from-file', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            timeout: 180000, // ← KEY FIX: 3 phút, Gemini cần thời gian đọc file
+        }),
+
+    searchByTitle: (title) =>
+        axiosInstance.get(`/quiz/search?title=${title}`),
+
+    getByTopic: (topic) =>
+        axiosInstance.get(`/quiz/topic/${topic}`),
+
+    startQuiz: (quizId) =>
+        axiosInstance.post(`/quiz/${quizId}/start`),
+
+    submitQuiz: (quizId, data) =>
+        axiosInstance.post(`/quiz/${quizId}/submit`, data),
+
+    getMyAttempts: () =>
+        axiosInstance.get('/quiz/my-attempts'),
+
+    getAttemptDetail: (attemptId) =>
+        axiosInstance.get(`/quiz/attempts/${attemptId}`),
+};
