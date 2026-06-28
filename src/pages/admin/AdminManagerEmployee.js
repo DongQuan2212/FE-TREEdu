@@ -1,6 +1,21 @@
 // src/pages/admin/EmployeeManagement.js
 import React, { useEffect, useState, useCallback } from 'react';
-import { Search, Plus, Eye, Edit2, Trash2, UserCheck, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, RefreshCw, Filter } from 'lucide-react';
+import {
+    Search,
+    Plus,
+    Eye,
+    Edit2,
+    Trash2,
+    UserCheck,
+    ChevronLeft,
+    ChevronRight,
+    ChevronsLeft,
+    ChevronsRight,
+    RefreshCw,
+    Filter,
+    AlertTriangle,
+    Loader2
+} from 'lucide-react';
 
 // Components
 import Sidebar from "../../components/Admin/Sidebar";
@@ -10,6 +25,67 @@ import EmployeeDetailModal from "../../components/Admin/EmployeeDetailModal";
 // Config & Utils
 import axiosInstance from "../../config/axiosConfig";
 import { notify } from '../../utils/toastNotify';
+
+// Component ConfirmActionModal tái sử dụng cho Activate & Delete
+const ConfirmActionModal = ({
+                                isOpen,
+                                onClose,
+                                onConfirm,
+                                title,
+                                message,
+                                confirmLabel,
+                                confirmColor = 'red',
+                                loading
+                            }) => {
+    if (!isOpen) return null;
+
+    const colorStyles = {
+        red: {
+            iconBg: 'bg-red-100',
+            iconText: 'text-red-600',
+            btn: 'bg-red-600 hover:bg-red-700'
+        },
+        green: {
+            iconBg: 'bg-green-100',
+            iconText: 'text-green-600',
+            btn: 'bg-green-600 hover:bg-green-700'
+        }
+    };
+
+    const currentStyle = colorStyles[confirmColor] || colorStyles.red;
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 transform transition-all">
+                <div className="flex items-center gap-4 mb-4">
+                    <div className={`p-3 rounded-full ${currentStyle.iconBg} ${currentStyle.iconText}`}>
+                        <AlertTriangle className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-900">{title}</h3>
+                </div>
+                <p className="text-gray-600 mb-6 text-sm leading-relaxed">{message}</p>
+
+                <div className="flex justify-end gap-3">
+                    <button
+                        onClick={onClose}
+                        disabled={loading}
+                        className="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition text-sm disabled:opacity-50"
+                    >
+                        Hủy
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        disabled={loading}
+                        className={`px-4 py-2 text-white rounded-lg font-medium transition text-sm flex items-center gap-2 disabled:opacity-50 ${currentStyle.btn}`}
+                    >
+                        {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                        <span>{confirmLabel}</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const EmployeeManagement = () => {
     // --- STATE ---
@@ -33,6 +109,14 @@ const EmployeeManagement = () => {
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [modalMode, setModalMode] = useState('add');
     const [selectedEmployee, setSelectedEmployee] = useState(null);
+
+    // State quản lý Modal xác nhận hành động nguy hiểm/quan trọng
+    const [confirmModal, setConfirmModal] = useState({
+        isOpen: false,
+        type: '', // 'delete' hoặc 'activate'
+        targetId: null,
+        loading: false
+    });
 
     // --- API HANDLERS ---
 
@@ -83,23 +167,64 @@ const EmployeeManagement = () => {
             }
         }, 500);
         return () => clearTimeout(timer);
-    }, [searchTerm, filterStatus, filterRole, pageSize]); // Xóa fetchEmployees khỏi dep array của useEffect này để tránh loop, xử lý logic page change riêng
+    }, [searchTerm, filterStatus, filterRole, pageSize]);
 
     // Effect riêng cho page change để tránh conflict với debounce
     useEffect(() => {
         fetchEmployees();
     }, [currentPage]);
 
-    // Actions
-    const handleActivate = async (userId) => {
-        if (!window.confirm("Bạn có chắc muốn kích hoạt tài khoản này?")) return;
+    // Thay đổi handleActivate — Không còn async, chỉ set state mở modal
+    const handleActivate = (userId) => {
+        setConfirmModal({
+            isOpen: true,
+            type: 'activate',
+            targetId: userId,
+            loading: false
+        });
+    };
+
+    // Thay đổi handleDelete — Tương tự, chỉ kích hoạt hiển thị modal
+    const handleDelete = (id) => {
+        setConfirmModal({
+            isOpen: true,
+            type: 'delete',
+            targetId: id,
+            loading: false
+        });
+    };
+
+    // Handler duy nhất đồng bộ xử lý cả 2 case dựa trên confirmModal.type
+    const executeConfirmAction = async () => {
+        const { type, targetId } = confirmModal;
+        setConfirmModal(prev => ({ ...prev, loading: true }));
 
         try {
-            await axiosInstance.post(`/users/activate/${userId}`);
-            notify.success("Kích hoạt tài khoản thành công!");
-            fetchEmployees();
+            if (type === 'activate') {
+                await axiosInstance.post(`/users/activate/${targetId}`);
+                notify.success("Kích hoạt tài khoản thành công!");
+                fetchEmployees();
+            } else if (type === 'delete') {
+                await axiosInstance.delete(`/users/${targetId}`);
+                notify.success("Đã xóa nhân viên thành công!");
+
+                // Logic lùi trang nếu xóa phần tử cuối giữ nguyên nguyên bản
+                if (employees.length === 1 && currentPage > 0) {
+                    setCurrentPage(currentPage - 1);
+                } else {
+                    fetchEmployees();
+                }
+            }
+            // Đóng modal thành công
+            setConfirmModal({ isOpen: false, type: '', targetId: null, loading: false });
         } catch (error) {
-            notify.error(error.response?.data?.message || "Lỗi kích hoạt tài khoản!");
+            console.error(error);
+            if (type === 'activate') {
+                notify.error(error.response?.data?.message || "Lỗi kích hoạt tài khoản!");
+            } else if (type === 'delete') {
+                notify.error("Không thể xóa nhân viên!");
+            }
+            setConfirmModal(prev => ({ ...prev, loading: false }));
         }
     };
 
@@ -125,24 +250,6 @@ const EmployeeManagement = () => {
             notify.error(error.response?.data?.message || 'Có lỗi xảy ra!');
         } finally {
             setProcessing(false);
-        }
-    };
-
-    const handleDelete = async (id) => {
-        if (!window.confirm("Xác nhận xóa nhân viên này?")) return;
-
-        try {
-            await axiosInstance.delete(`/users/${id}`);
-            notify.success("Đã xóa nhân viên thành công!");
-
-            // Logic lùi trang nếu xóa phần tử cuối
-            if (employees.length === 1 && currentPage > 0) {
-                setCurrentPage(currentPage - 1);
-            } else {
-                fetchEmployees();
-            }
-        } catch (error) {
-            notify.error("Không thể xóa nhân viên!");
         }
     };
 
@@ -193,7 +300,6 @@ const EmployeeManagement = () => {
                 <header className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm">
                     <div className="px-6 py-4 flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                            {/* Icon đại diện */}
                             <div className="w-10 h-10 rounded-full bg-lime-50 flex items-center justify-center text-lime-600 shadow-sm border border-lime-100">
                                 <UserCheck className="w-6 h-6" />
                             </div>
@@ -211,7 +317,6 @@ const EmployeeManagement = () => {
                         </div>
 
                         <div className="flex items-center gap-3">
-                            {/* Nút Refresh */}
                             <button
                                 onClick={fetchEmployees}
                                 disabled={loading}
@@ -221,7 +326,6 @@ const EmployeeManagement = () => {
                                 <RefreshCw className={`w-5 h-5 ${loading ? "animate-spin" : ""}`} />
                             </button>
 
-                            {/* Nút Thêm mới (Màu Lime) */}
                             <button
                                 onClick={handleOpenAdd}
                                 className="bg-lime-600 hover:bg-lime-700 text-white px-5 py-2.5 rounded-lg font-medium flex items-center gap-2 transition text-sm shadow-sm active:scale-95"
@@ -394,7 +498,6 @@ const EmployeeManagement = () => {
                                         <ChevronLeft className="w-5 h-5" />
                                     </button>
 
-                                    {/* Page Numbers Logic Preserved */}
                                     <div className="flex gap-1 mx-2">
                                         {Array.from({ length: totalPages }, (_, i) => i)
                                             .filter(page => page === 0 || page === totalPages - 1 || (page >= currentPage - 1 && page <= currentPage + 1))
@@ -425,7 +528,7 @@ const EmployeeManagement = () => {
                     </div>
                 </main>
 
-                {/* MODALS */}
+                {/* MODALS CHỨC NĂNG */}
                 <EmployeeFormModal
                     isOpen={showFormModal}
                     onClose={() => setShowFormModal(false)}
@@ -441,6 +544,22 @@ const EmployeeManagement = () => {
                     employee={selectedEmployee}
                 />
             </div>
+
+            {/* <ConfirmActionModal /> thêm vào JSX — Cấu hình thông điệp linh hoạt theo Type */}
+            <ConfirmActionModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal({ isOpen: false, type: '', targetId: null, loading: false })}
+                onConfirm={executeConfirmAction}
+                title={confirmModal.type === 'delete' ? 'Xác nhận xóa' : 'Xác nhận kích hoạt'}
+                message={
+                    confirmModal.type === 'delete'
+                        ? 'Hành động này không thể hoàn tác. Bạn có chắc chắn muốn xóa nhân viên này khỏi hệ thống?'
+                        : 'Bạn có chắc chắn muốn khôi phục quyền truy cập và kích hoạt lại tài khoản nhân sự này?'
+                }
+                confirmLabel={confirmModal.type === 'delete' ? 'Xóa nhân sự' : 'Kích hoạt ngay'}
+                confirmColor={confirmModal.type === 'delete' ? 'red' : 'green'}
+                loading={confirmModal.loading}
+            />
         </div>
     );
 };
