@@ -1,6 +1,7 @@
 import React from 'react';
 import './Footer.css';
 import Logo from "../../asset/logo.png"
+import { Link } from "react-router-dom";
 
 const Footer = () => {
     return (
@@ -43,8 +44,9 @@ const Footer = () => {
                 <div className="footer-section">
                     <h3>Quyền riêng tư và điều khoản</h3>
                     <ul className="footer-links">
-                        <li><a href="#">Nội quy</a></li>
-
+                        <Link to="/community-guidelines">
+                            Tiêu chuẩn cộng đồng
+                        </Link>
                     </ul>
                 </div>
             </div>

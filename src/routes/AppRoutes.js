@@ -45,6 +45,7 @@ import DictationEdit from "../pages/supporter/DictationEdit";
 import DictationPage from "../pages/user/DictationPage";
 import DictationPractice from "../pages/user/DictationPractice";
 import ResendVerifyEmailPage from "../pages/ResendVerifyEmailPage";
+import CommunityGuidelinesPage from "../pages/user/CommunityGuidelinesPage";
 
 // ── THÊM IMPORT NÀY ──────────────────────────────────────────────────────────
 import PronunciationTopicList from "../pages/supporter/PronunciationTopicList";
@@ -110,9 +111,9 @@ function AppRoutes() {
                 <Route path="/supporter/dictations" element={<DictationList />} />
                 <Route path="/supporter/dictations/edit/:id" element={<DictationEdit />} />
 
-                {/* ── THÊM ROUTE NÀY ──────────────────────────────────────── */}
                 <Route path="/supporter/pronunciation" element={<PronunciationTopicList />} />
-                {/* ──────────────────────────────────────────────────────────── */}
+                <Route path="/community-guidelines" element={<CommunityGuidelinesPage />} />
+                
             </Routes>
         </Router>
     );

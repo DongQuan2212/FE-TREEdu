@@ -26,3 +26,14 @@ yarn-error.log*
 package-lock.json
 yarn.lock
 
+# Environment
+.env.*
+
+# IntelliJ IDEA
+.idea/
+
+# VS Code
+.vscode/
+
+# Node modules
+node_modules/

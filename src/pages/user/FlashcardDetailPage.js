@@ -190,9 +190,7 @@ function FlashcardDetailPage() {
                     {/* Flashcard Header Info */}
                     <div className="bg-white rounded-2xl shadow-sm border border-zinc-200 p-8 mb-8 relative overflow-hidden">
                         {/* Background Decoration */}
-                        <div className="absolute top-0 right-0 p-4 opacity-5">
-                            <BookOpen size={120} />
-                        </div>
+                        
 
                         <div className="relative z-10">
                             <div className="flex flex-wrap items-center gap-3 mb-4">
