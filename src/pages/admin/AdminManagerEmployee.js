@@ -169,7 +169,9 @@ const EmployeeManagement = () => {
         return () => clearTimeout(timer);
     }, [searchTerm, filterStatus, filterRole, pageSize, fetchEmployees]);
 
-    useEffect(() => { fetchEmployees(); }, [currentPage, fetchEmployees]);
+    useEffect(() => {
+        fetchEmployees();
+    }, [currentPage, fetchEmployees]);
 
     // Thay đổi handleActivate — Không còn async, chỉ set state mở modal
     const handleActivate = (userId) => {
