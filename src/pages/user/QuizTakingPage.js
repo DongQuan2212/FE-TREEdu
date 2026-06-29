@@ -118,7 +118,7 @@ function QuizTakingPage() {
             submittingRef.current = false;
             setSubmitting(false);
         }
-    }, [quizId, navigate]);
+    }, [quizId]);
 
     // --- handleTimeUp ---
     const handleTimeUp = useCallback(async () => {
