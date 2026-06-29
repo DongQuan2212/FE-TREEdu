@@ -7,7 +7,7 @@ import { flashcardAPI } from '../../config/api';
 import { notify } from '../../utils/toastNotify';
 import {
     Plus, Edit, Trash2, ArrowLeft, BookOpen,
-    Volume2, Link, Layers, X, Copy, Globe, Lock, ShieldCheck
+    Volume2, Layers, X, Copy, Globe, Lock, ShieldCheck
 } from 'lucide-react';
 
 import BulkImportWordsModal from '../../components/Supporter/BulkImportWordsModal';

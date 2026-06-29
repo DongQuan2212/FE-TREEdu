@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
     ArrowLeft,
     Plus,
@@ -51,7 +51,7 @@ const FlashcardWordManagerAdmin = () => {
     });
 
     // --- FETCH DATA (Đồng bộ logic với Supporter) ---
-    const fetchFlashcard = async (isBackgroundRefresh = false) => {
+    const fetchFlashcard = useCallback(async (isBackgroundRefresh = false) => {
         if (!isBackgroundRefresh) setLoading(true);
         try {
             const res = await flashcardAPI.getFlashcardDetails(id);
@@ -65,13 +65,11 @@ const FlashcardWordManagerAdmin = () => {
         } finally {
             if (!isBackgroundRefresh) setLoading(false);
         }
-    };
+    }, [id]);
 
     useEffect(() => {
-        if (id) {
-            fetchFlashcard();
-        }
-    }, [id]);
+        if (id) fetchFlashcard();
+    }, [id, fetchFlashcard]);
 
     // --- HANDLER: BULK IMPORT SUCCESS ---
     const handleBulkImportSuccess = () => {
