@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import axios from "axios";
+import axiosInstance from "../config/axiosConfig";
 import Header from "../components/Header/Header";
 import Footer from "../components/Footer/Footer";
 
-const API_BASE_URL = "http://localhost:3001";
+
 const OTP_LENGTH = 6;
 const RESEND_COOLDOWN = 60;
 
@@ -200,11 +200,7 @@ const ResetPasswordOtpPage = () => {
 
         setLoading(true); setErrorMsg("");
         try {
-            await axios.post(
-                `${API_BASE_URL}/api/auth/reset-password`,
-                { email, otp: code, newPassword },
-                { withCredentials: true }
-            );
+            await axiosInstance.post('/auth/reset-password', { email, otp: code, newPassword });
             setSuccess(true);
         } catch (err) {
             const msg = err.response?.data?.message || "Đặt lại mật khẩu thất bại. Vui lòng thử lại.";
@@ -225,9 +221,8 @@ const ResetPasswordOtpPage = () => {
         if (resendCooldown > 0 || !email) return;
         setResendStatus("sending");
         try {
-            await axios.post(`${API_BASE_URL}/api/auth/resend-otp`, null, {
+            await axiosInstance.post('/auth/resend-otp', null, {
                 params: { email, type: "RESET_PASSWORD" },
-                withCredentials: true,
             });
             setResendStatus("sent");
             setResendCooldown(RESEND_COOLDOWN);

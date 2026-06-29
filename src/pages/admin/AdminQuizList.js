@@ -79,8 +79,6 @@ const AdminQuizList = () => {
     const [filterTopic, setFilterTopic] = useState('all');
     const [filterLevel, setFilterLevel] = useState('all');
     const [topics, setTopics] = useState([]);
-    const API_BASE = 'http://localhost:3001/api';
-
     // Phân trang
     const [currentPage, setCurrentPage] = useState(0);
     const [totalPages, setTotalPages] = useState(1);
@@ -192,20 +190,16 @@ const AdminQuizList = () => {
         }
 
         try {
-            const res = await fetch(`${API_BASE}/quiz/generate-from-file`, {
-                method: 'POST',
-                body: formData,
+            const res = await axiosInstance.post('/quiz/generate-from-file', formData, {
+                timeout: 180000
             });
-
-            const result = await res.json();
-
-            if (res.ok && result.success) {
+            if (res.data.success) {
                 notify.success('Tạo quiz thành công từ file!');
                 setIsUploadModalOpen(false);
                 setUploadFile(null);
                 fetchQuizzes(0);
             } else {
-                notify.error(result.message || 'Tạo quiz thất bại!');
+                notify.error(res.data.message || 'Tạo quiz thất bại!');
             }
         } catch (err) {
             console.error('Upload error:', err);
