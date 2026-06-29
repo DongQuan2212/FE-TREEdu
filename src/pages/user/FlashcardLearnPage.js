@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Header from "../../components/user/Header";
 import Footer from "../../components/Footer/Footer";
 import { flashcardAPI } from "../../config/api";
-import { X, RotateCcw, CheckCircle, ChevronRight, Volume2, XCircle } from "lucide-react";
+import { X, RotateCcw, CheckCircle, Volume2, XCircle } from "lucide-react";
 
-// --- SUB-COMPONENT: TOAST NOTIFICATION ---
+
 const Toast = ({ message, type, onClose }) => {
     useEffect(() => {
         const timer = setTimeout(onClose, 3000);
@@ -104,11 +104,7 @@ function FlashcardLearnPage() {
 
     const showToast = (message, type = 'success') => setToast({ message, type });
 
-    useEffect(() => {
-        fetchFlashcard();
-    }, [id]);
-
-    const fetchFlashcard = async () => {
+    const fetchFlashcard = useCallback(async () => {
         try {
             setLoading(true);
             const res = await flashcardAPI.startLearning(id);
@@ -122,9 +118,11 @@ function FlashcardLearnPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [id, navigate]);
+    useEffect(() => {
+        fetchFlashcard();
+    }, [id, fetchFlashcard]);
 
-    // Reset trạng thái nhập liệu khi chuyển từ mới
     const resetTypingState = () => {
         setUserAnswer("");
         setCheckResult(null);

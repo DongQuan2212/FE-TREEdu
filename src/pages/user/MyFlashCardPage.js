@@ -22,7 +22,7 @@ const navigate = useNavigate();
 
     const [searchTerm, setSearchTerm] = useState('');
     const debounceRef = useRef(null);
-    const [selectedLevel, setSelectedLevel] = useState('all');
+    const [selectedLevel] = useState('all');
     const [selectedTopic, setSelectedTopic] = useState('all');
     const [selectedType, setSelectedType] = useState('all');
     const [selectedVisibility, setSelectedVisibility] = useState('all');
@@ -290,7 +290,7 @@ const navigate = useNavigate();
                                 type="text"
                                 placeholder="Tìm tên bộ thẻ, mô tả..."
                                 value={searchTerm}
-                                onChange={handleSearchChange}  
+                                onChange={handleSearchChange}
                                 className="w-full pl-10 pr-10 py-2.5 bg-white border border-zinc-300 rounded-lg text-sm text-zinc-900 focus:outline-none focus:border-zinc-800 focus:ring-1 focus:ring-zinc-800 transition-colors"
                             />
                             {/* Loading spinner khi đang gọi API search */}

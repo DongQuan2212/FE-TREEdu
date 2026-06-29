@@ -1,5 +1,5 @@
-// src/pages/admin/AdminQuizList.js
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     Search, Plus, Edit2, Trash2, Upload, Clock, ChevronLeft, ChevronRight,
     X, FileText, Loader2, FileQuestion, AlertTriangle
@@ -104,7 +104,7 @@ const AdminQuizList = () => {
 
     const navigate = useNavigate();
 
-    const fetchQuizzes = async (page = 0) => {
+    const fetchQuizzes = useCallback(async (page = 0) => {
         try {
             setLoading(true);
             const params = { page, size: 10 };
@@ -118,7 +118,6 @@ const AdminQuizList = () => {
             if (result.success && result.data) {
                 const data = result.data.content || result.data;
                 setQuizzes(data);
-                setCurrentPage(result.data.pageable?.pageNumber || page);
                 setTotalPages(result.data.totalPages || 1);
                 setTotalElements(result.data.totalElements || data.length);
 
@@ -131,11 +130,11 @@ const AdminQuizList = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [searchTerm, filterTopic, filterLevel]);
 
     useEffect(() => {
         fetchQuizzes(currentPage);
-    }, [currentPage]);
+    }, [currentPage, fetchQuizzes]);
 
     useEffect(() => {
         setCurrentPage(0);
@@ -151,17 +150,6 @@ const AdminQuizList = () => {
         });
     };
 
-    // Thay đổi handleActivate — tương tự, chỉ set state mở modal (sẵn sàng tái sử dụng)
-    const handleActivate = (id) => {
-        setConfirmModal({
-            isOpen: true,
-            type: 'activate',
-            targetId: id,
-            loading: false
-        });
-    };
-
-    // Handler duy nhất xử lý gọi API dựa vào confirmModal.type
     const executeConfirmAction = async () => {
         const { type, targetId } = confirmModal;
         setConfirmModal(prev => ({ ...prev, loading: true }));

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
     ArrowLeft, Plus, Trash2, CheckCircle2,
     Headphones, FileImage, Copy
@@ -32,14 +32,10 @@ const FlashcardWordManager = () => {
         audioURL: ''
     });
 
-    // =============================
-    // FETCH FLASHCARD + WORDS
-    // =============================
-    const fetchFlashcard = async () => {
+    const fetchFlashcard = useCallback(async () => {
         setLoading(true);
         try {
             const res = await flashcardAPI.getFlashcardDetails(id);
-
             if (res.data.success) {
                 const data = res.data.data;
                 setFlashcard(data);
@@ -51,13 +47,11 @@ const FlashcardWordManager = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [id]);
 
     useEffect(() => {
         fetchFlashcard();
-    }, [id]);
-
-
+    }, [id, fetchFlashcard]); // thêm fetchFlashcard
     const addWord = async () => {
         if (!newWord.newWord.trim() || !newWord.meaning.trim()) return;
 

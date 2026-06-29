@@ -167,12 +167,9 @@ const EmployeeManagement = () => {
             }
         }, 500);
         return () => clearTimeout(timer);
-    }, [searchTerm, filterStatus, filterRole, pageSize]);
+    }, [searchTerm, filterStatus, filterRole, pageSize, fetchEmployees]);
 
-    // Effect riêng cho page change để tránh conflict với debounce
-    useEffect(() => {
-        fetchEmployees();
-    }, [currentPage]);
+    useEffect(() => { fetchEmployees(); }, [currentPage, fetchEmployees]);
 
     // Thay đổi handleActivate — Không còn async, chỉ set state mở modal
     const handleActivate = (userId) => {
