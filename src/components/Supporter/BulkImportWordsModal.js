@@ -62,33 +62,47 @@ const BulkImportWordsModal = ({ isOpen, onClose, flashcardId, onSuccess }) => {
         if (file.name.endsWith('.csv')) reader.readAsText(file);
         else reader.readAsArrayBuffer(file);
     };
-    const handleImport = async () => { /* ... Logic import giữ nguyên ... */
+    const handleImport = async () => {
         if (previewData.length === 0) return;
         setIsProcessing(true);
         setProgress(0);
         setResults({ success: 0, failed: 0, errors: [] });
+
         const chunkSize = 15;
-        const errors = [];
+        const allErrors = [];
         let successCount = 0;
         let failedCount = 0;
+
         for (let i = 0; i < previewData.length; i += chunkSize) {
             const chunk = previewData.slice(i, i + chunkSize);
-            const promises = chunk.map(async (word) => {
-                try {
-                    await axiosInstance.post(`/flashcards/${flashcardId}/words`, word);
-                    return { success: true };
-                } catch (err) {
-                    return { success: false, word: word.newWord, error: err.response?.data?.message || err.message };
-                }
-            });
-            const chunkResults = await Promise.all(promises);
-            chunkResults.forEach(r => {
+
+            // Tách hàm ra khỏi loop, không capture successCount/failedCount
+            const chunkResults = await Promise.all(
+                chunk.map((word) =>
+                    axiosInstance
+                        .post(`/flashcards/${flashcardId}/words`, word)
+                        .then(() => ({ success: true }))
+                        .catch((err) => ({
+                            success: false,
+                            word: word.newWord,
+                            error: err.response?.data?.message || err.message,
+                        }))
+                )
+            );
+
+            // Cộng dồn sau khi chunk xong — không dùng closure trong map
+            for (const r of chunkResults) {
                 if (r.success) successCount++;
-                else { failedCount++; errors.push(`${r.word}: ${r.error}`); }
-            });
-            setResults({ success: successCount, failed: failedCount, errors: errors });
+                else {
+                    failedCount++;
+                    allErrors.push(`${r.word}: ${r.error}`);
+                }
+            }
+
             setProgress(Math.round(((i + chunk.length) / previewData.length) * 100));
+            setResults({ success: successCount, failed: failedCount, errors: [...allErrors] });
         }
+
         setIsProcessing(false);
         if (successCount > 0) onSuccess?.();
     };

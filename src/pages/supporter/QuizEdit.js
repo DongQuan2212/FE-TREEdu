@@ -1,5 +1,5 @@
 // src/pages/supporter/SupporterQuizEdit.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Trash2, Save, ArrowLeft, AlertCircle, CheckCircle2 } from 'lucide-react';
 import SupporterSidebar from "../../components/Supporter/SupporterSidebar"; // Đổi Sidebar
 import { useNavigate, useParams } from 'react-router-dom';
@@ -22,6 +22,23 @@ const QuizEdit = () => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
+    const addQuestion = useCallback(() => {
+        setQuiz(prev => {
+            const newQuestion = {
+                questionId: Date.now().toString(),
+                content: '',
+                explanation: '',
+                options: [
+                    { answerId: '1', content: '', isCorrect: true },
+                    { answerId: '2', content: '', isCorrect: false },
+                    { answerId: '3', content: '', isCorrect: false },
+                    { answerId: '4', content: '', isCorrect: false }
+                ]
+            };
+            setSelectedIdx(prev.questions.length); // dùng prev thay vì quiz.questions.length
+            return { ...prev, questions: [...prev.questions, newQuestion] };
+        });
+    }, []);
     // Fetch dữ liệu Quiz
     useEffect(() => {
         const fetchQuiz = async () => {
@@ -66,7 +83,7 @@ const QuizEdit = () => {
         };
 
         if (id) fetchQuiz();
-    }, [id, navigate]);
+    }, [id, navigate, addQuestion]);
 
     // Các hàm xử lý logic (Giữ nguyên từ bản Admin vì logic giống hệt)
     const updateQuizInfo = (field, value) => {
@@ -98,24 +115,6 @@ const QuizEdit = () => {
             }));
             return { ...prev, questions: updated };
         });
-    };
-
-    const addQuestion = () => {
-        setQuiz(prev => ({
-            ...prev,
-            questions: [...prev.questions, {
-                questionId: Date.now().toString(),
-                content: '',
-                explanation: '',
-                options: [
-                    { answerId: '1', content: '', isCorrect: true },
-                    { answerId: '2', content: '', isCorrect: false },
-                    { answerId: '3', content: '', isCorrect: false },
-                    { answerId: '4', content: '', isCorrect: false }
-                ]
-            }]
-        }));
-        setSelectedIdx(quiz.questions.length);
     };
 
     const deleteQuestion = (idx) => {

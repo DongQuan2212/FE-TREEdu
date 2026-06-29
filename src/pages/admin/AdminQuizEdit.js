@@ -1,5 +1,5 @@
 // src/pages/admin/AdminQuizEdit.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     Plus, Trash2, Save, ArrowLeft, AlertCircle, CheckCircle2,
     AlertTriangle, Loader2
@@ -95,7 +95,23 @@ const AdminQuizEdit = () => {
         targetId: null, // Lưu index câu hỏi cần xóa
         loading: false
     });
-
+    const addQuestion = useCallback(() => {
+        setQuiz(prev => {
+            const newQuestion = {
+                questionId: Date.now().toString(),
+                content: '',
+                explanation: '',
+                options: [
+                    { answerId: '1', content: '', isCorrect: true },
+                    { answerId: '2', content: '', isCorrect: false },
+                    { answerId: '3', content: '', isCorrect: false },
+                    { answerId: '4', content: '', isCorrect: false }
+                ]
+            };
+            setSelectedIdx(prev.questions.length); // dùng prev thay vì quiz
+            return { ...prev, questions: [...prev.questions, newQuestion] };
+        });
+    }, []);
     useEffect(() => {
         const fetchQuiz = async () => {
             try {
@@ -138,7 +154,7 @@ const AdminQuizEdit = () => {
         };
 
         if (id) fetchQuiz();
-    }, [id, navigate]);
+    }, [id, navigate, addQuestion]);
 
     const updateQuizInfo = (field, value) => {
         setQuiz(prev => ({ ...prev, [field]: value }));
@@ -169,24 +185,6 @@ const AdminQuizEdit = () => {
             }));
             return { ...prev, questions: updated };
         });
-    };
-
-    const addQuestion = () => {
-        setQuiz(prev => ({
-            ...prev,
-            questions: [...prev.questions, {
-                questionId: Date.now().toString(),
-                content: '',
-                explanation: '',
-                options: [
-                    { answerId: '1', content: '', isCorrect: true },
-                    { answerId: '2', content: '', isCorrect: false },
-                    { answerId: '3', content: '', isCorrect: false },
-                    { answerId: '4', content: '', isCorrect: false }
-                ]
-            }]
-        }));
-        setSelectedIdx(quiz.questions.length);
     };
 
     // Thay đổi deleteQuestion — không thực hiện xóa ngay, chỉ mở modal cấu hình

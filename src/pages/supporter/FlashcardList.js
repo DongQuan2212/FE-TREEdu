@@ -1,7 +1,7 @@
 // src/pages/supporter/FlashcardList.js
 import React, { useState, useEffect } from 'react';
 import {
-    Search, Eye, Edit2, Trash2, Plus, BookOpen, ChevronLeft, ChevronRight,
+    Search, Edit2, Trash2, Plus, BookOpen, ChevronLeft, ChevronRight,
     AlertTriangle, Loader2, Globe, Lock, ToggleLeft, ToggleRight
 } from 'lucide-react';
 import SupporterSidebar from '../../components/Supporter/SupporterSidebar';

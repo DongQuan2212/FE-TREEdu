@@ -2,18 +2,16 @@ import React, { useState, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
     Home,
-    Users,
     UserCog,
     LogOut,
     WholeWord,
     FileQuestion,
-    X,
     ShieldAlert
 } from "lucide-react";
 import Lottie from "lottie-react";
 import treeAnimation from "../../asset/tree.json";
 import Logo from "../../asset/logo1.png";
-import { useAuth, ROLES } from "../../hook/useAuth";
+import { useAuth } from "../../hook/useAuth";
 
 const Sidebar = () => {
     const navigate = useNavigate();

@@ -1,11 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react'; // <--- Đã vá lỗi thêm useRef vào đây
 import {
     Users, BookOpen, Activity, CheckCircle,
-    Bell, CheckCheck, MessageSquare, TrendingUp, UserCheck, Layers, Calendar // <--- Đã bổ sung CheckCheck và MessageSquare
+    Bell, CheckCheck, MessageSquare, UserCheck, Layers, Calendar // <--- Đã bổ sung CheckCheck và MessageSquare
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import Sidebar from "../../components/Admin/Sidebar"; 
-import axiosInstance from '../../config/axiosConfig'; 
+import Sidebar from "../../components/Admin/Sidebar";
+import axiosInstance from '../../config/axiosConfig';
 import { notificationAPI } from '../../config/api'; // <--- Đã bổ sung import api cấu hình thông báo
 import NotificationDetailModal from '../../components/user/NotificationDetailModal';
 
@@ -177,7 +177,7 @@ const AdminHomepage = () => {
         const fetchDashboardData = async () => {
             try {
                 const [usersRes, flashcardsRes, quizStatsRes] = await Promise.all([
-                    axiosInstance.get('/users/?size=20000', { draw: 1, start: 0, length: 100 }), 
+                    axiosInstance.get('/users/?size=20000', { draw: 1, start: 0, length: 100 }),
                     axiosInstance.get('/flashcards'),
                     axiosInstance.get('/quiz/admin/stats')
                 ]);
@@ -293,7 +293,7 @@ const AdminHomepage = () => {
                 <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
                     <div className="px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
                         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-                        
+
                         <div className="flex items-center gap-5">
                             {/* KHỐI CHUÔNG THÔNG BÁO */}
                             <div className="relative">
