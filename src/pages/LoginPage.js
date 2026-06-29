@@ -35,7 +35,7 @@ const LoginPage = () => {
         }
     };
     const handleGoogleLogin = () => {
-        window.location.href = `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001'}/oauth2/authorization/google`;
+        window.location.href = `${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/oauth2/authorization/google`;
     };
 
     const handleLogin = async (e) => {
