@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import axios from "axios";
+import axiosInstance from "../config/axiosConfig";
 import Header from "../components/Header/Header";
 import Footer from "../components/Footer/Footer";
 
-const API_BASE_URL = "http://localhost:3001";
 const OTP_LENGTH = 6;
 const RESEND_COOLDOWN = 60; // giây
 
@@ -112,11 +111,7 @@ const handleVerifyOtp = useCallback(async () => {
     setOtpStatus("loading");
     setErrorMsg("");
     try {
-        await axios.post(
-            `${API_BASE_URL}/api/auth/verify-otp`,
-            { email, otp: code },
-            { withCredentials: true }
-        );
+        await axiosInstance.post('/auth/verify-otp', { email, otp: code });
         setVerifiedOtp(code);
         setOtpStatus("idle");
         setStep("success");
@@ -143,11 +138,9 @@ const handleVerifyOtp = useCallback(async () => {
         if (resendCooldown > 0 || !email) return;
         setResendStatus("sending");
         try {
-            await axios.post(
-                `${API_BASE_URL}/api/auth/resend-otp`,
-                null,
-                { params: { email, type }, withCredentials: true }
-            );
+            await axiosInstance.post('/auth/resend-otp', null, {
+                params: { email, type }
+            });
             setResendStatus("sent");
             setResendCooldown(RESEND_COOLDOWN);
             setOtp(Array(OTP_LENGTH).fill(""));
@@ -172,11 +165,7 @@ const handleVerifyOtp = useCallback(async () => {
 
         setPasswordStatus("loading");
         try {
-            await axios.post(
-                `${API_BASE_URL}/api/auth/reset-password`,
-                { email, otp: verifiedOtp, newPassword },
-                { withCredentials: true }
-            );
+            await axiosInstance.post('/auth/reset-password', { email, otp: verifiedOtp, newPassword });
             setPasswordStatus("success");
             setStep("success");
         } catch (err) {
@@ -300,7 +289,7 @@ const handleVerifyOtp = useCallback(async () => {
                                         {type === "RESET_PASSWORD" ? "Đặt lại mật khẩu" : "Xác thực email"}
                                     </h1>
                                     <p className="text-gray-500 text-sm mt-1">
-                                        {step === "otp" 
+                                        {step === "otp"
                                             ? <>Nhập mã 6 chữ số đã được gửi đến <span className="font-semibold text-gray-700">{maskedEmail}</span></>
                                             : "Tạo mật khẩu mới cho tài khoản của bạn"
                                         }

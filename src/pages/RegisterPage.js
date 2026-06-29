@@ -2,9 +2,9 @@ import Header from "../components/Header/Header";
 import Footer from "../components/Footer/Footer";
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import axiosInstance from "../config/axiosConfig";
 
-const API_BASE_URL = "http://localhost:3001";
+
 
 const RegisterPage = () => {
     const navigate = useNavigate();
@@ -116,7 +116,7 @@ const RegisterPage = () => {
                 submitData.append('avatarFile', avatarFile);
             }
 
-            await axios.post(`${API_BASE_URL}/api/users/newMember`, submitData, {
+            await axiosInstance.post(`/users/newMember`, submitData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 }
