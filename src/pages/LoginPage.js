@@ -42,14 +42,27 @@ const LoginPage = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            await axiosInstance.post("/auth/login", {
+            const loginResponse = await axiosInstance.post("/auth/login", {
                 email: email.trim(),
                 password: password,
             });
 
+            // ⭐ 1. Lấy mã JWT từ cục JSON trả về (chính là trường 'data' trong Postman)
+            const token = loginResponse.data.data;
+
+            // ⭐ 2. Cất token vào ngăn 'accessToken' của localStorage NGAY LẬP TỨC
+            if (token) {
+                localStorage.setItem('accessToken', token);
+            } else {
+                throw new Error("Không nhận được token từ server");
+            }
+
+            // ⭐ 3. Bây giờ mới gọi API lấy thông tin user.
+            // Lúc này Axios Interceptor của bạn sẽ tự động bốc 'accessToken' vừa lưu ở trên nhét vào Header.
             const userData = await fetchCurrentUser();
 
             if (userData) {
+                // Lưu thêm thông tin user (không chứa token) để dùng giao diện
                 localStorage.setItem("userInfo", JSON.stringify({
                     id: userData.id,
                     email: userData.email,
@@ -58,9 +71,6 @@ const LoginPage = () => {
                 }));
 
                 const welcomeMessage = `Chào mừng ${userData.name}!`;
-
-                // Tùy chọn: Bạn có thể hiện notify success ở đây trước khi chuyển trang
-                // notify.success("Đăng nhập thành công!");
 
                 // Chuyển hướng
                 if (userData.role === "ROLE_ADMIN") {
@@ -88,7 +98,6 @@ const LoginPage = () => {
                 errorMessage = "Không tìm thấy tài khoản!";
             }
 
-            // 3. Sử dụng notify.error thay vì setError
             notify.error(errorMessage);
         } finally {
             setLoading(false);
