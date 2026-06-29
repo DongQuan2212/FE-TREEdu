@@ -157,7 +157,6 @@ const EmployeeManagement = () => {
         }
     }, [currentPage, pageSize, filterStatus, filterRole, searchTerm]);
 
-    // Debounce Search
     useEffect(() => {
         const timer = setTimeout(() => {
             if (currentPage === 0) {
@@ -167,7 +166,7 @@ const EmployeeManagement = () => {
             }
         }, 500);
         return () => clearTimeout(timer);
-    }, [searchTerm, filterStatus, filterRole, pageSize, fetchEmployees]);
+    }, [searchTerm, filterStatus, filterRole, pageSize, fetchEmployees, currentPage]);
 
     useEffect(() => {
         fetchEmployees();
