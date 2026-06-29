@@ -1,4 +1,4 @@
-// src/pages/user/FlashcardDetailPage.js
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from "../../components/user/Header";

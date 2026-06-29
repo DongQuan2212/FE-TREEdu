@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import axios from "axios";
+import axiosInstance from "../config/axiosConfig";
 import Header from "../components/Header/Header";
 import Footer from "../components/Footer/Footer";
 
-const API_BASE_URL = "http://localhost:3001";
+
 
 const VerifyEmailPage = () => {
     const navigate = useNavigate();
@@ -28,13 +28,9 @@ const VerifyEmailPage = () => {
 
             try {
                 // Gọi API verify
-                const response = await axios.get(
-                    `${API_BASE_URL}/api/auth/verify-email`,
-                    {
-                        params: { code, email },
-                        withCredentials: true // Quan trọng nếu backend dùng session/cookie
-                    }
-                );
+                const response = await axiosInstance.get('/auth/verify-email', {
+                    params: { code, email }
+                });
 
                 setStatus("success");
                 setMessage(response.data.message || "Xác thực email thành công!");
