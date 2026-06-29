@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from "../../components/user/Header";
 import Footer from "../../components/Footer/Footer";
@@ -35,6 +35,12 @@ function QuizTakingPage() {
     const [showResult, setShowResult] = useState(false);
     const [result, setResult] = useState(null);
 
+    // --- REFS (tránh stale closure) ---
+    const answersRef = useRef({});
+    const submittingRef = useRef(false);
+    const attemptIdRef = useRef(null);
+
+    // --- beforeunload ---
     useEffect(() => {
         const handleBeforeUnload = (e) => {
             if (!showResult && !submitting && timeLeft > 0) {
@@ -48,13 +54,14 @@ function QuizTakingPage() {
         return () => window.removeEventListener('beforeunload', handleBeforeUnload);
     }, [showResult, submitting, timeLeft]);
 
-    // 2. Start Quiz
+    // --- Start Quiz ---
     useEffect(() => {
         const start = async () => {
             try {
                 const res = await axiosInstance.post(`/quiz/${quizId}/start`);
                 const d = res.data.data;
 
+                attemptIdRef.current = d.attemptId;
                 setAttemptId(d.attemptId);
                 setQuiz(d.quiz);
                 setQuestions(d.quiz.questions || []);
@@ -62,7 +69,6 @@ function QuizTakingPage() {
                 setLoading(false);
 
                 notify.success(`Bắt đầu: ${d.quiz.title}`);
-
             } catch (err) {
                 console.error("Lỗi start:", err);
                 await showErrorDialog("Không thể tải bài thi hoặc bài thi không tồn tại.", "Lỗi kết nối");
@@ -72,56 +78,8 @@ function QuizTakingPage() {
         start();
     }, [quizId, navigate]);
 
-    // 3. Timer (Xử lý hết giờ)
-    useEffect(() => {
-        if (loading || showResult || !timeLeft) return;
-        const timer = setInterval(() => {
-            setTimeLeft(prev => {
-                if (prev <= 1) {
-                    clearInterval(timer);
-                    handleTimeUp();
-                    return 0;
-                }
-                return prev - 1;
-            });
-        }, 1000);
-        return () => clearInterval(timer);
-    }, [timeLeft, loading, showResult]);
-
-    // --- HANDLERS ---
-    const handleTimeUp = async () => {
-        await showInfoDialog("Thời gian làm bài đã kết thúc. Hệ thống sẽ tự động nộp bài.", "Hết giờ!");
-        handleSubmit(true);
-    };
-
-    const formatTime = (s) => {
-        const min = Math.floor(s / 60).toString().padStart(2, '0');
-        const sec = (s % 60).toString().padStart(2, '0');
-        return `${min}:${sec}`;
-    };
-
-    const selectAnswer = (questionId, answerId) => {
-        setAnswers(prev => ({ ...prev, [questionId]: answerId }));
-    };
-
-    const toggleFlag = (questionId) => {
-        setFlags(prev => ({ ...prev, [questionId]: !prev[questionId] }));
-    };
-
-    const handleRetakeQuiz = async () => {
-        const isConfirmed = await showConfirmDialog({
-            title: "Làm lại bài thi?",
-            text: "Tiến trình hiện tại sẽ bị hủy và trang sẽ tải lại.",
-            confirmText: "Làm lại ngay",
-            cancelText: "Hủy"
-        });
-
-        if (isConfirmed) {
-            window.location.reload();
-        }
-    };
-
-    const handleSubmit = async (isAutoSubmit = false) => {
+    // --- handleSubmit dùng ref thay vì state để tránh stale closure ---
+    const handleSubmit = useCallback(async (isAutoSubmit = false) => {
         if (!isAutoSubmit) {
             const isConfirmed = await showConfirmDialog({
                 title: "Nộp bài thi?",
@@ -132,12 +90,13 @@ function QuizTakingPage() {
             if (!isConfirmed) return;
         }
 
-        if (submitting) return;
+        if (submittingRef.current) return;
+        submittingRef.current = true;
         setSubmitting(true);
 
         const payload = {
-            attemptId: attemptId,
-            answers: Object.entries(answers).map(([qId, aId]) => ({
+            attemptId: attemptIdRef.current,
+            answers: Object.entries(answersRef.current).map(([qId, aId]) => ({
                 questionId: qId,
                 selectedAnswerId: aId
             }))
@@ -156,7 +115,59 @@ function QuizTakingPage() {
             const msg = err.response?.data?.message || "Vui lòng kiểm tra kết nối mạng.";
             await showErrorDialog(msg, "Nộp bài thất bại");
         } finally {
+            submittingRef.current = false;
             setSubmitting(false);
+        }
+    }, [quizId, navigate]);
+
+    // --- handleTimeUp ---
+    const handleTimeUp = useCallback(async () => {
+        await showInfoDialog("Thời gian làm bài đã kết thúc. Hệ thống sẽ tự động nộp bài.", "Hết giờ!");
+        handleSubmit(true);
+    }, [handleSubmit]);
+
+    // --- Timer ---
+    useEffect(() => {
+        if (loading || showResult || !timeLeft) return;
+        const timer = setInterval(() => {
+            setTimeLeft(prev => {
+                if (prev <= 1) {
+                    clearInterval(timer);
+                    handleTimeUp();
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+        return () => clearInterval(timer);
+    }, [timeLeft, loading, showResult, handleTimeUp]);
+
+    // --- HANDLERS ---
+    const formatTime = (s) => {
+        const min = Math.floor(s / 60).toString().padStart(2, '0');
+        const sec = (s % 60).toString().padStart(2, '0');
+        return `${min}:${sec}`;
+    };
+
+    const selectAnswer = (questionId, answerId) => {
+        const updated = { ...answersRef.current, [questionId]: answerId };
+        answersRef.current = updated; // cập nhật ref ngay lập tức
+        setAnswers(updated);          // cập nhật state để re-render UI
+    };
+
+    const toggleFlag = (questionId) => {
+        setFlags(prev => ({ ...prev, [questionId]: !prev[questionId] }));
+    };
+
+    const handleRetakeQuiz = async () => {
+        const isConfirmed = await showConfirmDialog({
+            title: "Làm lại bài thi?",
+            text: "Tiến trình hiện tại sẽ bị hủy và trang sẽ tải lại.",
+            confirmText: "Làm lại ngay",
+            cancelText: "Hủy"
+        });
+        if (isConfirmed) {
+            window.location.reload();
         }
     };
 
@@ -194,7 +205,6 @@ function QuizTakingPage() {
                 <Header />
                 <main className="min-h-screen bg-zinc-50 pt-28 pb-20 px-4 sm:px-6">
                     <div className="max-w-4xl mx-auto animate-in fade-in zoom-in duration-300">
-                        {/* Result Card */}
                         <div className="bg-white rounded-2xl shadow-xl border border-zinc-100 overflow-hidden mb-8">
                             <div className={`p-8 text-center ${isPass ? 'bg-gradient-to-b from-emerald-50 to-white' : 'bg-gradient-to-b from-red-50 to-white'}`}>
                                 <div className={`w-24 h-24 mx-auto rounded-full flex items-center justify-center mb-4 shadow-sm ${isPass ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
@@ -205,7 +215,6 @@ function QuizTakingPage() {
                                 </h1>
                                 <p className="text-zinc-500 mb-6">Kết quả bài thi: <b>{quiz?.title}</b></p>
 
-                                {/* Gốc: Bảng Điểm số */}
                                 <div className="flex justify-center gap-8 mb-6">
                                     <div className="text-center">
                                         <div className="text-3xl font-bold text-zinc-900">{result.score}/{result.totalQuestions}</div>
@@ -220,7 +229,6 @@ function QuizTakingPage() {
                                     </div>
                                 </div>
 
-                                {/* ⭐ MỚI: Bảng chỉ số Gamification (XP & Level) */}
                                 <div className="flex justify-center gap-8 mb-6 p-4 bg-zinc-50/70 rounded-2xl border border-zinc-200 max-w-sm mx-auto shadow-sm">
                                     <div className="text-center w-1/2">
                                         <div className="text-2xl font-bold text-yellow-500 flex items-center justify-center gap-1">
@@ -237,7 +245,6 @@ function QuizTakingPage() {
                                     </div>
                                 </div>
 
-                                {/* ⭐ MỚI: Banner chúc mừng Thăng Cấp */}
                                 {result.leveledUp && (
                                     <div className="mb-8 mx-auto max-w-sm p-3 bg-gradient-to-r from-amber-100 to-yellow-100 border border-yellow-300 rounded-xl text-yellow-800 font-bold flex items-center justify-center gap-2 animate-bounce shadow-sm">
                                         <Zap size={20} className="text-yellow-600" fill="currentColor" />
@@ -252,7 +259,6 @@ function QuizTakingPage() {
                                     >
                                         Về danh sách
                                     </button>
-
                                     <button
                                         onClick={handleRetakeQuiz}
                                         className="px-6 py-2.5 rounded-lg bg-zinc-900 text-white font-medium hover:bg-zinc-800 transition-colors shadow-lg flex items-center gap-2"
@@ -264,7 +270,6 @@ function QuizTakingPage() {
                             </div>
                         </div>
 
-                        {/* Detailed Results */}
                         <div className="space-y-4">
                             <h3 className="text-lg font-bold text-zinc-900 px-2 flex items-center gap-2">
                                 <CheckSquare size={20} /> Chi tiết bài làm
@@ -325,23 +330,18 @@ function QuizTakingPage() {
                     {/* LEFT COLUMN */}
                     <div className="lg:col-span-8">
                         <div className="bg-white rounded-2xl shadow-sm border border-zinc-200 overflow-hidden min-h-[500px] flex flex-col">
-                            {/* Question Header */}
                             <div className="p-6 sm:p-8 border-b border-zinc-100">
                                 <div className="flex items-center justify-between mb-4">
                                     <span className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-zinc-100 text-zinc-600 text-sm font-bold">
                                         Câu hỏi {currentIdx + 1}
                                     </span>
-
                                     <button
                                         onClick={() => toggleFlag(q.questionId)}
                                         className={`transition-all duration-200 p-2 rounded-full hover:bg-zinc-100 
                                             ${isCurrentFlagged ? 'text-yellow-500' : 'text-zinc-300 hover:text-yellow-400'}`}
                                         title={isCurrentFlagged ? "Bỏ đánh dấu" : "Đánh dấu xem lại"}
                                     >
-                                        <Flag
-                                            size={24}
-                                            fill={isCurrentFlagged ? "currentColor" : "none"}
-                                        />
+                                        <Flag size={24} fill={isCurrentFlagged ? "currentColor" : "none"} />
                                     </button>
                                 </div>
                                 <h2 className="text-xl sm:text-2xl font-semibold text-zinc-900 leading-relaxed">
@@ -349,7 +349,6 @@ function QuizTakingPage() {
                                 </h2>
                             </div>
 
-                            {/* Options */}
                             <div className="flex-1 p-6 sm:p-8 bg-zinc-50/30 space-y-3">
                                 {q.options.map((opt) => {
                                     const isSelected = answers[q.questionId] === opt.answerId;
@@ -375,7 +374,6 @@ function QuizTakingPage() {
                                 })}
                             </div>
 
-                            {/* Footer Nav */}
                             <div className="p-4 sm:p-6 bg-white border-t border-zinc-100 flex items-center justify-between mt-auto">
                                 <button
                                     onClick={handlePrev}
@@ -400,7 +398,6 @@ function QuizTakingPage() {
                     {/* RIGHT COLUMN */}
                     <div className="lg:col-span-4">
                         <div className="bg-white rounded-2xl shadow-sm border border-zinc-200 p-6 sticky top-28">
-
                             <div className="mb-6">
                                 <h1 className="font-bold text-xl text-zinc-900 leading-tight mb-1">{quiz?.title}</h1>
                                 <p className="text-xs text-zinc-400 font-medium">ID: #{attemptId?.toString().slice(-6)}</p>
@@ -435,13 +432,11 @@ function QuizTakingPage() {
                                     const isFlagged = flags[qItem.questionId];
 
                                     let btnClass = "bg-zinc-100 text-zinc-500 hover:bg-zinc-200 border-transparent";
-
                                     if (isFlagged) {
                                         btnClass = "bg-yellow-100 text-yellow-700 border-yellow-300 hover:bg-yellow-200 shadow-sm";
                                     } else if (isAnswered) {
                                         btnClass = "bg-emerald-500 text-white shadow-sm border-transparent";
                                     }
-
                                     const activeClass = isCurrent ? "ring-2 ring-zinc-900 ring-offset-2 z-10" : "";
 
                                     return (

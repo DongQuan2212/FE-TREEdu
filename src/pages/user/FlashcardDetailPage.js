@@ -1,5 +1,5 @@
 // src/pages/user/FlashcardDetailPage.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from "../../components/user/Header";
 import Footer from "../../components/Footer/Footer";
@@ -33,13 +33,10 @@ function FlashcardDetailPage() {
         phoneme: '', imageURL: '', audioURL: ''
     });
 
-    useEffect(() => {
-        fetchFlashcardDetails();
-    }, [id]);
-
-    const fetchFlashcardDetails = async () => {
+    const fetchFlashcardDetails = useCallback(async () => {
         try {
-            if (!flashcard) setLoading(true);
+            setLoading(prev => prev); // giữ nguyên, không dùng flashcard trong deps
+            setLoading(true);         // luôn show loading, đơn giản hơn
             const response = await flashcardAPI.getFlashcardDetails(id);
             if (response.data.status === 200) {
                 setFlashcard(response.data.data);
@@ -51,7 +48,11 @@ function FlashcardDetailPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [id]);
+    useEffect(() => {
+        fetchFlashcardDetails();
+    }, [id, fetchFlashcardDetails]);
+
 
     // Kiểm tra quyền chỉnh sửa
     const canEdit = flashcard?.isOwner === true;
@@ -190,7 +191,7 @@ function FlashcardDetailPage() {
                     {/* Flashcard Header Info */}
                     <div className="bg-white rounded-2xl shadow-sm border border-zinc-200 p-8 mb-8 relative overflow-hidden">
                         {/* Background Decoration */}
-                        
+
 
                         <div className="relative z-10">
                             <div className="flex flex-wrap items-center gap-3 mb-4">
