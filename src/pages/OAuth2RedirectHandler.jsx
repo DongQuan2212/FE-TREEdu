@@ -8,21 +8,23 @@ const OAuth2RedirectHandler = () => {
 
     useEffect(() => {
         const handleOAuth2Redirect = async () => {
+            const token = searchParams.get("token");
             const email = searchParams.get("email");
             const name = searchParams.get("name");
             const role = searchParams.get("role");
 
-            if (!email || !name) {
+            if (!token || !email || !name) {
                 navigate("/login?error=oauth_failed");
                 return;
             }
 
+            // ⭐ Lưu token để Axios interceptor tự gắn Authorization header
+            localStorage.setItem("accessToken", token);
+
             try {
-                // Lấy thông tin user đầy đủ từ backend
                 const response = await axiosInstance.post("/auth/current-user");
                 const userData = response.data.data;
 
-                // Lưu vào localStorage
                 localStorage.setItem("userInfo", JSON.stringify({
                     id: userData.id,
                     email: userData.email,
@@ -30,9 +32,7 @@ const OAuth2RedirectHandler = () => {
                     role: userData.role,
                 }));
 
-                // Redirect theo role
                 const welcomeMessage = `Chào mừng ${userData.name}!`;
-                
                 if (role === "ROLE_ADMIN") {
                     navigate("/admin/dashboard", { state: { message: welcomeMessage } });
                 } else if (role === "ROLE_SUPPORTER") {
