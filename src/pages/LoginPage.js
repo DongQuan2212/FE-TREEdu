@@ -35,7 +35,7 @@ const LoginPage = () => {
         }
     };
     const handleGoogleLogin = () => {
-        window.location.href = `${process.env.REACT_APP_API_URL }/oauth2/authorization/google`;
+        window.location.href = "https://treedu.onrender.com/oauth2/authorization/google";
     };
 
     const handleLogin = async (e) => {
