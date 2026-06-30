@@ -46,10 +46,8 @@ import DictationPage from "../pages/user/DictationPage";
 import DictationPractice from "../pages/user/DictationPractice";
 import ResendVerifyEmailPage from "../pages/ResendVerifyEmailPage";
 import CommunityGuidelinesPage from "../pages/user/CommunityGuidelinesPage";
-
-// ── THÊM IMPORT NÀY ──────────────────────────────────────────────────────────
 import PronunciationTopicList from "../pages/supporter/PronunciationTopicList";
-// ─────────────────────────────────────────────────────────────────────────────
+
 
 function AppRoutes() {
     return (
