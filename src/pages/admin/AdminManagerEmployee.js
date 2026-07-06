@@ -58,7 +58,9 @@ const EmployeeManagement = () => {
                 position: mapRole(user.role),
                 status: mapStatus(user.status),
                 rawRole: user.role,
-                rawStatus: user.status
+                rawStatus: user.status,
+                canPublishFlashcard: user.canPublishFlashcard,
+                canReportFlashcard: user.canReportFlashcard,
             }));
 
             setEmployees(mappedUsers);
@@ -144,6 +146,22 @@ const EmployeeManagement = () => {
         } catch (error) {
             notify.error("Không thể xóa nhân viên!");
         }
+    };
+
+    const handleTogglePermission = async (emp, field) => {
+    const newValue = !emp[field];
+    const label = field === 'canPublishFlashcard' ? 'công khai flashcard' : 'báo cáo flashcard';
+    const action = newValue ? 'mở lại' : 'khoá';
+
+    if (!window.confirm(`Bạn có chắc muốn ${action} quyền ${label} của "${emp.name}"?`)) return;
+
+    try {
+        await axiosInstance.put(`/users/${emp.id}`, { [field]: newValue });
+        notify.success(`Đã ${action} quyền ${label}!`);
+        fetchEmployees();
+    } catch (error) {
+        notify.error(error.response?.data?.message || "Có lỗi xảy ra!");
+    }
     };
 
     // --- UTILS ---
@@ -290,13 +308,14 @@ const EmployeeManagement = () => {
                                     <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Email</th>
                                     <th className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Trạng thái</th>
                                     <th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Thao tác</th>
+                                    <th className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Quyền hạn</th>
                                 </tr>
                                 </thead>
 
                                 <tbody className="divide-y divide-gray-100">
                                 {loading ? (
                                     <tr>
-                                        <td colSpan="5" className="text-center py-20">
+                                        <td colSpan="6" className="text-center py-20">
                                             <div className="flex flex-col items-center justify-center gap-3">
                                                 <div className="animate-spin rounded-full h-10 w-10 border-4 border-gray-200 border-t-lime-600"></div>
                                                 <span className="text-gray-500 text-sm font-medium">Đang tải dữ liệu...</span>
@@ -354,11 +373,41 @@ const EmployeeManagement = () => {
                                                     </button>
                                                 </div>
                                             </td>
+                                            <td className="px-6 py-4 text-center">
+                                            {emp.rawRole === 'Member' ? (
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <button
+                                                        onClick={() => handleTogglePermission(emp, 'canPublishFlashcard')}
+                                                        title={emp.canPublishFlashcard ? "Đang được phép công khai — bấm để khoá" : "Đang bị khoá — bấm để mở"}
+                                                        className={`px-2 py-1 rounded text-[10px] font-bold border transition ${
+                                                            emp.canPublishFlashcard
+                                                                ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
+                                                                : 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
+                                                        }`}
+                                                    >
+                                                        Công khai
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleTogglePermission(emp, 'canReportFlashcard')}
+                                                        title={emp.canReportFlashcard ? "Đang được phép report — bấm để khoá" : "Đang bị khoá — bấm để mở"}
+                                                        className={`px-2 py-1 rounded text-[10px] font-bold border transition ${
+                                                            emp.canReportFlashcard
+                                                                ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
+                                                                : 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
+                                                        }`}
+                                                    >
+                                                        Báo cáo
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <span className="text-zinc-300 text-xs">—</span>
+                                            )}
+                                        </td>
                                         </tr>
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan="5" className="text-center py-16 text-gray-500 font-medium">
+                                        <td colSpan="6" className="text-center py-16 text-gray-500 font-medium">
                                             Không tìm thấy nhân viên nào phù hợp
                                         </td>
                                     </tr>

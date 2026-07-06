@@ -2,14 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from "react-router-dom";
 import Header from "../../components/user/Header";
 import Footer from "../../components/Footer/Footer";
-import { flashcardAPI } from '../../config/api';
-import { Globe, Lock, Search, ArrowRight, Flag, Plus } from 'lucide-react';
+import { flashcardAPI, userAPI, notificationAPI } from '../../config/api';
+import { Globe, Lock, Search, ArrowRight, Flag, Plus, ShieldAlert } from 'lucide-react';
 
 import iconbook from "../../asset/User/book.png";
 import iconDictionary from "../../asset/User/dictionary.png";
 
 function MyFlashCardPage() {
-const navigate = useNavigate();
+    const navigate = useNavigate();
     const [flashcards, setFlashcards] = useState([]);
     const [searchResults, setSearchResults] = useState(null); // null = chưa search, [] = không có kết quả
     const [searchLoading, setSearchLoading] = useState(false);
@@ -20,9 +20,16 @@ const navigate = useNavigate();
     const [reportReason, setReportReason] = useState('');
     const [reportLoading, setReportLoading] = useState(false);
 
+    // ===== MỚI: profile quyền hạn của member =====
+    const [profile, setProfile] = useState(null);
+    const [appealModal, setAppealModal] = useState(false);
+    const [appealContent, setAppealContent] = useState('');
+    const [appealLoading, setAppealLoading] = useState(false);
+    const [appealSent, setAppealSent] = useState(false);
+
     const [searchTerm, setSearchTerm] = useState('');
     const debounceRef = useRef(null);
-    const [selectedLevel, setSelectedLevel] = useState('all');
+    const [selectedLevel] = useState('all');
     const [selectedTopic, setSelectedTopic] = useState('all');
     const [selectedType, setSelectedType] = useState('all');
     const [selectedVisibility, setSelectedVisibility] = useState('all');
@@ -30,6 +37,7 @@ const navigate = useNavigate();
 
     useEffect(() => {
         fetchFlashcards();
+        fetchMyProfile(); // ===== MỚI =====
     }, []);
 
     const fetchFlashcards = async () => {
@@ -47,15 +55,15 @@ const navigate = useNavigate();
         }
     };
 
-    // const filteredFlashcards = flashcards.filter(card => {
-    //     const matchesSearch = card.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    //         (card.description && card.description.toLowerCase().includes(searchTerm.toLowerCase()));
-    //     const matchesLevel = selectedLevel === 'all' || card.level === Number(selectedLevel);
-    //     const matchesTopic = selectedTopic === 'all' || card.topic === selectedTopic;
-    //     const matchesType = selectedType === 'all' || card.type === selectedType;
-    //     const matchesVisibility = selectedVisibility === 'all' || card.visibility === selectedVisibility;
-    //     return matchesSearch && matchesLevel && matchesTopic && matchesType && matchesVisibility;
-    // });
+    // ===== MỚI: lấy quyền hạn hiện tại của member =====
+    const fetchMyProfile = async () => {
+        try {
+            const response = await userAPI.getProfile(); // GET /api/users/me
+            setProfile(response.data);
+        } catch (err) {
+            console.error('Lỗi tải profile:', err);
+        }
+    };
 
     // ── Debounce search gọi API ──
     const handleSearchChange = (e) => {
@@ -121,6 +129,11 @@ const navigate = useNavigate();
 
     const handleOpenReport = (e, flashcard) => {
         e.stopPropagation();
+        // ===== MỚI: chặn nếu bị khoá quyền report =====
+        if (profile && profile.canReportFlashcard === false) {
+            setAppealModal(true);
+            return;
+        }
         setSelectedFlashcard(flashcard);
         setReportReason('');
         setReportModal(true);
@@ -139,9 +152,34 @@ const navigate = useNavigate();
             setSelectedFlashcard(null);
         } catch (error) {
             console.error(error);
-            alert(error?.response?.data?.message || "Không thể báo cáo flashcard");
+            // ===== MỚI: nếu BE trả 403 do bị khoá quyền (trường hợp state cũ chưa refresh) =====
+            if (error?.response?.status === 403) {
+                setReportModal(false);
+                setAppealModal(true);
+            } else {
+                alert(error?.response?.data?.message || "Không thể báo cáo flashcard");
+            }
         } finally {
             setReportLoading(false);
+        }
+    };
+
+    // ===== MỚI: gửi kháng cáo =====
+    const handleSubmitAppeal = async () => {
+        if (!appealContent.trim()) {
+            alert("Vui lòng nhập nội dung phản hồi");
+            return;
+        }
+        try {
+            setAppealLoading(true);
+            await notificationAPI.sendAppeal({ content: appealContent }); // POST /api/notifications/appeal
+            setAppealSent(true);
+            setAppealContent('');
+        } catch (error) {
+            console.error(error);
+            alert(error?.response?.data?.message || "Không thể gửi kháng cáo");
+        } finally {
+            setAppealLoading(false);
         }
     };
 
@@ -197,12 +235,38 @@ const navigate = useNavigate();
         );
     }
 
+    // ===== MỚI: có bị khoá quyền nào không, để hiện banner =====
+    const hasRestriction = profile && (profile.canPublishFlashcard === false || profile.canReportFlashcard === false);
+
     return (
         <>
             <Header />
 
             <main className="min-h-screen bg-zinc-50 pt-28 pb-20 px-6 sm:px-8">
                 <div className="max-w-7xl mx-auto mt-8">
+
+                    {/* ===== MỚI: Banner cảnh báo bị hạn chế quyền ===== */}
+                    {hasRestriction && (
+                        <div className="mb-6 flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-5 py-4">
+                            <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                            <div className="flex-1">
+                                <p className="text-sm font-semibold text-amber-800">
+                                    Tài khoản của bạn hiện đang bị hạn chế một số quyền
+                                </p>
+                                <p className="text-xs text-amber-700 mt-1">
+                                    {profile.canPublishFlashcard === false && "• Không thể công khai flashcard. "}
+                                    {profile.canReportFlashcard === false && "• Không thể báo cáo flashcard. "}
+                                    Vui lòng gửi phản hồi nếu bạn cho rằng đây là nhầm lẫn.
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setAppealModal(true)}
+                                className="shrink-0 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-lg transition"
+                            >
+                                Gửi kháng cáo
+                            </button>
+                        </div>
+                    )}
 
                     {/* ── Hero Card ── */}
                     <div className="bg-white border border-zinc-200 rounded-2xl px-7 pt-7 pb-6 mb-8">
@@ -290,7 +354,7 @@ const navigate = useNavigate();
                                 type="text"
                                 placeholder="Tìm tên bộ thẻ, mô tả..."
                                 value={searchTerm}
-                                onChange={handleSearchChange}  
+                                onChange={handleSearchChange}
                                 className="w-full pl-10 pr-10 py-2.5 bg-white border border-zinc-300 rounded-lg text-sm text-zinc-900 focus:outline-none focus:border-zinc-800 focus:ring-1 focus:ring-zinc-800 transition-colors"
                             />
                             {/* Loading spinner khi đang gọi API search */}
@@ -467,6 +531,59 @@ const navigate = useNavigate();
                                 {reportLoading ? 'Đang gửi...' : 'Gửi báo cáo'}
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ===== MỚI: Appeal Modal ===== */}
+            {appealModal && (
+                <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl">
+                        {appealSent ? (
+                            <div className="text-center py-6">
+                                <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-4">
+                                    <ShieldAlert className="w-6 h-6 text-green-600" />
+                                </div>
+                                <h2 className="text-lg font-bold text-zinc-900 mb-2">Đã gửi kháng cáo</h2>
+                                <p className="text-sm text-zinc-500 mb-5">
+                                    Quản trị viên sẽ xem xét và phản hồi cho bạn sớm nhất có thể.
+                                </p>
+                                <button
+                                    onClick={() => { setAppealModal(false); setAppealSent(false); }}
+                                    className="px-5 py-2 rounded-lg bg-zinc-900 text-white text-sm font-medium hover:bg-black"
+                                >
+                                    Đóng
+                                </button>
+                            </div>
+                        ) : (
+                            <>
+                                <h2 className="text-xl font-bold text-zinc-900 mb-2">Gửi kháng cáo</h2>
+                                <p className="text-sm text-zinc-500 mb-4">
+                                    Giải thích lý do bạn cho rằng việc hạn chế quyền là chưa chính xác. Quản trị viên sẽ xem xét lại.
+                                </p>
+                                <textarea
+                                    value={appealContent}
+                                    onChange={(e) => setAppealContent(e.target.value)}
+                                    placeholder="Nhập nội dung kháng cáo..."
+                                    className="w-full min-h-[120px] border border-zinc-200 rounded-xl p-4 text-sm outline-none focus:ring-2 focus:ring-zinc-900 resize-none"
+                                />
+                                <div className="flex justify-end gap-3 mt-5">
+                                    <button
+                                        onClick={() => setAppealModal(false)}
+                                        className="px-4 py-2 rounded-lg border border-zinc-200 text-sm font-medium hover:bg-zinc-50"
+                                    >
+                                        Hủy
+                                    </button>
+                                    <button
+                                        onClick={handleSubmitAppeal}
+                                        disabled={appealLoading}
+                                        className="px-4 py-2 rounded-lg bg-amber-600 text-white text-sm font-medium hover:bg-amber-700 transition-colors disabled:opacity-50"
+                                    >
+                                        {appealLoading ? 'Đang gửi...' : 'Gửi kháng cáo'}
+                                    </button>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             )}
