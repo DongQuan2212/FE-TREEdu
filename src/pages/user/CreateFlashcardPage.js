@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from "../../components/user//Header";
 import Footer from "../../components/Footer/Footer";
-import { flashcardAPI } from '../../config/api';
+import { flashcardAPI, userAPI, notificationAPI } from '../../config/api';
 import { notify } from '../../utils/toastNotify';
 import {
     BookOpen,
@@ -11,11 +11,18 @@ import {
     Info,
     ChevronDown,
     Globe,
-    Lock
+    Lock,
+    ShieldAlert
 } from 'lucide-react';
 
 function CreateFlashcardPage() {
     const navigate = useNavigate();
+    const [profile, setProfile] = useState(null);
+    const [appealModal, setAppealModal] = useState(false);
+    const [appealContent, setAppealContent] = useState('');
+    const [appealLoading, setAppealLoading] = useState(false);
+    const [appealSent, setAppealSent] = useState(false);
+
     const [formData, setFormData] = useState({
         title: '',
         description: '',
@@ -25,6 +32,43 @@ function CreateFlashcardPage() {
     });
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState({});
+
+    useEffect(() => {
+        fetchProfile();
+    }, []);
+
+    useEffect(() => {
+        if (profile && profile.canPublishFlashcard === false) {
+            setFormData(prev => ({ ...prev, visibility: 'PRIVATE' }));
+        }
+    }, [profile]);
+
+    const fetchProfile = async () => {
+        try {
+            const response = await userAPI.getProfile();
+            setProfile(response.data);
+        } catch (err) {
+            console.error('Lỗi tải profile:', err);
+        }
+    };
+
+    const handleSubmitAppeal = async () => {
+        if (!appealContent.trim()) {
+            notify.warning("Vui lòng nhập nội dung phản hồi");
+            return;
+        }
+        try {
+            setAppealLoading(true);
+            await notificationAPI.sendAppeal({ content: appealContent });
+            setAppealSent(true);
+            setAppealContent('');
+        } catch (error) {
+            console.error(error);
+            notify.error(error?.response?.data?.message || "Không thể gửi kháng cáo");
+        } finally {
+            setAppealLoading(false);
+        }
+    };
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -53,6 +97,11 @@ function CreateFlashcardPage() {
         e.preventDefault();
         if (!validateForm()) return;
 
+        if (formData.visibility === 'PUBLIC' && profile && profile.canPublishFlashcard === false) {
+            setAppealModal(true);
+            return;
+        }
+
         try {
             setLoading(true);
             // formData lúc này đã bao gồm field visibility
@@ -64,7 +113,11 @@ function CreateFlashcardPage() {
             }
         } catch (error) {
             console.error('Error:', error);
-            notify.error(error.response?.data?.message || 'Không thể tạo flashcard. Vui lòng thử lại.');
+            if (error?.response?.status === 403) {
+                setAppealModal(true);
+            } else {
+                notify.error(error.response?.data?.message || 'Không thể tạo flashcard. Vui lòng thử lại.');
+            }
         } finally {
             setLoading(false);
         }
@@ -263,6 +316,59 @@ function CreateFlashcardPage() {
                     </form>
                 </div>
             </main>
+
+            {/* ===== MỚI: Appeal Modal ===== */}
+            {appealModal && (
+                <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl">
+                        {appealSent ? (
+                            <div className="text-center py-6">
+                                <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-4">
+                                    <ShieldAlert className="w-6 h-6 text-green-600" />
+                                </div>
+                                <h2 className="text-lg font-bold text-zinc-900 mb-2">Đã gửi kháng cáo</h2>
+                                <p className="text-sm text-zinc-500 mb-5">
+                                    Quản trị viên sẽ xem xét và phản hồi cho bạn sớm nhất có thể.
+                                </p>
+                                <button
+                                    onClick={() => { setAppealModal(false); setAppealSent(false); }}
+                                    className="px-5 py-2 rounded-lg bg-zinc-900 text-white text-sm font-medium hover:bg-black"
+                                >
+                                    Đóng
+                                </button>
+                            </div>
+                        ) : (
+                            <>
+                                <h2 className="text-xl font-bold text-zinc-900 mb-2">Gửi kháng cáo</h2>
+                                <p className="text-sm text-zinc-500 mb-4">
+                                    Tài khoản của bạn hiện bị hạn chế quyền công khai flashcard nên không thể tạo bộ thẻ ở chế độ Công khai. Bạn có thể chọn "Riêng tư" hoặc gửi kháng cáo.
+                                </p>
+                                <textarea
+                                    value={appealContent}
+                                    onChange={(e) => setAppealContent(e.target.value)}
+                                    placeholder="Nhập nội dung kháng cáo..."
+                                    className="w-full min-h-[120px] border border-zinc-200 rounded-xl p-4 text-sm outline-none focus:ring-2 focus:ring-zinc-900 resize-none"
+                                />
+                                <div className="flex justify-end gap-3 mt-5">
+                                    <button
+                                        onClick={() => setAppealModal(false)}
+                                        className="px-4 py-2 rounded-lg border border-zinc-200 text-sm font-medium hover:bg-zinc-50"
+                                    >
+                                        Hủy
+                                    </button>
+                                    <button
+                                        onClick={handleSubmitAppeal}
+                                        disabled={appealLoading}
+                                        className="px-4 py-2 rounded-lg bg-amber-600 text-white text-sm font-medium hover:bg-amber-700 transition-colors disabled:opacity-50"
+                                    >
+                                        {appealLoading ? 'Đang gửi...' : 'Gửi kháng cáo'}
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
             <Footer />
         </div>
     );

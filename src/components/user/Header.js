@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import Logo from '../../asset/logo1.png';
 import { useAuth } from '../../hook/useAuth';
 import { userAPI, notificationAPI } from '../../config/api';
+import AppealModal from "./AppealModal";
 import NotificationDetailModal from './NotificationDetailModal';
 import {
     User,
@@ -67,6 +68,7 @@ const RoleBadge = ({ role }) => {
     );
 };
 
+
 const UserAvatar = ({ user, profile, loading, onClick }) => {
     const finalAvatar = profile?.avatarUrl || user?.avatarUrl || "https://cdn-icons-png.flatic.com/512/149/149071.png";
     return (
@@ -111,7 +113,7 @@ const DropdownMenuItem = ({ icon: Icon, label, onClick, variant = 'default' }) =
     );
 };
 
-const NotificationDropdown = ({ notifications, onClose, onNotificationClick, onMarkAllAsRead, loading }) => {
+const NotificationDropdown = ({ notifications, onClose, onNotificationClick, onMarkAllAsRead, loading, onOpenAppeal }) => {
     const dropdownRef = useRef(null);
 
     useEffect(() => {
@@ -165,6 +167,17 @@ const NotificationDropdown = ({ notifications, onClose, onNotificationClick, onM
                                     )}
                                 </div>
                                 <p className="text-xs text-neutral-500 line-clamp-2 mt-0.5">{notif.content}</p>
+                                {notif.type === 'PERMISSION_CHANGED' && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onOpenAppeal(notif);
+                                        }}
+                                        className="mt-2 text-xs font-semibold text-amber-600 hover:underline"
+                                    >
+                                        Phản hồi / Kháng cáo
+                                    </button>
+                                )}
                                 <span className="text-[10px] text-neutral-400 mt-1 block">
                                     {formatNotificationTime(notif.createdAt)}
                                 </span>
@@ -344,6 +357,7 @@ const Header = () => {
     const [notifLoading, setNotifLoading] = useState(false);
 
     const [activeNotification, setActiveNotification] = useState(null);
+    const [appealNotification, setAppealNotification] = useState(null);
 
     useEffect(() => {
         const fetchUserProfile = async () => {
@@ -498,6 +512,10 @@ const Header = () => {
                                             onClose={() => setIsNotifOpen(false)}
                                             onNotificationClick={handleNotificationClick}
                                             onMarkAllAsRead={handleMarkAllAsRead}
+                                            onOpenAppeal={(notif) => {
+                                                setIsNotifOpen(false);
+                                                setAppealNotification(notif);
+                                            }}
                                         />
                                     )}
                                 </div>
@@ -556,6 +574,12 @@ const Header = () => {
                 <NotificationDetailModal
                     notification={activeNotification}
                     onClose={() => setActiveNotification(null)}
+                />
+            )}
+            {appealNotification && (
+                <AppealModal
+                    notification={appealNotification}
+                    onClose={() => setAppealNotification(null)}
                 />
             )}
         </header>
