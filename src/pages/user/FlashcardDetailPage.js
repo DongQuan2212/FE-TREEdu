@@ -44,8 +44,8 @@ function FlashcardDetailPage() {
     useEffect(() => {
         fetchFlashcardDetails();
         fetchMyProfile();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id]);
-
     const fetchMyProfile = async () => {
         try {
             const response = await userAPI.getProfile();
