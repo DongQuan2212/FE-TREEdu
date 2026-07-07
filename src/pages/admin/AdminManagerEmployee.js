@@ -114,11 +114,13 @@ const EmployeeManagement = () => {
             }
         }, 500);
         return () => clearTimeout(timer);
-    }, [searchTerm, filterStatus, filterRole, pageSize]); // Xóa fetchEmployees khỏi dep array của useEffect này để tránh loop, xử lý logic page change riêng
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchTerm, filterStatus, filterRole, pageSize]);
 
     // Effect riêng cho page change để tránh conflict với debounce
     useEffect(() => {
         fetchEmployees();
+// eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentPage]);
 
     // Actions
