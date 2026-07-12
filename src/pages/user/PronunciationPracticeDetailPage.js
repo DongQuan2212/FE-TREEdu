@@ -1,3 +1,4 @@
+// PronunciationPracticeDetailPage.jsx
 import React, { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Header from "../../components/user/Header";
@@ -10,7 +11,8 @@ import {
     MicOff,
     RotateCw,
     Volume2,
-    SkipForward
+    SkipForward,
+    RefreshCw   // icon "Luyện lại"
 } from "lucide-react";
 
 function PronunciationPracticeDetailPage() {
@@ -30,6 +32,9 @@ function PronunciationPracticeDetailPage() {
     const [result, setResult] = useState(null);
     const [error, setError] = useState(null);
 
+    // ✅ Thêm: track câu hiện tại để retry không fetch câu mới
+    const [isRetryMode, setIsRetryMode] = useState(false);
+
     const mediaRecorderRef = useRef(null);
     const chunksRef = useRef([]);
 
@@ -47,6 +52,7 @@ function PronunciationPracticeDetailPage() {
             setSentence("");
             setResult(null);
             setError(null);
+            setIsRetryMode(false); // ✅ Reset về câu mới
 
             const res = await axiosInstance.get(
                 "/pronunciation-check/random-sentence",
@@ -66,6 +72,13 @@ function PronunciationPracticeDetailPage() {
         }
     };
 
+    // ✅ Thêm: hàm retry — giữ nguyên câu, chỉ reset result
+    const handleRetry = () => {
+        setResult(null);
+        setError(null);
+        setIsRetryMode(true);
+    };
+
     /* =======================
        RECORD AUDIO
     ======================= */
@@ -81,15 +94,13 @@ function PronunciationPracticeDetailPage() {
             chunksRef.current = [];
 
             recorder.ondataavailable = (e) => {
-                if (e.data.size > 0) {
-                    chunksRef.current.push(e.data);
-                }
+                if (e.data.size > 0) chunksRef.current.push(e.data);
             };
 
             recorder.onstop = () => {
                 const audioBlob = new Blob(chunksRef.current, { type: "audio/webm" });
                 stream.getTracks().forEach(track => track.stop());
-                sendAudioToBackend(audioBlob);
+                sendAudioToBackend(audioBlob); // ✅ isRetryMode đã có trong state
             };
 
             recorder.start();
@@ -117,15 +128,14 @@ function PronunciationPracticeDetailPage() {
         const formData = new FormData();
         formData.append("audio", audioBlob, "recording.webm");
         formData.append("expectedText", sentence);
+        formData.append("retry", String(isRetryMode)); // ✅ Gửi flag retry lên BE
 
         try {
             const res = await axiosInstance.post(
                 "/pronunciation-check",
                 formData,
-                { timeout: 60000 } // ⏱️ AI cần thời gian
+                { timeout: 60000 }
             );
-
-            console.log("Pronunciation response:", res.data);
 
             if (
                 res.data?.success === true &&
@@ -134,13 +144,10 @@ function PronunciationPracticeDetailPage() {
             ) {
                 setResult(res.data.data);
             } else {
-                console.error("Invalid response structure:", res.data);
                 setError("Dữ liệu phân tích không hợp lệ.");
             }
-
         } catch (err) {
             console.error("Pronunciation API error:", err);
-
             if (err.code === "ECONNABORTED") {
                 setError("Phân tích phát âm mất nhiều thời gian, vui lòng thử lại.");
             } else {
@@ -155,7 +162,6 @@ function PronunciationPracticeDetailPage() {
        NAVIGATION
     ======================= */
     const handleBack = () => navigate("/pronunciation-practice");
-    const handleNextSentence = () => loadRandomSentence();
 
     /* =======================
        RENDER
@@ -188,6 +194,12 @@ function PronunciationPracticeDetailPage() {
                                 <h3 className="flex items-center gap-2 text-gray-700 mb-6">
                                     <Volume2 size={20} />
                                     Câu cần luyện
+                                    {/* ✅ Badge báo đang retry */}
+                                    {isRetryMode && (
+                                        <span className="ml-auto text-xs px-2 py-1 bg-amber-50 text-amber-600 border border-amber-200 rounded-full">
+                                            Đang luyện lại
+                                        </span>
+                                    )}
                                 </h3>
 
                                 {loadingSentence ? (
@@ -195,16 +207,20 @@ function PronunciationPracticeDetailPage() {
                                 ) : (
                                     <>
                                         <p className="text-3xl font-medium text-gray-900">
-                                            “{sentence}”
+                                            "{sentence}"
                                         </p>
 
-                                        <button
-                                            onClick={handleNextSentence}
-                                            className="mt-8 flex items-center gap-2 px-6 py-3 border rounded-lg hover:bg-gray-900 hover:text-white transition"
-                                        >
-                                            <SkipForward size={18} />
-                                            Câu tiếp theo
-                                        </button>
+                                        {/* ✅ Chỉ hiện nút "Câu tiếp theo" khi chưa có result */}
+                                        {!result && (
+                                            <button
+                                                onClick={loadRandomSentence}
+                                                disabled={recording || processing}
+                                                className="mt-8 flex items-center gap-2 px-6 py-3 border rounded-lg hover:bg-gray-900 hover:text-white transition disabled:opacity-40"
+                                            >
+                                                <SkipForward size={18} />
+                                                Câu tiếp theo
+                                            </button>
+                                        )}
                                     </>
                                 )}
                             </div>
@@ -216,10 +232,10 @@ function PronunciationPracticeDetailPage() {
                                         <button
                                             onClick={recording ? stopRecording : startRecording}
                                             disabled={loadingSentence || processing}
-                                            className={`w-20 h-20 rounded-full border-4 flex items-center justify-center transition
+                                            className={`w-20 h-20 rounded-full border-4 flex items-center justify-center mx-auto transition
                                                 ${recording
-                                                ? "bg-red-500 border-red-500 animate-pulse"
-                                                : "border-gray-400 hover:border-gray-600"}`}
+                                                    ? "bg-red-500 border-red-500 animate-pulse"
+                                                    : "border-gray-400 hover:border-gray-600"}`}
                                         >
                                             {recording
                                                 ? <MicOff size={48} className="text-white" />
@@ -238,31 +254,35 @@ function PronunciationPracticeDetailPage() {
                                     </>
                                 ) : (
                                     <p className="text-green-600 text-lg font-medium">
-                                        Đã phân tích xong
+                                        Đã phân tích xong ✓
                                     </p>
                                 )}
                             </div>
                         </div>
 
-                        {/* RIGHT */}
+                        {/* RIGHT — KẾT QUẢ */}
                         <div>
                             {result ? (
                                 <div className="bg-white border rounded-xl p-8">
                                     <h3 className="text-xl font-semibold mb-6">
                                         Kết quả phát âm
+                                        {/* ✅ Badge phân biệt lần luyện lại / lần đầu */}
+                                        {isRetryMode && (
+                                            <span className="ml-3 text-xs px-2 py-1 bg-amber-50 text-amber-600 border border-amber-200 rounded-full font-normal">
+                                                Không lưu lịch sử
+                                            </span>
+                                        )}
                                     </h3>
 
                                     {/* SCORE */}
                                     <div className="text-center mb-8">
-                                        <div
-                                            className={`text-7xl font-bold ${
-                                                result.pronunciationScore >= 80
-                                                    ? "text-green-600"
-                                                    : result.pronunciationScore >= 60
-                                                        ? "text-yellow-600"
-                                                        : "text-red-600"
-                                            }`}
-                                        >
+                                        <div className={`text-7xl font-bold ${
+                                            result.pronunciationScore >= 80
+                                                ? "text-green-600"
+                                                : result.pronunciationScore >= 60
+                                                    ? "text-yellow-600"
+                                                    : "text-red-600"
+                                        }`}>
                                             {result.pronunciationScore}
                                         </div>
                                         <p className="text-xl text-gray-600">/100</p>
@@ -271,9 +291,7 @@ function PronunciationPracticeDetailPage() {
                                     {/* RECOGNIZED */}
                                     <div className="bg-gray-50 rounded-lg p-4 mb-6">
                                         <p className="text-gray-600">Bạn nói:</p>
-                                        <p className="font-medium">
-                                            “{result.recognizedText}”
-                                        </p>
+                                        <p className="font-medium">"{result.recognizedText}"</p>
                                     </div>
 
                                     {/* ERRORS */}
@@ -284,30 +302,35 @@ function PronunciationPracticeDetailPage() {
                                                     <p className="font-medium text-red-800">
                                                         "{e.original || "(thừa)"}" → "{e.recognized}"
                                                     </p>
-                                                    <p className="text-red-700 text-sm">
-                                                        {e.explanation}
-                                                    </p>
+                                                    <p className="text-red-700 text-sm">{e.explanation}</p>
                                                 </div>
                                             ))}
                                         </div>
                                     ) : (
                                         <div className="bg-green-50 border rounded-lg p-6 text-center">
-                                            <p className="text-2xl font-bold text-green-700">
-                                                Xuất sắc!
-                                            </p>
-                                            <p className="text-green-600">
-                                                Phát âm rất chuẩn 🎉
-                                            </p>
+                                            <p className="text-2xl font-bold text-green-700">Xuất sắc!</p>
+                                            <p className="text-green-600">Phát âm rất chuẩn 🎉</p>
                                         </div>
                                     )}
 
-                                    <button
-                                        onClick={handleNextSentence}
-                                        className="mt-8 w-full py-4 border rounded-lg hover:bg-gray-900 hover:text-white transition flex justify-center gap-3"
-                                    >
-                                        <RotateCw size={20} />
-                                        Luyện câu mới
-                                    </button>
+                                    {/* ✅ 2 nút hành động: Luyện lại / Câu mới */}
+                                    <div className="mt-8 flex gap-3">
+                                        <button
+                                            onClick={handleRetry}
+                                            className="flex-1 py-4 border rounded-lg hover:bg-amber-50 hover:border-amber-300 hover:text-amber-700 transition flex justify-center items-center gap-2"
+                                        >
+                                            <RefreshCw size={18} />
+                                            Luyện lại câu này
+                                        </button>
+
+                                        <button
+                                            onClick={loadRandomSentence}
+                                            className="flex-1 py-4 border rounded-lg hover:bg-gray-900 hover:text-white transition flex justify-center items-center gap-2"
+                                        >
+                                            <RotateCw size={20} />
+                                            Luyện câu mới
+                                        </button>
+                                    </div>
                                 </div>
                             ) : (
                                 <div className="bg-white border rounded-xl p-12 text-center text-gray-500">
